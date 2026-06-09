@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "gilbertos-project-340619",
     "public": "frontend/dist",
     "ignore": [
       "firebase.json",

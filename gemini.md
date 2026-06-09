@@ -166,3 +166,34 @@ Prevent custom brand configurations from overwriting the default Google Cloud br
 - **Session Persistence**: Any custom branding profile (e.g. Fleet Pride, Coca Cola) selected or saved remains active and persists during tab refreshes inside that active session.
 - **Verification Screenshot**: [media_1781029135033.png](file:///Users/gilgtz/.gemini/jetski/brain/44464730-160b-4056-9b0f-231e24d15fa4/.tempmediaStorage/media_44464730-160b-4056-9b0f-231e24d15fa4_1781029135033.png)
 
+
+# Session Summary - Git Repository Setup, Firebase Deployment & Custom Auth Domain Mapping (2026-06-09 - Session 3)
+
+## Objective
+Initialize the local codebase as a git repository, exclude private key files with a root `.gitignore` rule, commit and push to a personal GitHub account, provide configuration templates, deploy the React frontend static pages to Firebase Hosting, map a custom subdomain (`retail.cedemoportal.com`) inside Google Cloud DNS, and configure a custom auth domain to ensure Google SSO consent screens display the custom brand domain rather than the default `.firebaseapp.com` server URL.
+
+## 1. Git Repository Setup & Credentials Security
+- **Root Gitignore**: Created a root [.gitignore](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/.gitignore) configuration to safely exclude environment variables, caches, and local configurations.
+- **Initial Push**: Initialized Git, created the initial commit, and pushed the entire workspace to the user's remote repository: `https://github.com/yamigil/Conversational-Analytics.git`.
+- **Environment Templates**: Created [backend/.env.example](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/.env.example) and [frontend/.env.example](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/.env.example) to show future developers how to configure the portal.
+
+## 2. Browser Tab Icon Customization
+- **GCP Favicon**: Replaced the default Vite polygon favicon in [frontend/public/favicon.svg](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/public/favicon.svg) with the official 4-colored Google Cloud logo SVG, updating the browser tab icons.
+
+## 3. Firebase Custom Domain Setup
+- **Subdomain Routing**: Configured Firebase Hosting to bind the custom subdomain `retail.cedemoportal.com`.
+- **DNS Zone Mapping**: Created a CNAME record mapping `retail` to the Firebase target `gilbertos-project-340619.web.app` in Google Cloud DNS.
+- **Root Ownership Verification**: Created a root `TXT` record with the Firebase ownership verification payload (`hosting-site=gilbertos-project-340619`), validating ownership of the parent domain space and enabling automatic subdomain verification.
+
+## 4. Custom Auth Domain Mapping (OAuth SSO Alignment)
+- **OAuth Callback Whitelist**: Added `https://retail.cedemoportal.com/__/auth/handler` to the **Authorized redirect URIs** list inside the Google Cloud Console Credentials page for the Web Client.
+- **OAuth Consent Whitelist**: Added `cedemoportal.com` to the **Authorized domains** list inside the Google Cloud Consent screen.
+- **Client Configuration Update**: Updated `VITE_FIREBASE_AUTH_DOMAIN` in `frontend/.env` to `retail.cedemoportal.com`, changing the authentication redirect target and displaying the custom domain on Google Account SSO selectors.
+
+## 5. Deployment & Verification
+- **Build & Live Push**: Compiled the production bundle and deployed the static assets live:
+  * **Command**: `npm run build --prefix frontend && firebase deploy --only hosting`
+  * **Live Portal**: `https://retail.cedemoportal.com`
+- **SSO Domain Verification**: Verified that clicking the Google Sign-in button on the custom domain opens the Google accounts popup displaying `to continue to retail.cedemoportal.com`.
+
+

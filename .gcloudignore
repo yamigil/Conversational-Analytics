@@ -1,0 +1,22 @@
+# Ignore Git files
+.git
+.gitignore
+
+# Ignore local dependencies and environments
+node_modules/
+frontend/node_modules/
+backend/.venv/
+backend/__pycache__/
+.venv/
+__pycache__/
+
+# Ignore OS-specific files and logs
+.DS_Store
+*.log
+firebase-debug.log
+.firebase/
+.idx/
+
+# Ignore Dockerfile if not needed, but we keep it here
+# Ignore gcloud/config files
+.gcloudignore

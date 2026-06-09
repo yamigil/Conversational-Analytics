@@ -1,0 +1,17 @@
+# Root gitignore rules
+node_modules/
+dist/
+dist-ssr/
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+.env
+.env.local
+.env.*.local
+.DS_Store
+.vscode/
+.idea/
+*.log
+deleted_conversations.json

@@ -917,8 +917,14 @@ const App: React.FC = () => {
   });
 
   useEffect(() => {
-    sessionStorage.setItem("ca_settings_tab", settingsActiveTab);
-  }, [settingsActiveTab]);
+    if (user?.email?.endsWith("@gmail.com")) {
+      if (settingsActiveTab !== "branding") {
+        setSettingsActiveTab("branding");
+      }
+    } else {
+      sessionStorage.setItem("ca_settings_tab", settingsActiveTab);
+    }
+  }, [settingsActiveTab, user]);
 
   const [settingsProjectId, setSettingsProjectId] = useState("");
   const [settingsTestResult, setSettingsTestResult] = useState("");
@@ -1312,14 +1318,20 @@ const App: React.FC = () => {
   const handleNextTour = () => {
     if (tourStep === 1) {
       setCurrentPage("settings");
-      setSettingsActiveTab("general");
-      setTourStep(2);
+      if (user?.email?.endsWith("@gmail.com")) {
+        setSettingsActiveTab("branding");
+        setTourStep(3);
+      } else {
+        setSettingsActiveTab("general");
+        setTourStep(2);
+      }
     } else if (tourStep === 2) {
       setSettingsActiveTab("branding");
       setTourStep(3);
     } else if (tourStep === 3) {
       setTourStep(4);
     } else if (tourStep === 4) {
+      setShowPreviewModal(false);
       setTourStep(5);
     } else if (tourStep === 5) {
       setCurrentPage("home");
@@ -1348,11 +1360,17 @@ const App: React.FC = () => {
       setCurrentPage("home");
       setTourStep(1);
     } else if (tourStep === 3) {
-      setSettingsActiveTab("general");
-      setTourStep(2);
+      if (user?.email?.endsWith("@gmail.com")) {
+        setCurrentPage("home");
+        setTourStep(1);
+      } else {
+        setSettingsActiveTab("general");
+        setTourStep(2);
+      }
     } else if (tourStep === 4) {
       setTourStep(3);
     } else if (tourStep === 5) {
+      setShowPreviewModal(true);
       setTourStep(4);
     } else if (tourStep === 6) {
       setCurrentPage("settings");
@@ -2634,14 +2652,16 @@ const App: React.FC = () => {
             </header>
 
             <div className="flex flex-col md:flex-row gap-6">
-              {/* Settings Nav */}
+               {/* Settings Nav */}
               <nav id="settings-sidebar-nav" className={`glass-panel w-full md:w-64 p-4 rounded-2xl flex flex-col gap-2 h-fit ${tourStep === 2 ? 'tour-highlight' : ''}`}>
-                <button 
-                  onClick={() => setSettingsActiveTab("general")}
-                  className={`px-4 py-3 text-left text-sm font-semibold rounded-lg cursor-pointer transition duration-150 ${settingsActiveTab === "general" ? "bg-white/8 text-white border-l-3 border-l-brand-primary" : "text-slate-400 hover:text-white hover:bg-white/2"}`}
-                >
-                  General Configuration
-                </button>
+                {!user?.email?.endsWith("@gmail.com") && (
+                  <button 
+                    onClick={() => setSettingsActiveTab("general")}
+                    className={`px-4 py-3 text-left text-sm font-semibold rounded-lg cursor-pointer transition duration-150 ${settingsActiveTab === "general" ? "bg-white/8 text-white border-l-3 border-l-brand-primary" : "text-slate-400 hover:text-white hover:bg-white/2"}`}
+                  >
+                    General Configuration
+                  </button>
+                )}
                 <button 
                   onClick={() => setSettingsActiveTab("branding")}
                   className={`px-4 py-3 text-left text-sm font-semibold rounded-lg cursor-pointer transition duration-150 ${settingsActiveTab === "branding" ? "bg-white/8 text-white border-l-3 border-l-brand-primary" : "text-slate-400 hover:text-white hover:bg-white/2"}`}
@@ -2971,27 +2991,27 @@ const App: React.FC = () => {
       {/* Onboarding Tour Tooltip Overlay */}
       {tourStep > 0 && (
         <div 
-          className="absolute bg-slate-900/95 border border-brand-primary/40 p-5 rounded-2xl shadow-2xl z-50 w-80 backdrop-blur-md animate-fadeIn flex flex-col gap-3.5 select-none"
+          className="absolute bg-slate-900/98 border border-amber-500/55 p-5 rounded-2xl shadow-[0_0_30px_rgba(245,158,11,0.18)] z-50 w-80 backdrop-blur-md animate-fadeIn flex flex-col gap-3.5 select-none"
           style={tooltipStyle}
         >
           {/* Arrow indicator */}
           {(tourStep === 1 || tourStep === 5 || tourStep === 11 || tourStep === 12) && (
-            <div className={`absolute -top-2 ${tourStep === 1 || tourStep === 11 || tourStep === 12 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-t border-l border-brand-primary/40 rotate-45`} />
+            <div className={`absolute -top-2 ${tourStep === 1 || tourStep === 11 || tourStep === 12 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-t border-l border-amber-500/55 rotate-45`} />
           )}
           {(tourStep === 2 || tourStep === 8 || tourStep === 9) && (
-            <div className="absolute -left-2 top-6 w-4 h-4 bg-slate-900 border-b border-l border-brand-primary/40 rotate-45" />
+            <div className="absolute -left-2 top-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
           )}
           {(tourStep === 3) && (
-            <div className="absolute -right-2 top-6 w-4 h-4 bg-slate-900 border-t border-r border-brand-primary/40 rotate-45" />
+            <div className="absolute -right-2 top-6 w-4 h-4 bg-slate-900 border-t border-r border-amber-500/55 rotate-45" />
           )}
           {(tourStep === 4 || tourStep === 6 || tourStep === 7 || tourStep === 10) && (
-            <div className="absolute -bottom-2 left-6 w-4 h-4 bg-slate-900 border-b border-r border-brand-primary/40 rotate-45" />
+            <div className="absolute -bottom-2 left-6 w-4 h-4 bg-slate-900 border-b border-r border-amber-500/55 rotate-45" />
           )}
 
           {/* Content */}
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-amber-400 animate-pulse" />
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400">
               {tourStep === 1 && "1. Configure Portal"}
               {tourStep === 2 && "2. Connection & Credentials"}
               {tourStep === 3 && "3. Customize Branding"}
@@ -3008,18 +3028,21 @@ const App: React.FC = () => {
           </div>
 
           <p className="text-xs text-slate-300 leading-relaxed font-medium">
-            {tourStep === 1 && "Click the settings gear icon in the top right to customize color schemes, manage brand profile details, or test Google Cloud API credentials."}
-            {tourStep === 2 && "Choose your Authentication Mode and targeted Google Cloud Project ID inside this panel to establish the backend database connection. (Note: Project overrides are only applicable when using SSO User Session mode)."}
+            {tourStep === 1 && (user?.email?.endsWith("@gmail.com") 
+              ? "Click the settings gear icon in the top right to customize color schemes and update your portal branding profile." 
+              : "Click the settings gear icon in the top right to customize color schemes, manage your portal branding profile, or modify how the website communicates with the Conversational Analytics API.")
+            }
+            {tourStep === 2 && "Select 'SSO User Session' in case you want to access and query custom data agents defined inside your own Google Cloud projects."}
             {tourStep === 3 && "Set your logo banner titles and search the web for custom brand logos to personalize your analytics portal. Accent colors and backgrounds are automatically inferred and applied based on the brand you select."}
             {tourStep === 4 && "Once you have finished customizing the branding settings, click here to see a live preview of how the conversational analytics workspace looks."}
             {tourStep === 5 && "Great job configuring! Click the brand logo or application title in the top-left header to navigate back to the main dashboard."}
-            {tourStep === 6 && "This section displays auto-generated AI insights from your tables. If empty, the backend runs Gemini in the background to analyze recent schemas and populate these reports."}
-            {tourStep === 7 && "Click the 'Conversational Analytics' card to open the interactive chat interface where you can query your data in natural language."}
-            {tourStep === 8 && "Use this selector in the sidebar to switch between different data agents (e.g. Sales, Operations, Database Administrator) depending on the context of your query."}
-            {tourStep === 9 && "Click the '+' icon to create a new session sandbox or delete previous ones. Each session preserves its own conversation logs."}
-            {tourStep === 10 && "Fast Mode provides quick answers and simple charts. Toggle Thinking Mode to invoke multi-step reasoning models for complex analytical and visualization tasks."}
-            {tourStep === 11 && "You can also override credentials or switch the targeted Google Cloud Project ID dynamically on the fly right here from the header dropdown without entering Settings."}
-            {tourStep === 12 && "Click here to show the system design flow. Show this reference diagram to customers to explain backend APIs, Firestore storage, and secure Google Cloud boundaries."}
+            {tourStep === 6 && "Review high-level executive summaries and trends auto-generated by AI based on your business data. These reports update automatically as new transactions and files are ingested."}
+            {tourStep === 7 && "Select this action to enter the interactive chat workspace, where you can ask questions and query your data directly using natural conversation."}
+            {tourStep === 8 && "Choose a specialized AI data assistant depending on your query context, such as Sales Insights, Operational Tracking, or Technical Admin assistance."}
+            {tourStep === 9 && "View or manage your recent conversational analytics sessions with any of the data agents. You can start a new session or delete old ones to keep your workspace organized."}
+            {tourStep === 10 && "Toggle between 'Fast Answer' for quick responses, or 'In-Depth Analysis' to activate advanced reasoning models for complex queries and multi-step data visualizations."}
+            {tourStep === 11 && "For advanced profiles, you can switch your active workspace credentials or target Google Cloud projects directly from this quick dropdown menu."}
+            {tourStep === 12 && "Access the secure architecture flow diagram to review the design, data pipeline integration, and Google Cloud security boundaries of this analytics portal."}
           </p>
 
           {/* Buttons */}
@@ -3062,7 +3085,7 @@ const App: React.FC = () => {
       {/* Live Portal Preview Modal */}
       {showPreviewModal && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn select-none">
-          <div className="glass-panel p-6 rounded-2xl w-full max-w-lg border border-white/10 shadow-2xl flex flex-col gap-4">
+          <div className="glass-panel p-6 rounded-2xl w-full max-w-4xl border border-white/10 shadow-2xl flex flex-col gap-4">
             <div className="flex justify-between items-center pb-2 border-b border-white/6">
               <h3 className="font-heading font-bold text-sm text-white">Live Portal Preview</h3>
               <button 
@@ -3079,7 +3102,7 @@ const App: React.FC = () => {
             
             {/* Mini Browser Frame */}
             <div 
-              className="w-full aspect-[4/3] rounded-xl border border-white/10 overflow-hidden flex flex-col shadow-inner transition duration-300 relative"
+              className="w-full aspect-video rounded-xl border border-white/10 overflow-hidden flex flex-col shadow-inner transition duration-300 relative"
               style={{
                 background: `linear-gradient(to bottom, ${brandBgStart || '#020617'}, ${brandBgEnd || '#0f172a'})`
               }}

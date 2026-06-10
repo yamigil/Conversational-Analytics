@@ -1828,43 +1828,8 @@ const App: React.FC = () => {
         if (data.welcomeMessage) setBrandWelcome(data.welcomeMessage);
         setBrandLogoSvg(finalLogoSvg);
 
-        // Update global branding configurations mapping and save to disk
-        if (branding) {
-          const newBrandConfig: BrandConfig = {
-            name: finalName,
-            primaryColor: data.primaryColor || brandPrimary,
-            secondaryColor: data.secondaryColor || brandSecondary,
-            backgroundColorStart: data.backgroundColorStart || brandBgStart,
-            backgroundColorEnd: data.backgroundColorEnd || brandBgEnd,
-            welcomeMessage: data.welcomeMessage || brandWelcome,
-            logoUrl: logoUrl,
-            logoText: finalLogoText,
-            logoSvg: finalLogoSvg
-          };
-
-          const updated: BrandingData = {
-            activeBrand: brandKey,
-            brands: {
-              ...branding.brands,
-              [brandKey]: newBrandConfig
-            }
-          };
-
-          try {
-            await authenticatedFetch("/api/branding", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(updated)
-            });
-            setBranding(updated);
-            setActiveBrandKey(brandKey);
-            setAppActiveBrandKey(brandKey);
-            sessionStorage.setItem("ca_active_brand", brandKey);
-            applyBrandingCSS(newBrandConfig);
-          } catch (err) {
-            console.error("Failed to automatically save new brand profile:", err);
-          }
-        }
+        // Set active profile key so saving will save under this brand key
+        setActiveBrandKey(brandKey);
       } else {
         setLogoSearchError("Failed to generate theme from selected logo.");
       }

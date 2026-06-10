@@ -2,7 +2,7 @@ import os
 import json
 import logging
 import requests
-from fastapi import FastAPI, HTTPException, Body, Depends, Header
+from fastapi import FastAPI, HTTPException, Body, Depends, Header, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -682,21 +682,21 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
         domain = clean_query.lower()
         results.append({
             "title": f"Domain: {domain}",
-            "url": f"https://www.google.com/s2/favicons?domain={domain}&sz=128&default=404",
+            "url": f"/api/branding/logo-proxy?url=https://logo.clearbit.com/{domain}",
             "source": "Website Match"
         })
     else:
         spaced_removed = clean_query.replace(" ", "").lower()
         results.append({
             "title": f"Speculative: {spaced_removed}.com",
-            "url": f"https://www.google.com/s2/favicons?domain={spaced_removed}.com&sz=128&default=404",
+            "url": f"/api/branding/logo-proxy?url=https://logo.clearbit.com/{spaced_removed}.com",
             "source": "Website Match"
         })
         if " " in clean_query:
             hyphenated = clean_query.replace(" ", "-").lower()
             results.append({
                 "title": f"Speculative: {hyphenated}.com",
-                "url": f"https://www.google.com/s2/favicons?domain={hyphenated}.com&sz=128&default=404",
+                "url": f"/api/branding/logo-proxy?url=https://logo.clearbit.com/{hyphenated}.com",
                 "source": "Website Match"
             })
 
@@ -710,7 +710,7 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
             data = response.json()
             for item in data:
                 if item.get("domain"):
-                    logo_url = f"https://www.google.com/s2/favicons?domain={item['domain']}&sz=128&default=404"
+                    logo_url = f"/api/branding/logo-proxy?url=https://logo.clearbit.com/{item['domain']}"
                     if not any(r["url"] == logo_url for r in results):
                         results.append({
                             "title": item.get("name", clean_query),
@@ -741,6 +741,19 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
         logger.warning(f"Google Image scrape failed: {e}")
         
     return results
+
+@app.get("/api/branding/logo-proxy")
+def logo_proxy(url: str = Query(...)):
+    if not url.startswith("https://logo.clearbit.com/") and not url.startswith("https://autocomplete.clearbit.com/"):
+        raise HTTPException(status_code=400, detail="Invalid proxy target")
+    try:
+        res = requests.get(url, timeout=5)
+        if not res.ok:
+            return Response(status_code=404)
+        return Response(content=res.content, media_type=res.headers.get("Content-Type", "image/png"))
+    except Exception as e:
+        logger.warning(f"Failed to proxy logo URL {url}: {e}")
+        return Response(status_code=404)
 
 @app.get("/api/branding")
 def get_branding(user: dict = Depends(get_current_user)):

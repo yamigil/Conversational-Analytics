@@ -617,6 +617,9 @@ def generate_branding(req: GenerateBrandingRequest, user: dict = Depends(get_cur
                     "</svg>"
                 )
             
+        if req.logo_url:
+            logo_svg = f'<img src="{req.logo_url}" alt="{brand_name}" class="w-full h-full object-contain" />'
+            
         return {
             "name": brand_name,
             "primaryColor": primary,

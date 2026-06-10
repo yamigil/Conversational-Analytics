@@ -2112,10 +2112,20 @@ const App: React.FC = () => {
 
             {/* User Profile Block */}
             {user.email && (
-              <div className="text-right hidden sm:block">
-                <div className="text-xs font-semibold text-slate-300">{user.email}</div>
-                <div className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">Authorized Session</div>
-              </div>
+              <>
+                <div className="text-right hidden sm:block">
+                  <div className="text-xs font-semibold text-slate-300">{user.email}</div>
+                  <div className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">Authorized Session</div>
+                </div>
+                {/* Mobile User Avatar Circle */}
+                <div 
+                  className="flex sm:hidden w-8 h-8 rounded-full bg-brand-primary/15 border border-brand-primary/30 items-center justify-center text-xs font-bold text-brand-primary cursor-pointer select-none active:scale-95 transition"
+                  title={`Logged in as: ${user.email}`}
+                  onClick={() => alert(`Logged in as: ${user.email}`)}
+                >
+                  {user.email[0].toUpperCase()}
+                </div>
+              </>
             )}
 
             {/* Settings Gear Button */}

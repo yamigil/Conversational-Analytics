@@ -903,7 +903,40 @@ const App: React.FC = () => {
     await fetchGcpProjects();
     await fetchAgents();
   };
-  
+  const getDisplayStepInfo = (actualStep: number) => {
+    const isGmailUser = user?.email?.endsWith("@gmail.com");
+    if (isGmailUser) {
+      if (actualStep === 1) return { num: 1, text: "1. Configure Portal", total: 11 };
+      if (actualStep === 3) return { num: 2, text: "2. Customize Branding", total: 11 };
+      if (actualStep === 4) return { num: 3, text: "3. Live Portal Preview", total: 11 };
+      if (actualStep === 5) return { num: 4, text: "4. Return to Dashboard", total: 11 };
+      if (actualStep === 6) return { num: 5, text: "5. Executive Insights", total: 11 };
+      if (actualStep === 7) return { num: 6, text: "6. Launch Chat Workspace", total: 11 };
+      if (actualStep === 8) return { num: 7, text: "7. Select AI Agent", total: 11 };
+      if (actualStep === 9) return { num: 8, text: "8. Manage History", total: 11 };
+      if (actualStep === 10) return { num: 9, text: "9. Switch Chat Mode", total: 11 };
+      if (actualStep === 11) return { num: 10, text: "10. Override Connection", total: 11 };
+      if (actualStep === 12) return { num: 11, text: "11. Reference Architecture", total: 11 };
+    }
+    return {
+      num: actualStep,
+      text: actualStep === 1 ? "1. Configure Portal"
+          : actualStep === 2 ? "2. Connection & Credentials"
+          : actualStep === 3 ? "3. Customize Branding"
+          : actualStep === 4 ? "4. Live Portal Preview"
+          : actualStep === 5 ? "5. Return to Dashboard"
+          : actualStep === 6 ? "6. Executive Insights"
+          : actualStep === 7 ? "7. Launch Chat Workspace"
+          : actualStep === 8 ? "8. Select AI Agent"
+          : actualStep === 9 ? "9. Manage History"
+          : actualStep === 10 ? "10. Switch Chat Mode"
+          : actualStep === 11 ? "11. Override Connection"
+          : actualStep === 12 ? "12. Reference Architecture"
+          : "",
+      total: 12
+    };
+  };
+
   // Chat inputs & states
   const [inputText, setInputText] = useState("");
   const [isQuerying, setIsQuerying] = useState(false);
@@ -3021,18 +3054,7 @@ const App: React.FC = () => {
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-amber-400 animate-pulse" />
             <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400">
-              {tourStep === 1 && "1. Configure Portal"}
-              {tourStep === 2 && "2. Connection & Credentials"}
-              {tourStep === 3 && "3. Customize Branding"}
-              {tourStep === 4 && "4. Live Portal Preview"}
-              {tourStep === 5 && "5. Return to Dashboard"}
-              {tourStep === 6 && "6. Executive Insights"}
-              {tourStep === 7 && "7. Launch Chat Workspace"}
-              {tourStep === 8 && "8. Select AI Agent"}
-              {tourStep === 9 && "9. Manage History"}
-              {tourStep === 10 && "10. Switch Chat Mode"}
-              {tourStep === 11 && "11. Override Connection"}
-              {tourStep === 12 && "12. Reference Architecture"}
+              {getDisplayStepInfo(tourStep).text}
             </h4>
           </div>
 
@@ -3065,7 +3087,7 @@ const App: React.FC = () => {
 
             <div className="flex gap-2 items-center">
               <span className="text-[10px] text-slate-500 font-bold mr-1">
-                {tourStep} of 12
+                {getDisplayStepInfo(tourStep).num} of {getDisplayStepInfo(tourStep).total}
               </span>
               {tourStep > 1 && (
                 <button 
@@ -3080,7 +3102,7 @@ const App: React.FC = () => {
                   onClick={handleNextTour}
                   className="py-1.5 px-3.5 bg-brand-primary hover:opacity-90 text-white rounded-lg text-xs font-semibold cursor-pointer transition shadow-md border-none"
                 >
-                  {tourStep === 12 ? "Finish" : "Next"}
+                  {getDisplayStepInfo(tourStep).num === getDisplayStepInfo(tourStep).total ? "Finish" : "Next"}
                 </button>
               ) : (
                 <span className="text-[10px] text-amber-400 font-bold animate-pulse mr-1 whitespace-nowrap">

@@ -3091,10 +3091,15 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
-      {/* Live Portal Preview Modal */}
       {showPreviewModal && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn select-none">
-          <div className="glass-panel p-6 rounded-2xl w-full max-w-4xl border border-white/10 shadow-2xl flex flex-col gap-4">
+        <div 
+          onClick={() => setShowPreviewModal(false)}
+          className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn select-none"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel p-6 rounded-2xl w-full max-w-4xl border border-white/10 shadow-2xl flex flex-col gap-4"
+          >
             <div className="flex justify-between items-center pb-2 border-b border-white/6">
               <h3 className="font-heading font-bold text-sm text-white">Live Portal Preview</h3>
               <button 

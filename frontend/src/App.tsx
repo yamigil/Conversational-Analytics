@@ -750,9 +750,10 @@ const App: React.FC = () => {
   const renderLogoSvg = (brandKey: string) => {
     const brand = branding?.brands?.[brandKey];
     if (brand && brand.logoSvg) {
+      const isImg = brand.logoSvg.includes("<img");
       return (
         <span 
-          className="w-full h-full flex items-center justify-center svg-logo-container" 
+          className={`w-full h-full flex items-center justify-center svg-logo-container ${isImg ? 'bg-white/95 p-0.5 rounded-lg' : ''}`} 
           dangerouslySetInnerHTML={{ __html: brand.logoSvg }} 
         />
       );
@@ -2999,7 +3000,7 @@ const App: React.FC = () => {
                         <div className="flex flex-col gap-4 border-t border-white/6 pt-4">
                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Active Logo & Theme Preview</label>
                           <div className="flex items-center gap-4 bg-slate-950/40 border border-white/6 rounded-xl p-4">
-                            <div className="w-16 h-16 rounded-xl bg-white/5 border border-white/6 p-2 flex items-center justify-center shrink-0">
+                            <div className={`w-16 h-16 rounded-xl border border-white/6 p-2 flex items-center justify-center shrink-0 ${brandLogoSvg.includes("<img") ? 'bg-white' : 'bg-white/5'}`}>
                               {brandLogoSvg.includes("<svg") ? (
                                 <div className="w-full h-full text-brand-primary" dangerouslySetInnerHTML={{ __html: brandLogoSvg }} />
                               ) : (
@@ -3269,7 +3270,7 @@ const App: React.FC = () => {
                 <div className="flex items-center gap-2 font-heading font-bold" style={{ color: `hsl(${brandPrimary || '217 89% 61%'})` }}>
                   {/* Render Logo */}
                   {brandLogoSvg ? (
-                    <div className="w-5 h-5 flex items-center justify-center mini-logo-preview" dangerouslySetInnerHTML={{ __html: brandLogoSvg }} />
+                    <div className={`w-5 h-5 flex items-center justify-center mini-logo-preview ${brandLogoSvg.includes("<img") ? 'bg-white/95 p-0.5 rounded' : ''}`} dangerouslySetInnerHTML={{ __html: brandLogoSvg }} />
                   ) : (
                     <div className="w-5 h-5 rounded bg-white/10 flex items-center justify-center font-bold text-[10px]">
                       {brandLogoText ? brandLogoText.substring(0, 2) : "AI"}
@@ -3288,7 +3289,7 @@ const App: React.FC = () => {
                 <div className="flex gap-2.5 items-start max-w-[85%]">
                   <div className="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden select-none">
                     {brandLogoSvg ? (
-                      <div className="w-full h-full p-0.5 flex items-center justify-center mini-logo-preview" dangerouslySetInnerHTML={{ __html: brandLogoSvg }} />
+                      <div className={`w-full h-full p-0.5 flex items-center justify-center mini-logo-preview ${brandLogoSvg.includes("<img") ? 'bg-white' : ''}`} dangerouslySetInnerHTML={{ __html: brandLogoSvg }} />
                     ) : (
                       <span className="text-[9px] font-bold text-slate-300">
                         {brandLogoText ? brandLogoText.substring(0, 2) : "AI"}

@@ -2819,8 +2819,8 @@ const App: React.FC = () => {
                                     src={logo.url} 
                                     alt={logo.title} 
                                     className="max-w-full max-h-full object-contain group-hover:scale-105 transition"
-                                    onError={(e) => {
-                                      (e.target as HTMLElement).style.display = 'none';
+                                    onError={() => {
+                                      setLogoSearchResults(prev => prev.filter((_, idx2) => idx2 !== idx));
                                     }}
                                   />
                                 </div>
@@ -2995,8 +2995,8 @@ const App: React.FC = () => {
 
           <p className="text-xs text-slate-300 leading-relaxed font-medium">
             {tourStep === 1 && "Click the settings gear icon in the top right to customize color schemes, manage brand profile details, or test Google Cloud API credentials."}
-            {tourStep === 2 && "Choose your Authentication Mode and targeted Google Cloud Project ID inside this panel to establish the backend database connection. (You can also toggle these configurations anytime from the identity dropdown button on the top-right header)."}
-            {tourStep === 3 && "Customize HSL theme colors, set your logo banner titles, and search the web for custom brand logos to personalize your analytics portal."}
+            {tourStep === 2 && "Choose your Authentication Mode and targeted Google Cloud Project ID inside this panel to establish the backend database connection. (Note: Project overrides are only applicable when using SSO User Session mode)."}
+            {tourStep === 3 && "Set your logo banner titles and search the web for custom brand logos to personalize your analytics portal. Accent colors and backgrounds are automatically inferred and applied based on the brand you select."}
             {tourStep === 4 && "Once you have finished customizing the branding settings, click here to see a live preview of how the conversational analytics workspace looks."}
             {tourStep === 5 && "Great job configuring! Click the brand logo or application title in the top-left header to navigate back to the main dashboard."}
             {tourStep === 6 && "This section displays auto-generated AI insights from your tables. If empty, the backend runs Gemini in the background to analyze recent schemas and populate these reports."}

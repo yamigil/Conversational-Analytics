@@ -2901,31 +2901,68 @@ const App: React.FC = () => {
                           <span>Analyzing logo colors and applying custom theme...</span>
                         </div>
                       ) : logoSearchResults.length > 0 ? (
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Search Results (Select to apply theme)</label>
-                          <div className="grid grid-cols-4 gap-3 bg-slate-950/20 rounded-xl p-3 border border-white/4 max-h-48 overflow-y-auto">
-                            {logoSearchResults.map((logo) => (
-                              <div 
-                                key={logo.url}
-                                onClick={() => handleSelectSearchLogo(logo.url, logo.title)}
-                                className="p-2 bg-white/5 border border-white/6 hover:border-brand-primary/50 hover:bg-brand-primary/5 rounded-xl cursor-pointer flex flex-col items-center justify-center aspect-square gap-1.5 transition group"
-                              >
-                                <div className="w-10 h-10 flex items-center justify-center overflow-hidden">
-                                  <img 
-                                    src={logo.url} 
-                                    alt={logo.title} 
-                                    className="max-w-full max-h-full object-contain group-hover:scale-105 transition"
-                                    onError={() => {
-                                      setLogoSearchResults(prev => prev.filter(r => r.url !== logo.url));
-                                    }}
-                                  />
-                                </div>
-                                <span className="text-[8px] text-slate-500 truncate max-w-full text-center">
-                                  {logo.source}
-                                </span>
+                        <div className="flex flex-col gap-4">
+                          {/* High-Resolution Logos */}
+                          {logoSearchResults.some(r => r.source === "Web Search") && (
+                            <div className="flex flex-col gap-2">
+                              <label className="text-[9px] font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1.5 select-none">
+                                <span className="w-1 h-1 rounded-full bg-brand-primary" />
+                                High-Resolution Logos (Web Search)
+                              </label>
+                              <div className="grid grid-cols-4 gap-3 bg-slate-950/20 rounded-xl p-3 border border-white/4 max-h-48 overflow-y-auto">
+                                {logoSearchResults.filter(r => r.source === "Web Search").map((logo) => (
+                                  <div 
+                                    key={logo.url}
+                                    onClick={() => handleSelectSearchLogo(logo.url, logo.title)}
+                                    className="p-2 bg-white/5 border border-white/6 hover:border-brand-primary/50 hover:bg-brand-primary/5 rounded-xl cursor-pointer flex flex-col items-center justify-center aspect-square gap-1 transition group"
+                                  >
+                                    <div className="w-10 h-10 flex items-center justify-center overflow-hidden">
+                                      <img 
+                                        src={logo.url} 
+                                        alt={logo.title} 
+                                        className="max-w-full max-h-full object-contain group-hover:scale-105 transition"
+                                        onError={() => {
+                                          setLogoSearchResults(prev => prev.filter(r => r.url !== logo.url));
+                                        }}
+                                      />
+                                    </div>
+                                    <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider scale-90 mt-1">High Res</span>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
-                          </div>
+                            </div>
+                          )}
+
+                          {/* Fallback Favicons */}
+                          {logoSearchResults.some(r => r.source !== "Web Search") && (
+                            <div className="flex flex-col gap-2">
+                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 select-none">
+                                <span className="w-1 h-1 rounded-full bg-slate-500" />
+                                Website Favicons (Low Res Fallback)
+                              </label>
+                              <div className="grid grid-cols-4 gap-3 bg-slate-950/20 rounded-xl p-3 border border-white/4 max-h-48 overflow-y-auto">
+                                {logoSearchResults.filter(r => r.source !== "Web Search").map((logo) => (
+                                  <div 
+                                    key={logo.url}
+                                    onClick={() => handleSelectSearchLogo(logo.url, logo.title)}
+                                    className="p-2 bg-white/5 border border-white/6 hover:border-brand-primary/50 hover:bg-brand-primary/5 rounded-xl cursor-pointer flex flex-col items-center justify-center aspect-square gap-1 transition group"
+                                  >
+                                    <div className="w-10 h-10 flex items-center justify-center overflow-hidden">
+                                      <img 
+                                        src={logo.url} 
+                                        alt={logo.title} 
+                                        className="max-w-full max-h-full object-contain group-hover:scale-105 transition"
+                                        onError={() => {
+                                          setLogoSearchResults(prev => prev.filter(r => r.url !== logo.url));
+                                        }}
+                                      />
+                                    </div>
+                                    <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider scale-90 mt-1">Favicon</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ) : null}
 

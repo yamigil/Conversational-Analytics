@@ -1597,7 +1597,8 @@ const App: React.FC = () => {
         const data = await res.json();
         setLogoSearchResults(data);
       } else {
-        setLogoSearchError("Failed to fetch search results.");
+        const errText = await res.text().catch(() => "");
+        setLogoSearchError(`Failed to fetch search results (Status ${res.status}: ${errText || res.statusText}).`);
       }
     } catch (e: any) {
       setLogoSearchError(e.message || "An error occurred during search.");

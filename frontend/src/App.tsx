@@ -2185,6 +2185,20 @@ const App: React.FC = () => {
       {/* -------------------- SIDEBAR -------------------- */}
       {currentPage === "chat" && (
         <aside className={`w-80 border-r border-white/6 bg-slate-900/45 backdrop-blur-md flex flex-col p-6 z-50 transition-transform duration-300 fixed md:static inset-y-0 left-0 h-full md:h-auto md:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+          {/* Back to Dashboard Button */}
+          <button 
+            onClick={() => {
+              setIsSidebarOpen(false);
+              setCurrentPage("home");
+              if (selectedAgent) fetchInsights(selectedAgent);
+            }}
+            className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-brand-primary mb-6 transition cursor-pointer self-start border-none bg-transparent"
+            title="Return to main dashboard"
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Dashboard</span>
+          </button>
+
           <div className="flex justify-between items-center mb-8">
             <div className="font-heading text-2xl font-bold tracking-tight bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
               Data Workspace

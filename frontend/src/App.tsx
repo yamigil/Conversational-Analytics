@@ -906,17 +906,16 @@ const App: React.FC = () => {
   const getDisplayStepInfo = (actualStep: number) => {
     const isGmailUser = user?.email?.endsWith("@gmail.com");
     if (isGmailUser) {
-      if (actualStep === 1) return { num: 1, text: "1. Configure Portal", total: 11 };
-      if (actualStep === 3) return { num: 2, text: "2. Customize Branding", total: 11 };
-      if (actualStep === 4) return { num: 3, text: "3. Live Portal Preview", total: 11 };
-      if (actualStep === 5) return { num: 4, text: "4. Return to Dashboard", total: 11 };
-      if (actualStep === 6) return { num: 5, text: "5. Executive Insights", total: 11 };
-      if (actualStep === 7) return { num: 6, text: "6. Launch Chat Workspace", total: 11 };
-      if (actualStep === 8) return { num: 7, text: "7. Select AI Agent", total: 11 };
-      if (actualStep === 9) return { num: 8, text: "8. Manage History", total: 11 };
-      if (actualStep === 10) return { num: 9, text: "9. Switch Chat Mode", total: 11 };
-      if (actualStep === 11) return { num: 10, text: "10. Override Connection", total: 11 };
-      if (actualStep === 12) return { num: 11, text: "11. Reference Architecture", total: 11 };
+      if (actualStep === 1) return { num: 1, text: "1. Configure Portal", total: 10 };
+      if (actualStep === 3) return { num: 2, text: "2. Customize Branding", total: 10 };
+      if (actualStep === 4) return { num: 3, text: "3. Live Portal Preview", total: 10 };
+      if (actualStep === 5) return { num: 4, text: "4. Return to Dashboard", total: 10 };
+      if (actualStep === 6) return { num: 5, text: "5. Executive Insights", total: 10 };
+      if (actualStep === 7) return { num: 6, text: "6. Launch Chat Workspace", total: 10 };
+      if (actualStep === 8) return { num: 7, text: "7. Select AI Agent", total: 10 };
+      if (actualStep === 9) return { num: 8, text: "8. Manage History", total: 10 };
+      if (actualStep === 10) return { num: 9, text: "9. Switch Chat Mode", total: 10 };
+      if (actualStep === 12) return { num: 10, text: "10. Reference Architecture", total: 10 };
     }
     return {
       num: actualStep,
@@ -1379,7 +1378,11 @@ const App: React.FC = () => {
     } else if (tourStep === 9) {
       setTourStep(10);
     } else if (tourStep === 10) {
-      setTourStep(11);
+      if (user?.email?.endsWith("@gmail.com")) {
+        setTourStep(12);
+      } else {
+        setTourStep(11);
+      }
     } else if (tourStep === 11) {
       setTourStep(12);
     } else if (tourStep === 12) {
@@ -1422,7 +1425,11 @@ const App: React.FC = () => {
     } else if (tourStep === 11) {
       setTourStep(10);
     } else if (tourStep === 12) {
-      setTourStep(11);
+      if (user?.email?.endsWith("@gmail.com")) {
+        setTourStep(10);
+      } else {
+        setTourStep(11);
+      }
     }
   };
 
@@ -2100,80 +2107,93 @@ const App: React.FC = () => {
 
             {/* Interactive Connection & Identity Selector */}
             <div id="project-override-container" className={`relative ${tourStep === 11 ? 'tour-highlight' : ''}`} ref={connDropdownRef}>
-              <button 
-                onClick={() => setShowConnDropdown(!showConnDropdown)}
-                className="flex items-center gap-2 text-[10px] text-slate-300 bg-white/4 hover:bg-white/6 border border-white/6 px-3.5 py-1.5 rounded-full cursor-pointer select-none font-semibold transition whitespace-nowrap"
-              >
-                <span className={`w-2 h-2 rounded-full ${
-                  connectionStatus === "error" ? "bg-rose-500 shadow-[0_0_8px_#ef4444]" : "bg-emerald-500 shadow-[0_0_8px_#10b981]"
-                }`} />
-                <span>
-                  <span className="hidden sm:inline">
-                    {connectionStatus === "error" ? "Connection Error" : (credentialsMode === "service_account" ? "GCP: Service Account" : "GCP: SSO User")}
+              {user?.email?.endsWith("@gmail.com") ? (
+                <div className="flex items-center gap-2 text-[10px] text-slate-300 bg-white/4 border border-white/6 px-3.5 py-1.5 rounded-full select-none font-semibold transition whitespace-nowrap">
+                  <span className={`w-2 h-2 rounded-full ${
+                    connectionStatus === "error" ? "bg-rose-500 shadow-[0_0_8px_#ef4444]" : "bg-emerald-500 shadow-[0_0_8px_#10b981]"
+                  }`} />
+                  <span>
+                    {connectionStatus === "error" ? "Connection Error" : "GCP: Online"}
                   </span>
-                  <span className="inline sm:hidden">
-                    {connectionStatus === "error" ? "Error" : (credentialsMode === "service_account" ? "SA" : "SSO")}
-                  </span>
-                </span>
-                <ChevronDown size={10} className="text-slate-400" />
-              </button>
-              
-              {showConnDropdown && (
-                <div className="absolute top-full right-0 mt-2 w-64 bg-slate-950/95 border border-white/8 rounded-xl shadow-xl overflow-hidden backdrop-blur-md z-50 animate-slideDown flex flex-col">
-                  <div className="px-3 py-2 bg-white/3 border-b border-white/6 text-[9px] font-bold uppercase tracking-wider text-slate-400 select-none text-left">
-                    Active Identity
-                  </div>
-                  <button
-                    onClick={() => {
-                      handleCredentialsModeChange("service_account");
-                    }}
-                    className={`w-full px-4 py-2.5 text-left hover:bg-white/4 transition text-xs font-semibold text-slate-200 cursor-pointer border-none bg-transparent flex items-center justify-between ${credentialsMode === "service_account" ? "bg-white/2 text-white font-bold" : ""}`}
-                  >
-                    <span>💼 Service Account (ADC)</span>
-                    {credentialsMode === "service_account" && <span className="text-brand-primary text-[10px]">✓</span>}
-                  </button>
-                  {isCorporateUser(user?.email || auth.currentUser?.email || null) && (
-                    <button
-                      onClick={() => {
-                        handleCredentialsModeChange("user_sso");
-                      }}
-                      className={`w-full px-4 py-2.5 text-left hover:bg-white/4 transition text-xs font-semibold text-slate-200 cursor-pointer border-none bg-transparent flex items-center justify-between ${credentialsMode === "user_sso" ? "bg-white/2 text-white font-bold" : ""}`}
-                    >
-                      <span>👤 SSO User Session</span>
-                      {credentialsMode === "user_sso" && <span className="text-brand-primary text-[10px]">✓</span>}
-                    </button>
-                  )}
-
-                  {credentialsMode === "user_sso" && (
-                    <>
-                      <div className="px-3 py-2 bg-white/3 border-t border-b border-white/6 text-[9px] font-bold uppercase tracking-wider text-slate-400 select-none text-left mt-1">
-                        Target GCP Project
-                      </div>
-                      <div className="p-3 flex flex-col gap-2">
-                        {gcpProjects.length === 0 ? (
-                          <div className="text-[10px] text-slate-500 italic text-center py-2">
-                            No projects loaded
-                          </div>
-                        ) : (
-                          <div className="relative">
-                            <select
-                              value={selectedProject}
-                              onChange={(e) => handleProjectChange(e.target.value)}
-                              className="w-full py-2 px-3 bg-slate-950 border border-white/8 rounded-lg text-xs text-slate-200 focus:border-brand-primary outline-none cursor-pointer appearance-none"
-                            >
-                              {gcpProjects.map((p) => (
-                                <option key={p.projectId} value={p.projectId}>
-                                  {p.name}
-                                </option>
-                              ))}
-                            </select>
-                            <ChevronDown className="absolute right-3 top-2.5 text-slate-400 pointer-events-none" size={12} />
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
                 </div>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => setShowConnDropdown(!showConnDropdown)}
+                    className="flex items-center gap-2 text-[10px] text-slate-300 bg-white/4 hover:bg-white/6 border border-white/6 px-3.5 py-1.5 rounded-full cursor-pointer select-none font-semibold transition whitespace-nowrap"
+                  >
+                    <span className={`w-2 h-2 rounded-full ${
+                      connectionStatus === "error" ? "bg-rose-500 shadow-[0_0_8px_#ef4444]" : "bg-emerald-500 shadow-[0_0_8px_#10b981]"
+                    }`} />
+                    <span>
+                      <span className="hidden sm:inline">
+                        {connectionStatus === "error" ? "Connection Error" : (credentialsMode === "service_account" ? "GCP: Service Account" : "GCP: SSO User")}
+                      </span>
+                      <span className="inline sm:hidden">
+                        {connectionStatus === "error" ? "Error" : (credentialsMode === "service_account" ? "SA" : "SSO")}
+                      </span>
+                    </span>
+                    <ChevronDown size={10} className="text-slate-400" />
+                  </button>
+                  
+                  {showConnDropdown && (
+                    <div className="absolute top-full right-0 mt-2 w-64 bg-slate-950/95 border border-white/8 rounded-xl shadow-xl overflow-hidden backdrop-blur-md z-50 animate-slideDown flex flex-col">
+                      <div className="px-3 py-2 bg-white/3 border-b border-white/6 text-[9px] font-bold uppercase tracking-wider text-slate-400 select-none text-left">
+                        Active Identity
+                      </div>
+                      <button
+                        onClick={() => {
+                          handleCredentialsModeChange("service_account");
+                        }}
+                        className={`w-full px-4 py-2.5 text-left hover:bg-white/4 transition text-xs font-semibold text-slate-200 cursor-pointer border-none bg-transparent flex items-center justify-between ${credentialsMode === "service_account" ? "bg-white/2 text-white font-bold" : ""}`}
+                      >
+                        <span>💼 Service Account (ADC)</span>
+                        {credentialsMode === "service_account" && <span className="text-brand-primary text-[10px]">✓</span>}
+                      </button>
+                      {isCorporateUser(user?.email || auth.currentUser?.email || null) && (
+                        <button
+                          onClick={() => {
+                            handleCredentialsModeChange("user_sso");
+                          }}
+                          className={`w-full px-4 py-2.5 text-left hover:bg-white/4 transition text-xs font-semibold text-slate-200 cursor-pointer border-none bg-transparent flex items-center justify-between ${credentialsMode === "user_sso" ? "bg-white/2 text-white font-bold" : ""}`}
+                        >
+                          <span>👤 SSO User Session</span>
+                          {credentialsMode === "user_sso" && <span className="text-brand-primary text-[10px]">✓</span>}
+                        </button>
+                      )}
+
+                      {credentialsMode === "user_sso" && (
+                        <>
+                          <div className="px-3 py-2 bg-white/3 border-t border-b border-white/6 text-[9px] font-bold uppercase tracking-wider text-slate-400 select-none text-left mt-1">
+                            Target GCP Project
+                          </div>
+                          <div className="p-3 flex flex-col gap-2">
+                            {gcpProjects.length === 0 ? (
+                              <div className="text-[10px] text-slate-500 italic text-center py-2">
+                                No projects loaded
+                              </div>
+                            ) : (
+                              <div className="relative">
+                                <select
+                                  value={selectedProject}
+                                  onChange={(e) => handleProjectChange(e.target.value)}
+                                  className="w-full py-2 px-3 bg-slate-950 border border-white/8 rounded-lg text-xs text-slate-200 focus:border-brand-primary outline-none cursor-pointer appearance-none"
+                                >
+                                  {gcpProjects.map((p) => (
+                                    <option key={p.projectId} value={p.projectId}>
+                                      {p.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                <ChevronDown className="absolute right-3 top-2.5 text-slate-400 pointer-events-none" size={12} />
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
 

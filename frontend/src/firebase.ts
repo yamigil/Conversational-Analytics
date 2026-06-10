@@ -17,11 +17,9 @@ const app = initializeApp(firebaseConfig);
 // Initialize Auth
 export const auth = getAuth(app);
 
-// Sign in with Google SSO
+// Sign in with Google SSO (basic authentication scopes only)
 export const signInWithGoogle = async () => {
   const provider = new GoogleAuthProvider();
-  // Request full Google Cloud Platform access scope so the resulting token can query GCP APIs
-  provider.addScope("https://www.googleapis.com/auth/cloud-platform");
   
   // Force Google account selection
   provider.setCustomParameters({
@@ -30,18 +28,30 @@ export const signInWithGoogle = async () => {
   
   try {
     const result = await signInWithPopup(auth, provider);
-    
-    // Extract the raw Google OAuth Access Token
+    return result.user;
+  } catch (error) {
+    console.error("Error signing in with Google SSO:", error);
+    throw error;
+  }
+};
+
+// Request incremental authorization for Google Cloud Platform scope
+export const requestGCPToken = async () => {
+  const provider = new GoogleAuthProvider();
+  provider.addScope("https://www.googleapis.com/auth/cloud-platform");
+  
+  try {
+    const result = await signInWithPopup(auth, provider);
     const credential = GoogleAuthProvider.credentialFromResult(result);
     const accessToken = credential?.accessToken;
     if (accessToken) {
       sessionStorage.setItem("gcp_user_access_token", accessToken);
       logger_log("Google OAuth Access Token successfully saved to sessionStorage.");
+      return accessToken;
     }
-    
-    return result.user;
+    return null;
   } catch (error) {
-    console.error("Error signing in with Google SSO:", error);
+    console.error("Error requesting GCP authorization scope:", error);
     throw error;
   }
 };

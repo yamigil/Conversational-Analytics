@@ -25,7 +25,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   tourStep
 }) => {
   return (
-    <div className="flex-1 overflow-y-auto px-10 py-12 flex flex-col items-center relative">
+    <div className="flex-1 overflow-y-auto px-4 sm:px-10 py-6 sm:py-12 flex flex-col items-center relative">
 
       {/* Hero Header Section */}
       <div className="text-center max-w-2xl mt-4 mb-10 animate-slideIn">
@@ -35,11 +35,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
         
-        <h1 className="font-heading text-4xl font-bold tracking-tight mb-4 text-white">
+        <h1 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight mb-4 text-white">
           {activeBrand?.name || "Retail"} AI Experience Hub
         </h1>
         
-        <p className="text-slate-300/80 text-md leading-relaxed font-medium">
+        <p className="text-slate-300/80 text-sm sm:text-md leading-relaxed font-medium">
           Welcome to your conversational analytics workspace. Ask questions, build charts, and generate predictive insights on {activeBrand?.name || "your company"}'s performance in real time.
         </p>
       </div>
@@ -47,10 +47,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Executive Insights & Highlights Panel */}
       <div 
         id="dashboard-executive-insights"
-        className={`w-full max-w-5xl glass-panel p-8 rounded-2xl mb-8 animate-slideIn flex flex-col gap-5 ${tourStep === 6 ? 'tour-highlight' : ''}`} 
+        className={`w-full max-w-5xl glass-panel p-4 sm:p-8 rounded-2xl mb-8 animate-slideIn flex flex-col gap-5 ${tourStep === 6 ? 'tour-highlight' : ''}`} 
         style={{ animationDelay: "0.1s" }}
       >
-        <div className="flex justify-between items-start gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
           <div>
             <div id="dashboard-insights-title" className="flex items-center gap-2 text-xs font-semibold text-brand-primary uppercase tracking-wider mb-2">
               <TrendingUp size={14} className="text-brand-primary" />

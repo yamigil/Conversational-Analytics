@@ -14,12 +14,14 @@ import {
   Loader2,
   AlertTriangle,
   Settings,
-  LogOut
+  LogOut,
+  Menu,
+  X
 } from "lucide-react";
 
 import { Dashboard } from "./components/Dashboard";
 import { ArchitectureModal } from "./components/ArchitectureModal";
-import { auth, signInWithGoogle } from "./firebase";
+import { auth, signInWithGoogle, requestGCPToken } from "./firebase";
 
 // Interfaces
 interface BrandConfig {
@@ -576,8 +578,8 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}): Promi
   if (response.status === 401 && localStorage.getItem("gcp_credentials_mode") === "user_sso") {
     console.warn("Detected expired or missing Google Cloud credentials (401). Triggering automatic re-authentication...");
     try {
-      // Open the Google Sign-in popup to get a fresh token!
-      await signInWithGoogle();
+      // Trigger Google Consent screen popup to get a fresh GCP access token!
+      await requestGCPToken();
       
       // Retry the original request with the fresh token!
       const freshToken = sessionStorage.getItem("gcp_user_access_token");
@@ -605,6 +607,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
@@ -766,14 +769,26 @@ const App: React.FC = () => {
     fetchAgents();
   };
 
+  const isCorporateUser = (email: string | null): boolean => {
+    if (!email) return false;
+    const lowerEmail = email.toLowerCase();
+    return !lowerEmail.endsWith("@gmail.com");
+  };
+
   const handleCredentialsModeChange = async (mode: "service_account" | "user_sso") => {
-    // If they switched to SSO, and we don't have a Google OAuth access token in sessionStorage:
+    // If they switched to SSO, verify corporate membership and request GCP scope incrementally
     if (mode === "user_sso") {
+      const email = user?.email || auth.currentUser?.email || null;
+      if (!isCorporateUser(email)) {
+        alert("SSO credentials mode is restricted to corporate (Argolis) accounts only.");
+        return;
+      }
+      
       const gcpToken = sessionStorage.getItem("gcp_user_access_token");
       if (!gcpToken) {
         try {
-          // Trigger Google SSO popup to get a fresh token!
-          await signInWithGoogle();
+          // Trigger Google Consent screen popup to get a fresh GCP access token!
+          await requestGCPToken();
         } catch (err) {
           console.error("Failed to authenticate user for SSO credentials:", err);
           // Revert back to service account if they cancel the login popup
@@ -1020,16 +1035,23 @@ const App: React.FC = () => {
       const init = async () => {
         // If credentialsMode is user_sso, check if we have the Google OAuth token!
         if (credentialsMode === "user_sso") {
-          const gcpToken = sessionStorage.getItem("gcp_user_access_token");
-          if (!gcpToken) {
-            try {
-              // Automatically trigger Google SSO popup to get a fresh token!
-              await signInWithGoogle();
-            } catch (err) {
-              console.error("Failed to authenticate user for SSO credentials on startup:", err);
-              // Fallback to service account if cancelled
-              setCredentialsMode("service_account");
-              localStorage.setItem("gcp_credentials_mode", "service_account");
+          const email = user?.email || auth.currentUser?.email || null;
+          if (!isCorporateUser(email)) {
+            // Revert back to service account for non-corporate users
+            setCredentialsMode("service_account");
+            localStorage.setItem("gcp_credentials_mode", "service_account");
+          } else {
+            const gcpToken = sessionStorage.getItem("gcp_user_access_token");
+            if (!gcpToken) {
+              try {
+                // Automatically trigger consent popup to get a fresh GCP access token!
+                await requestGCPToken();
+              } catch (err) {
+                console.error("Failed to authenticate user for SSO credentials on startup:", err);
+                // Fallback to service account if cancelled
+                setCredentialsMode("service_account");
+                localStorage.setItem("gcp_credentials_mode", "service_account");
+              }
             }
           }
         }
@@ -1206,11 +1228,13 @@ const App: React.FC = () => {
     setSelectedConvo("");
     setMessages([]);
     fetchConversations(val);
+    setIsSidebarOpen(false);
   };
 
   const handleConvoClick = (convoName: string) => {
     setSelectedConvo(convoName);
     fetchMessages(convoName);
+    setIsSidebarOpen(false);
   };
 
   const handleDeleteConvo = async (e: React.MouseEvent, convoName: string) => {
@@ -1250,6 +1274,7 @@ const App: React.FC = () => {
   const handleStartNewConvo = async () => {
     if (!selectedAgent) return;
     setIsCreatingConvo(true);
+    setIsSidebarOpen(false);
     try {
       const res = await authenticatedFetch("/api/conversations", {
         method: "POST",
@@ -1810,28 +1835,39 @@ const App: React.FC = () => {
       
       {/* Global Header Banner */}
       {user && (
-        <header className="h-16 bg-slate-950/80 backdrop-blur-md border-b border-white/6 px-8 flex items-center justify-between z-40 shrink-0 select-none animate-fadeIn">
-          {/* Left: Brand Logo & Title (Click to go Home) */}
-          <div 
-            id="settings-back-home"
-            onClick={() => {
-              if (currentPage !== "home") {
-                setCurrentPage("home");
-                if (currentPage === "chat" && selectedAgent) {
-                  fetchInsights(selectedAgent);
+        <header className="h-16 bg-slate-950/80 backdrop-blur-md border-b border-white/6 px-4 md:px-8 flex items-center justify-between z-40 shrink-0 select-none animate-fadeIn">
+          {/* Left: Hamburger Button (mobile chat only) & Logo/Title (Click to go Home) */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            {currentPage === "chat" && (
+              <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="p-2 -ml-1 bg-white/4 border border-white/6 hover:bg-white/10 rounded-lg text-slate-300 hover:text-white md:hidden cursor-pointer flex items-center justify-center shrink-0"
+                title="Toggle Sidebar"
+              >
+                <Menu size={16} />
+              </button>
+            )}
+            <div 
+              id="settings-back-home"
+              onClick={() => {
+                if (currentPage !== "home") {
+                  setCurrentPage("home");
+                  if (currentPage === "chat" && selectedAgent) {
+                    fetchInsights(selectedAgent);
+                  }
                 }
-              }
-              if (tourStep === 5) setTourStep(6);
-            }}
-            className={`flex items-center gap-3 min-w-0 cursor-pointer hover:opacity-90 active:scale-[0.98] transition select-none group ${tourStep === 5 ? 'tour-highlight p-1 rounded-xl' : ''}`}
-            title="Return to Dashboard"
-          >
-            <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/6 flex items-center justify-center p-1 text-white shrink-0 group-hover:border-brand-primary/30 group-hover:bg-brand-primary/5 transition">
-              {renderLogoSvg(appActiveBrandKey)}
+                if (tourStep === 5) setTourStep(6);
+              }}
+              className={`flex items-center gap-3 min-w-0 cursor-pointer hover:opacity-90 active:scale-[0.98] transition select-none group ${tourStep === 5 ? 'tour-highlight p-1 rounded-xl' : ''}`}
+              title="Return to Dashboard"
+            >
+              <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/6 flex items-center justify-center p-1 text-white shrink-0 group-hover:border-brand-primary/30 group-hover:bg-brand-primary/5 transition">
+                {renderLogoSvg(appActiveBrandKey)}
+              </div>
+              <span className="font-heading font-bold text-md tracking-tight truncate min-w-0 hidden sm:inline group-hover:text-brand-primary transition">
+                {activeBrand?.logoText || "Google Cloud Analytics"}
+              </span>
             </div>
-            <span className="font-heading font-bold text-md tracking-tight truncate min-w-0 hidden sm:inline group-hover:text-brand-primary transition">
-              {activeBrand?.logoText || "Google Cloud Analytics"}
-            </span>
           </div>
 
           {/* Right: Contextual Tools, GCP Connection Selector, Session User, Settings, Sign Out */}
@@ -1859,7 +1895,12 @@ const App: React.FC = () => {
                   connectionStatus === "error" ? "bg-rose-500 shadow-[0_0_8px_#ef4444]" : "bg-emerald-500 shadow-[0_0_8px_#10b981]"
                 }`} />
                 <span>
-                  {connectionStatus === "error" ? "Connection Error" : (credentialsMode === "service_account" ? "GCP: Service Account" : "GCP: SSO User")}
+                  <span className="hidden sm:inline">
+                    {connectionStatus === "error" ? "Connection Error" : (credentialsMode === "service_account" ? "GCP: Service Account" : "GCP: SSO User")}
+                  </span>
+                  <span className="inline sm:hidden">
+                    {connectionStatus === "error" ? "Error" : (credentialsMode === "service_account" ? "SA" : "SSO")}
+                  </span>
                 </span>
                 <ChevronDown size={10} className="text-slate-400" />
               </button>
@@ -1878,41 +1919,47 @@ const App: React.FC = () => {
                     <span>💼 Service Account (ADC)</span>
                     {credentialsMode === "service_account" && <span className="text-brand-primary text-[10px]">✓</span>}
                   </button>
-                  <button
-                    onClick={() => {
-                      handleCredentialsModeChange("user_sso");
-                    }}
-                    className={`w-full px-4 py-2.5 text-left hover:bg-white/4 transition text-xs font-semibold text-slate-200 cursor-pointer border-none bg-transparent flex items-center justify-between ${credentialsMode === "user_sso" ? "bg-white/2 text-white font-bold" : ""}`}
-                  >
-                    <span>👤 SSO User Session</span>
-                    {credentialsMode === "user_sso" && <span className="text-brand-primary text-[10px]">✓</span>}
-                  </button>
+                  {isCorporateUser(user?.email || auth.currentUser?.email || null) && (
+                    <button
+                      onClick={() => {
+                        handleCredentialsModeChange("user_sso");
+                      }}
+                      className={`w-full px-4 py-2.5 text-left hover:bg-white/4 transition text-xs font-semibold text-slate-200 cursor-pointer border-none bg-transparent flex items-center justify-between ${credentialsMode === "user_sso" ? "bg-white/2 text-white font-bold" : ""}`}
+                    >
+                      <span>👤 SSO User Session</span>
+                      {credentialsMode === "user_sso" && <span className="text-brand-primary text-[10px]">✓</span>}
+                    </button>
+                  )}
 
-                  <div className="px-3 py-2 bg-white/3 border-t border-b border-white/6 text-[9px] font-bold uppercase tracking-wider text-slate-400 select-none text-left mt-1">
-                    Target GCP Project
-                  </div>
-                  <div className="p-3 flex flex-col gap-2">
-                    {gcpProjects.length === 0 ? (
-                      <div className="text-[10px] text-slate-500 italic text-center py-2">
-                        No projects loaded
+                  {credentialsMode === "user_sso" && (
+                    <>
+                      <div className="px-3 py-2 bg-white/3 border-t border-b border-white/6 text-[9px] font-bold uppercase tracking-wider text-slate-400 select-none text-left mt-1">
+                        Target GCP Project
                       </div>
-                    ) : (
-                      <div className="relative">
-                        <select
-                          value={selectedProject}
-                          onChange={(e) => handleProjectChange(e.target.value)}
-                          className="w-full py-2 px-3 bg-slate-950 border border-white/8 rounded-lg text-xs text-slate-200 focus:border-brand-primary outline-none cursor-pointer appearance-none"
-                        >
-                          {gcpProjects.map((p) => (
-                            <option key={p.projectId} value={p.projectId}>
-                              {p.name}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-3 top-2.5 text-slate-400 pointer-events-none" size={12} />
+                      <div className="p-3 flex flex-col gap-2">
+                        {gcpProjects.length === 0 ? (
+                          <div className="text-[10px] text-slate-500 italic text-center py-2">
+                            No projects loaded
+                          </div>
+                        ) : (
+                          <div className="relative">
+                            <select
+                              value={selectedProject}
+                              onChange={(e) => handleProjectChange(e.target.value)}
+                              className="w-full py-2 px-3 bg-slate-950 border border-white/8 rounded-lg text-xs text-slate-200 focus:border-brand-primary outline-none cursor-pointer appearance-none"
+                            >
+                              {gcpProjects.map((p) => (
+                                <option key={p.projectId} value={p.projectId}>
+                                  {p.name}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown className="absolute right-3 top-2.5 text-slate-400 pointer-events-none" size={12} />
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -1955,11 +2002,28 @@ const App: React.FC = () => {
       {/* Main Viewport Split Panel */}
       <div className="flex-1 flex min-h-0 overflow-hidden relative">
       
+      {/* Backdrop overlay for mobile sidebar */}
+      {currentPage === "chat" && isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* -------------------- SIDEBAR -------------------- */}
       {currentPage === "chat" && (
-        <aside className="w-80 border-r border-white/6 bg-slate-900/45 backdrop-blur-md flex flex-col p-6 z-10">
-          <div className="font-heading text-2xl font-bold mb-8 tracking-tight bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
-            Data Workspace
+        <aside className={`w-80 border-r border-white/6 bg-slate-900/45 backdrop-blur-md flex flex-col p-6 z-50 transition-transform duration-300 fixed md:static inset-y-0 left-0 h-full md:h-auto md:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+          <div className="flex justify-between items-center mb-8">
+            <div className="font-heading text-2xl font-bold tracking-tight bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
+              Data Workspace
+            </div>
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="p-1.5 bg-white/4 border border-white/6 hover:bg-white/10 rounded-lg text-slate-300 hover:text-white md:hidden cursor-pointer flex items-center justify-center shrink-0"
+              title="Close Sidebar"
+            >
+              <X size={14} />
+            </button>
           </div>
           
           <div className="mb-7 flex flex-col">
@@ -2061,10 +2125,10 @@ const App: React.FC = () => {
           <>
 
             {/* Messages Panel */}
-            <section className="flex-1 overflow-y-auto px-10 py-8 flex flex-col gap-6">
+            <section className="flex-1 overflow-y-auto px-4 md:px-10 py-6 md:py-8 flex flex-col gap-6">
               {connectionStatus === "error" ? (
                 <div className="flex-1 flex items-center justify-center py-10 animate-slideIn">
-                  <div className="glass-panel p-8 rounded-2xl max-w-xl flex flex-col gap-5 text-center items-center border-rose-500/20 shadow-2xl shadow-rose-500/5">
+                  <div className="glass-panel p-4 sm:p-8 rounded-2xl max-w-xl flex flex-col gap-5 text-center items-center border-rose-500/20 shadow-2xl shadow-rose-500/5">
                     <div className="w-14 h-14 rounded-full bg-rose-500/10 border border-rose-500/25 flex items-center justify-center text-rose-500 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
                       <AlertTriangle size={26} className="animate-pulse" />
                     </div>
@@ -2296,8 +2360,8 @@ const App: React.FC = () => {
             </section>
 
             {/* Chat Input Container */}
-            <div className="px-10 pb-8 pt-2 mt-auto">
-              <div className="glass-panel flex flex-col gap-2 px-6 py-4 rounded-2xl shadow-xl">
+            <div className="px-4 md:px-10 pb-4 md:pb-8 pt-2 mt-auto">
+              <div className="glass-panel flex flex-col gap-2 px-4 md:px-6 py-3 md:py-4 rounded-2xl shadow-xl">
                 <textarea 
                   ref={textareaRef}
                   value={inputText}
@@ -2383,9 +2447,9 @@ const App: React.FC = () => {
               <h1 className="font-heading text-xl font-bold text-white">Portal Settings</h1>
             </header>
 
-            <div className="flex gap-6">
+            <div className="flex flex-col md:flex-row gap-6">
               {/* Settings Nav */}
-              <nav id="settings-sidebar-nav" className={`glass-panel w-64 p-4 rounded-2xl flex flex-col gap-2 h-fit ${tourStep === 2 ? 'tour-highlight' : ''}`}>
+              <nav id="settings-sidebar-nav" className={`glass-panel w-full md:w-64 p-4 rounded-2xl flex flex-col gap-2 h-fit ${tourStep === 2 ? 'tour-highlight' : ''}`}>
                 <button 
                   onClick={() => setSettingsActiveTab("general")}
                   className={`px-4 py-3 text-left text-sm font-semibold rounded-lg cursor-pointer transition duration-150 ${settingsActiveTab === "general" ? "bg-white/8 text-white border-l-3 border-l-brand-primary" : "text-slate-400 hover:text-white hover:bg-white/2"}`}
@@ -2415,7 +2479,9 @@ const App: React.FC = () => {
                           className="w-full py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 outline-none focus:border-brand-primary/50 cursor-pointer appearance-none"
                         >
                           <option value="service_account">Service Account (ADC)</option>
-                          <option value="user_sso">SSO User Session (Google Login)</option>
+                          {isCorporateUser(user?.email || auth.currentUser?.email || null) && (
+                            <option value="user_sso">SSO User Session (Google Login)</option>
+                          )}
                         </select>
                         <ChevronDown className="absolute right-4 top-4 text-slate-400 pointer-events-none" size={14} />
                       </div>
@@ -2424,36 +2490,38 @@ const App: React.FC = () => {
                       </small>
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                      <label className="text-xs font-semibold text-slate-400">Google Cloud Project ID</label>
-                      {gcpProjects.length === 0 ? (
-                        <input 
-                          type="text" 
-                          value={settingsProjectId} 
-                          onChange={(e) => setSettingsProjectId(e.target.value)}
-                          placeholder="Enter your target GCP Project ID (e.g. gilbertos-project-340619)"
-                          className="py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 outline-none focus:border-brand-primary/50"
-                        />
-                      ) : (
-                        <div className="relative">
-                          <select 
+                    {credentialsMode === "user_sso" && (
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-semibold text-slate-400">Google Cloud Project ID</label>
+                        {gcpProjects.length === 0 ? (
+                          <input 
+                            type="text" 
                             value={settingsProjectId} 
                             onChange={(e) => setSettingsProjectId(e.target.value)}
-                            className="w-full py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 outline-none focus:border-brand-primary/50 cursor-pointer appearance-none"
-                          >
-                            {gcpProjects.map((p) => (
-                              <option key={p.projectId} value={p.projectId}>
-                                {p.name} ({p.projectId})
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDown className="absolute right-4 top-4 text-slate-400 pointer-events-none" size={14} />
-                        </div>
-                      )}
-                      <small className="text-[10px] text-slate-400">
-                        Select the default Google Cloud Project ID for the portal. Takes effect dynamically in real time.
-                      </small>
-                    </div>
+                            placeholder="Enter your target GCP Project ID (e.g. gilbertos-project-340619)"
+                            className="py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 outline-none focus:border-brand-primary/50"
+                          />
+                        ) : (
+                          <div className="relative">
+                            <select 
+                              value={settingsProjectId} 
+                              onChange={(e) => setSettingsProjectId(e.target.value)}
+                              className="w-full py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 outline-none focus:border-brand-primary/50 cursor-pointer appearance-none"
+                            >
+                              {gcpProjects.map((p) => (
+                                <option key={p.projectId} value={p.projectId}>
+                                  {p.name} ({p.projectId})
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown className="absolute right-4 top-4 text-slate-400 pointer-events-none" size={14} />
+                          </div>
+                        )}
+                        <small className="text-[10px] text-slate-400">
+                          Select the default Google Cloud Project ID for the portal. Takes effect dynamically in real time.
+                        </small>
+                      </div>
+                    )}
 
 
 
@@ -2481,9 +2549,9 @@ const App: React.FC = () => {
                   </div>
                 ) : (
                   // Branding Panel
-                  <div id="settings-branding-panel" className="flex gap-8 items-start">
+                  <div id="settings-branding-panel" className="flex flex-col gap-8 items-stretch w-full">
                     {/* Controls Column */}
-                    <div id="settings-branding-controls" className={`flex-1 glass-panel p-8 rounded-2xl flex flex-col gap-6 ${tourStep === 3 ? 'tour-highlight' : ''}`}>
+                    <div id="settings-branding-controls" className={`w-full glass-panel p-8 rounded-2xl flex flex-col gap-6 ${tourStep === 3 ? 'tour-highlight' : ''}`}>
                       <h2 className="font-heading text-lg font-bold text-white mb-2">Active Branding Profile</h2>
 
 

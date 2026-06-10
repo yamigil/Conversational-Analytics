@@ -540,35 +540,51 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
 
 // Authenticated fetch wrapper that automatically injects the Firebase ID Token
 const authenticatedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
-  const currentUser = auth.currentUser;
-  if (currentUser) {
-    try {
-      const token = await currentUser.getIdToken();
+  if (import.meta.env.VITE_MOCK_AUTH === "true") {
+    options.headers = {
+      ...options.headers,
+      "Authorization": `Bearer mock-token-123`,
+    };
+    
+    // Inject mock selected GCP project if present
+    const selectedProject = localStorage.getItem("gcp_selected_project");
+    if (selectedProject) {
       options.headers = {
+        "X-GCP-Project-Id": selectedProject,
         ...options.headers,
-        "Authorization": `Bearer ${token}`,
       };
-
-      // Inject the GCP user access token if user SSO credentials mode is active
-      const ssoMode = localStorage.getItem("gcp_credentials_mode") === "user_sso";
-      const gcpToken = sessionStorage.getItem("gcp_user_access_token");
-      if (ssoMode && gcpToken) {
+    }
+  } else {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      try {
+        const token = await currentUser.getIdToken();
         options.headers = {
-          "X-GCP-User-Token": gcpToken,
           ...options.headers,
+          "Authorization": `Bearer ${token}`,
         };
-      }
 
-      // Inject the dynamically selected GCP Project ID if present
-      const selectedProject = localStorage.getItem("gcp_selected_project");
-      if (selectedProject) {
-        options.headers = {
-          "X-GCP-Project-Id": selectedProject,
-          ...options.headers,
-        };
+        // Inject the GCP user access token if user SSO credentials mode is active
+        const ssoMode = localStorage.getItem("gcp_credentials_mode") === "user_sso";
+        const gcpToken = sessionStorage.getItem("gcp_user_access_token");
+        if (ssoMode && gcpToken) {
+          options.headers = {
+            "X-GCP-User-Token": gcpToken,
+            ...options.headers,
+          };
+        }
+
+        // Inject the dynamically selected GCP Project ID if present
+        const selectedProject = localStorage.getItem("gcp_selected_project");
+        if (selectedProject) {
+          options.headers = {
+            "X-GCP-Project-Id": selectedProject,
+            ...options.headers,
+          };
+        }
+      } catch (error) {
+        console.error("Failed to fetch Firebase ID Token for request:", error);
       }
-    } catch (error) {
-      console.error("Failed to fetch Firebase ID Token for request:", error);
     }
   }
   
@@ -610,6 +626,16 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
+    if (import.meta.env.VITE_MOCK_AUTH === "true") {
+      setUser({
+        email: "admin@gilgtz.altostrat.com",
+        displayName: "Test User",
+        uid: "mock-user-123",
+      });
+      setAuthLoading(false);
+      return;
+    }
+
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
       setUser(currentUser);
       setAuthLoading(false);

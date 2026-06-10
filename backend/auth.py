@@ -56,6 +56,9 @@ def get_current_user(authorization: HTTPAuthorizationCredentials = Depends(secur
     FastAPI dependency to verify Firebase ID Token from Authorization header.
     Raises 401 Unauthorized if verification fails.
     """
+    if os.getenv("MOCK_AUTH") == "true":
+        return {"email": "admin@gilgtz.altostrat.com", "uid": "mock-user-123"}
+
     token = authorization.credentials
     try:
         # Verify the ID token using Firebase Admin SDK

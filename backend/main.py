@@ -682,21 +682,21 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
         domain = clean_query.lower()
         results.append({
             "title": f"Domain: {domain}",
-            "url": f"https://www.google.com/s2/favicons?domain={domain}&sz=128&default=404",
+            "url": f"https://logo.clearbit.com/{domain}",
             "source": "Website Match"
         })
     else:
         spaced_removed = clean_query.replace(" ", "").lower()
         results.append({
             "title": f"Speculative: {spaced_removed}.com",
-            "url": f"https://www.google.com/s2/favicons?domain={spaced_removed}.com&sz=128&default=404",
+            "url": f"https://logo.clearbit.com/{spaced_removed}.com",
             "source": "Website Match"
         })
         if " " in clean_query:
             hyphenated = clean_query.replace(" ", "-").lower()
             results.append({
                 "title": f"Speculative: {hyphenated}.com",
-                "url": f"https://www.google.com/s2/favicons?domain={hyphenated}.com&sz=128&default=404",
+                "url": f"https://logo.clearbit.com/{hyphenated}.com",
                 "source": "Website Match"
             })
 
@@ -710,7 +710,7 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
             data = response.json()
             for item in data:
                 if item.get("domain"):
-                    logo_url = f"https://www.google.com/s2/favicons?domain={item['domain']}&sz=128&default=404"
+                    logo_url = f"https://logo.clearbit.com/{item['domain']}"
                     if not any(r["url"] == logo_url for r in results):
                         results.append({
                             "title": item.get("name", clean_query),

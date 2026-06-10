@@ -683,21 +683,21 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
         results.append({
             "title": f"Domain: {domain}",
             "url": f"https://www.google.com/s2/favicons?domain={domain}&sz=128",
-            "source": "Direct Domain"
+            "source": "Website Match"
         })
     else:
         spaced_removed = clean_query.replace(" ", "").lower()
         results.append({
             "title": f"Speculative: {spaced_removed}.com",
             "url": f"https://www.google.com/s2/favicons?domain={spaced_removed}.com&sz=128",
-            "source": "Speculative"
+            "source": "Website Match"
         })
         if " " in clean_query:
             hyphenated = clean_query.replace(" ", "-").lower()
             results.append({
                 "title": f"Speculative: {hyphenated}.com",
                 "url": f"https://www.google.com/s2/favicons?domain={hyphenated}.com&sz=128",
-                "source": "Speculative"
+                "source": "Website Match"
             })
 
     # 2. Try Clearbit Autocomplete API (clean SVG/PNG company logos)
@@ -715,7 +715,7 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
                         results.append({
                             "title": item.get("name", clean_query),
                             "url": logo_url,
-                            "source": "Clearbit"
+                            "source": "Verified Company"
                         })
     except Exception as e:
         logger.warning(f"Clearbit autocomplete failed: {e}")
@@ -735,7 +735,7 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
                     results.append({
                         "title": query.title(),
                         "url": img_url,
-                        "source": "Google Search"
+                        "source": "Web Search"
                     })
     except Exception as e:
         logger.warning(f"Google Image scrape failed: {e}")

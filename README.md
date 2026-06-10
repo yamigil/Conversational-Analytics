@@ -111,5 +111,8 @@ Deploy the React static assets to Firebase's global edge CDN and automatically r
 11. **Automated Multi-Service CD Pipeline**: GitHub Actions automatically deploys React static assets to Firebase Hosting and FastAPI backend containers to Google Cloud Run on every push to main.
 12. **Multi-Source Telemetry & Audit Logs**: Integrates Google Analytics (GA4) for frontend clickstream logs, Firestore for portal administrative audit trails (logins, branding selections), and BigQuery for conversational API chat logs.
 
+---
+*Active Telemetry Stream: `G-C0VB9XKP7E`*
+
 
 

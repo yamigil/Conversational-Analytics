@@ -1368,6 +1368,7 @@ const App: React.FC = () => {
         setTourStep(2);
       }
     } else if (tourStep === 4) {
+      setShowPreviewModal(false);
       setTourStep(3);
     } else if (tourStep === 5) {
       setShowPreviewModal(true);

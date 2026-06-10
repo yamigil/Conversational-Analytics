@@ -1075,6 +1075,50 @@ const App: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingMessages]);
 
+  // Dynamically update document title and browser favicon based on active branding
+  useEffect(() => {
+    const activeBrand = branding?.brands[appActiveBrandKey] || branding?.brands["default"];
+    if (activeBrand) {
+      // 1. Update document title
+      document.title = activeBrand.name ? `${activeBrand.name} AI Experience Hub` : "AI Experience Hub";
+
+      // 2. Update favicon
+      const faviconLink = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+      if (faviconLink) {
+        let svgString = "";
+        
+        if (activeBrand.logoSvg && activeBrand.logoSvg.includes("<svg")) {
+          svgString = activeBrand.logoSvg;
+        } else {
+          // Fallback to static SVG definitions
+          const normalizedKey = appActiveBrandKey.toLowerCase().replace(/[^a-z0-9]/g, "");
+          if (normalizedKey === "target") {
+            svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#dc2626" stroke-width="2.5" fill="none" /><circle cx="12" cy="12" r="4.5" fill="#dc2626" /></svg>`;
+          } else if (normalizedKey === "homedepot") {
+            svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="3" fill="#f97316" /><text x="12" y="15" fill="white" font-size="9" font-weight="bold" font-family="sans-serif" text-anchor="middle">HD</text></svg>`;
+          } else if (normalizedKey === "fleetpride") {
+            svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2L3 6v6c0 5.55 3.85 10.73 9 12 5.15-1.27 9-6.45 9-12V6l-9-4zm0 2.18l7 3.11v4.88c0 4.19-2.73 8.16-7 9.17-4.27-1.01-7-4.98-7-9.17V7.29l7-3.11z" fill="#0284c7" /><polygon points="12,7 8,11 11,11 11,17 13,17 13,13 16,13" fill="#f97316" /></svg>`;
+          } else if (normalizedKey === "tractorsupply") {
+            svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 44"><path d="M0 1.14282L13.0253 42.9524L39.0723 34.2354L47.8055 1.14282H0Z" fill="white" /><path d="M0 1.14282L13.0253 42.9524L39.0723 34.2354L47.8055 1.14282H0ZM16.722 8.61842H14.1537V6.71721H13.3333V21.1242L14.2645 21.682V24.4777H8.68467V21.682L9.61578 21.1242V6.71721H8.81966V8.61842H6.27207V2.77535H16.722V8.61842ZM26.8709 12.9582H24.0118V12.0467C23.991 9.57753 21.2946 9.64895 21.6165 11.4855C21.7584 12.295 23.5895 15.1043 25.154 18.1483C29.3493 26.3177 23.316 31.5486 19.9377 27.7904L19.3666 28.5556H17.4524V21.8929H20.4396V23.5934C20.3011 26.0014 25.5867 26.4197 21.2219 18.6448C19.6123 15.7743 18.9512 14.6588 18.3835 13.0296C16.857 8.66944 19.9792 6.75122 22.0388 6.81244C22.853 6.79701 23.6422 7.08918 24.2437 7.6287L24.801 6.85325H26.8709V12.9582ZM38.5151 28.0591C38.5151 31.8581 35.9848 33.7695 34.0014 33.7763C31.0177 33.7831 28.2762 32.1574 28.5462 21.1854C28.8543 8.50278 35.6317 11.2237 35.7875 12.0399L36.3448 11.3597H38.4147V17.4647L35.5036 17.4579V16.3695C35.2752 13.4888 32.0457 13.5262 32.1876 21.546C32.2949 27.6135 32.4368 30.0181 34.2818 30.0215C35.4898 30.0215 35.4898 28.4162 35.5002 28.423V26.032H38.5151V28.0625V28.0591Z" fill="#f97316" /></svg>`;
+          } else {
+            // Default Google Cloud logo
+            svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 35 32"><path fill="#ea4335" d="M21.85,7.41l1,0,2.85-2.85.14-1.21A12.81,12.81,0,0,0,5,9.6a1.55,1.55,0,0,1,1-.06l5.7-.94s.29-.48.44-.45a7.11,7.11,0,0,1,9.73-.74Z"/><path fill="#4285f4" d="M29.76,9.6a12.84,12.84,0,0,0-3.87-6.24l-4,4A7.11,7.11,0,0,1,24.5,13v.71a3.56,3.56,0,1,1,0,7.12H17.38l-.71.72v4.27l.71.71H24.5A9.26,9.26,0,0,0,29.76,9.6Z"/><path fill="#34a853" d="M10.25,26.49h7.12v-5.7H10.25a3.54,3.54,0,0,1-1.47-.32l-1,.31L4.91,23.63l-.25,1A9.21,9.21,0,0,0,10.25,26.49Z"/><path fill="#fbbc05" d="M10.25,8A9.26,9.26,0,0,0,4.66,24.6l4.13-4.13a3.56,3.56,0,1,1,4.71-4.71l4.13-4.13A9.25,9.25,0,0,0,10.25,8Z"/></svg>`;
+          }
+        }
+
+        if (svgString) {
+          const svgBlob = new Blob([svgString], { type: 'image/svg+xml' });
+          const blobUrl = URL.createObjectURL(svgBlob);
+          faviconLink.href = blobUrl;
+          
+          return () => {
+            URL.revokeObjectURL(blobUrl);
+          };
+        }
+      }
+    }
+  }, [appActiveBrandKey, branding]);
+
   // Onboarding Tour Effects & Handlers
   useEffect(() => {
     if (user) {

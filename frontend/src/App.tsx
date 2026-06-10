@@ -1795,7 +1795,13 @@ const App: React.FC = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        const finalName = data.name || logoTitle || "Custom Brand";
+        const rawName = data.name || logoTitle || "Custom Brand";
+        const finalName = rawName
+          .replace(/^(speculative:\s*|domain:\s*)/i, "")
+          .replace(/\.(com|org|net|co|io|edu|gov)$/i, "")
+          .split(/[\s_-]+/)
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(" ");
         const brandKey = finalName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "_");
 
         let finalLogoSvg = "";
@@ -1805,13 +1811,19 @@ const App: React.FC = () => {
           finalLogoSvg = `<img src="${logoUrl}" alt="${logoTitle}" class="w-full h-full object-contain" />`;
         }
 
+        const rawLogoText = data.logoText || finalName;
+        const finalLogoText = rawLogoText
+          .replace(/^(speculative:\s*|domain:\s*)/i, "")
+          .replace(/\.(com|org|net|co|io|edu|gov)$/i, "")
+          .toUpperCase();
+
         // Set editing form inputs
         setBrandName(finalName);
         if (data.primaryColor) setBrandPrimary(data.primaryColor);
         if (data.secondaryColor) setBrandSecondary(data.secondaryColor);
         if (data.backgroundColorStart) setBrandBgStart(data.backgroundColorStart);
         if (data.backgroundColorEnd) setBrandBgEnd(data.backgroundColorEnd);
-        if (data.logoText) setBrandLogoText(data.logoText);
+        setBrandLogoText(finalLogoText);
         if (data.welcomeMessage) setBrandWelcome(data.welcomeMessage);
         setBrandLogoSvg(finalLogoSvg);
 
@@ -1825,7 +1837,7 @@ const App: React.FC = () => {
             backgroundColorEnd: data.backgroundColorEnd || brandBgEnd,
             welcomeMessage: data.welcomeMessage || brandWelcome,
             logoUrl: logoUrl,
-            logoText: data.logoText || brandLogoText,
+            logoText: finalLogoText,
             logoSvg: finalLogoSvg
           };
 
@@ -2968,7 +2980,7 @@ const App: React.FC = () => {
 
                       {/* Selected Logo Preview Widget */}
                       {brandLogoSvg && (
-                        <div className="flex flex-col gap-2 border-t border-white/6 pt-4">
+                        <div className="flex flex-col gap-4 border-t border-white/6 pt-4">
                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Active Logo & Theme Preview</label>
                           <div className="flex items-center gap-4 bg-slate-950/40 border border-white/6 rounded-xl p-4">
                             <div className="w-16 h-16 rounded-xl bg-white/5 border border-white/6 p-2 flex items-center justify-center shrink-0">
@@ -2982,6 +2994,42 @@ const App: React.FC = () => {
                               <div className="text-sm font-semibold text-white truncate">{brandName}</div>
                               <div className="text-[10px] text-slate-500 font-medium mt-0.5">Primary Hue: {brandPrimary}</div>
                               <div className="text-[10px] text-slate-500 font-medium">Secondary Hue: {brandSecondary}</div>
+                            </div>
+                          </div>
+
+                          {/* Editable branding texts */}
+                          <div className="flex flex-col gap-3 bg-slate-950/20 border border-white/4 rounded-xl p-4">
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider select-none text-left">Header Portal Title</label>
+                                <input
+                                  type="text"
+                                  value={brandLogoText}
+                                  onChange={(e) => setBrandLogoText(e.target.value)}
+                                  placeholder="e.g. COCA COLA"
+                                  className="w-full py-2 px-3 bg-slate-950 border border-white/8 rounded-lg text-xs text-slate-200 focus:border-brand-primary outline-none"
+                                />
+                              </div>
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider select-none text-left">Theme Profile Name</label>
+                                <input
+                                  type="text"
+                                  value={brandName}
+                                  onChange={(e) => setBrandName(e.target.value)}
+                                  placeholder="e.g. Coca-Cola"
+                                  className="w-full py-2 px-3 bg-slate-950 border border-white/8 rounded-lg text-xs text-slate-200 focus:border-brand-primary outline-none"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-1.5 mt-1">
+                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider select-none text-left">Welcome Message</label>
+                              <textarea
+                                value={brandWelcome}
+                                onChange={(e) => setBrandWelcome(e.target.value)}
+                                placeholder="Welcome to Coca-Cola Analytics..."
+                                rows={2}
+                                className="w-full py-2 px-3 bg-slate-950 border border-white/8 rounded-lg text-xs text-slate-200 focus:border-brand-primary outline-none resize-none"
+                              />
                             </div>
                           </div>
                         </div>

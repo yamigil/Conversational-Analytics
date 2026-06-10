@@ -2169,7 +2169,15 @@ const App: React.FC = () => {
               onClick={() => {
                 trackClick("settings_gear");
                 setCurrentPage("settings");
-                if (tourStep === 1) setTourStep(2);
+                if (tourStep === 1) {
+                  if (user?.email?.endsWith("@gmail.com")) {
+                    setSettingsActiveTab("branding");
+                    setTourStep(3);
+                  } else {
+                    setSettingsActiveTab("general");
+                    setTourStep(2);
+                  }
+                }
               }}
               className={`p-2 bg-white/4 border border-white/6 hover:bg-brand-primary/10 hover:border-brand-primary/25 rounded-lg text-slate-300 hover:text-brand-primary transition duration-150 cursor-pointer flex items-center justify-center group ${(currentPage === "settings" && tourStep === 0) ? "bg-brand-primary/15 border-brand-primary/30 text-brand-primary" : ""} ${tourStep === 1 ? 'tour-highlight' : ''}`}
               title="Configure Portal Settings"

@@ -3265,53 +3265,53 @@ const App: React.FC = () => {
               }}
             >
               {/* Mock Header */}
-              <div className="h-8 border-b border-white/5 px-3 flex items-center justify-between bg-black/20 text-[10px]">
-                <div className="flex items-center gap-1.5 font-heading font-bold" style={{ color: `hsl(${brandPrimary || '217 89% 61%'})` }}>
+              <div className="h-10 border-b border-white/5 px-4 flex items-center justify-between bg-black/20 text-xs">
+                <div className="flex items-center gap-2 font-heading font-bold" style={{ color: `hsl(${brandPrimary || '217 89% 61%'})` }}>
                   {/* Render Logo */}
                   {brandLogoSvg ? (
-                    <div className="w-4 h-4 flex items-center justify-center mini-logo-preview" dangerouslySetInnerHTML={{ __html: brandLogoSvg }} />
+                    <div className="w-5 h-5 flex items-center justify-center mini-logo-preview" dangerouslySetInnerHTML={{ __html: brandLogoSvg }} />
                   ) : (
-                    <div className="w-4 h-4 rounded bg-white/10 flex items-center justify-center font-bold text-[8px]">
+                    <div className="w-5 h-5 rounded bg-white/10 flex items-center justify-center font-bold text-[10px]">
                       {brandLogoText ? brandLogoText.substring(0, 2) : "AI"}
                     </div>
                   )}
-                  <span className="text-[9px] font-semibold text-slate-200 truncate max-w-[80px]">
+                  <span className="text-[11px] font-semibold text-slate-200 truncate max-w-[250px]">
                     {brandLogoText || "AI Assistant"}
                   </span>
                 </div>
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: `hsl(${brandPrimary || '217 89% 61%'})` }} />
+                <div className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" style={{ color: `hsl(${brandPrimary || '217 89% 61%'})`, backgroundColor: `currentColor` }} />
               </div>
 
               {/* Mock Chat View */}
-              <div className="flex-1 p-3 flex flex-col gap-2 overflow-y-auto justify-end">
+              <div className="flex-1 p-4 flex flex-col gap-3 overflow-y-auto justify-end">
                 {/* Agent Greeting bubble */}
-                <div className="flex gap-2 items-start max-w-[85%]">
-                  <div className="w-4 h-4 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden select-none">
+                <div className="flex gap-2.5 items-start max-w-[85%]">
+                  <div className="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden select-none">
                     {brandLogoSvg ? (
-                      <div className="w-full h-full flex items-center justify-center mini-logo-preview" dangerouslySetInnerHTML={{ __html: brandLogoSvg }} />
+                      <div className="w-full h-full p-0.5 flex items-center justify-center mini-logo-preview" dangerouslySetInnerHTML={{ __html: brandLogoSvg }} />
                     ) : (
-                      <span className="text-[6px] font-bold text-slate-300">
+                      <span className="text-[9px] font-bold text-slate-300">
                         {brandLogoText ? brandLogoText.substring(0, 2) : "AI"}
                       </span>
                     )}
                   </div>
-                  <div className="p-2 bg-white/2 border border-white/6 rounded-lg rounded-tl-sm text-[8px] text-slate-300 leading-normal font-medium max-h-[50px] overflow-hidden truncate whitespace-pre-wrap">
+                  <div className="p-3 bg-white/4 border border-white/6 rounded-xl rounded-tl-sm text-[10px] text-slate-200 leading-relaxed font-medium max-h-[120px] overflow-y-auto whitespace-pre-wrap text-left">
                     {brandWelcome || "Hello! Ask me any questions."}
                   </div>
                 </div>
 
                 {/* User bubble */}
-                <div className="p-2 bg-white/5 border border-white/10 rounded-lg rounded-tr-sm text-[8px] text-slate-300 leading-normal max-w-[85%] self-end">
+                <div className="p-3 bg-white/6 border border-white/10 rounded-xl rounded-tr-sm text-[10px] text-slate-200 leading-relaxed max-w-[85%] self-end text-left">
                   How are sales performing?
                 </div>
               </div>
 
               {/* Mock Input */}
-              <div className="p-2 border-t border-white/5 bg-black/10 flex gap-1 items-center">
-                <div className="flex-1 h-4 bg-slate-950/60 border border-white/6 rounded px-1.5 text-[7px] text-slate-500 flex items-center">
+              <div className="p-3 border-t border-white/5 bg-black/10 flex gap-2 items-center">
+                <div className="flex-1 h-8 bg-slate-950/60 border border-white/6 rounded-lg px-3 text-[10px] text-slate-500 flex items-center">
                   Type a question...
                 </div>
-                <div className="w-4 h-4 rounded bg-white/5 border border-white/6 flex items-center justify-center text-[7px] text-slate-400">
+                <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/6 flex items-center justify-center text-[10px] text-slate-400">
                   ⚙️
                 </div>
               </div>

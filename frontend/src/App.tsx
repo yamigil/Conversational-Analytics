@@ -2772,6 +2772,9 @@ const App: React.FC = () => {
 
                     <div className="flex flex-col gap-4 border-t border-white/6 pt-5 mt-2">
                       <h3 className="font-heading text-sm font-semibold text-slate-400">Search Brand Logo</h3>
+                      <p className="text-[11px] text-slate-500 -mt-3 leading-relaxed">
+                        Query by corporate name (e.g. <code className="text-[10px] bg-white/4 px-1 rounded">Coca Cola</code>) or web domain name (e.g. <code className="text-[10px] bg-white/4 px-1 rounded">fleetpride.com</code>) to retrieve high-res brand logos.
+                      </p>
                       <div className="flex gap-2">
                         <input 
                           type="text" 

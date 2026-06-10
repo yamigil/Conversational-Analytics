@@ -673,11 +673,37 @@ def generate_greeting(req: GenerateGreetingRequest, user: dict = Depends(get_cur
 @app.get("/api/branding/search-logo")
 def search_logo(query: str, user: dict = Depends(get_current_user)):
     results = []
-    
-    # 1. Try Clearbit Autocomplete API (clean SVG/PNG company logos)
+    clean_query = query.strip()
+    if not clean_query:
+        return results
+
+    # 1. Speculative Domain Matching (helps find logos of custom/niche brands)
+    if "." in clean_query:
+        domain = clean_query.lower()
+        results.append({
+            "title": f"Domain: {domain}",
+            "url": f"https://www.google.com/s2/favicons?domain={domain}&sz=128",
+            "source": "Direct Domain"
+        })
+    else:
+        spaced_removed = clean_query.replace(" ", "").lower()
+        results.append({
+            "title": f"Speculative: {spaced_removed}.com",
+            "url": f"https://www.google.com/s2/favicons?domain={spaced_removed}.com&sz=128",
+            "source": "Speculative"
+        })
+        if " " in clean_query:
+            hyphenated = clean_query.replace(" ", "-").lower()
+            results.append({
+                "title": f"Speculative: {hyphenated}.com",
+                "url": f"https://www.google.com/s2/favicons?domain={hyphenated}.com&sz=128",
+                "source": "Speculative"
+            })
+
+    # 2. Try Clearbit Autocomplete API (clean SVG/PNG company logos)
     try:
         response = requests.get(
-            f"https://autocomplete.clearbit.com/v1/companies/suggest?query={requests.utils.quote(query)}",
+            f"https://autocomplete.clearbit.com/v1/companies/suggest?query={requests.utils.quote(clean_query)}",
             timeout=5
         )
         if response.ok:
@@ -685,11 +711,12 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
             for item in data:
                 if item.get("domain"):
                     logo_url = f"https://www.google.com/s2/favicons?domain={item['domain']}&sz=128"
-                    results.append({
-                        "title": item.get("name", query),
-                        "url": logo_url,
-                        "source": "Clearbit"
-                    })
+                    if not any(r["url"] == logo_url for r in results):
+                        results.append({
+                            "title": item.get("name", clean_query),
+                            "url": logo_url,
+                            "source": "Clearbit"
+                        })
     except Exception as e:
         logger.warning(f"Clearbit autocomplete failed: {e}")
         

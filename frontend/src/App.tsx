@@ -2907,7 +2907,23 @@ const App: React.FC = () => {
                       )}
 
                       {/* Search Results / Analysis Status */}
-                      {isGeneratingFromLogo ? (
+                      {isSearchingLogo ? (
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider animate-pulse select-none">Searching Brand Logos...</label>
+                          <div className="grid grid-cols-4 gap-3 bg-slate-950/20 rounded-xl p-3 border border-white/4">
+                            {[1, 2, 3, 4].map((i) => (
+                              <div 
+                                key={i}
+                                className="p-2 bg-white/5 border border-white/4 rounded-xl flex flex-col items-center justify-center aspect-square gap-2 animate-pulse select-none"
+                              >
+                                <div className="w-10 h-10 rounded-lg bg-white/5" />
+                                <div className="h-2 w-12 rounded bg-white/5" />
+                                <div className="h-1.5 w-8 rounded bg-white/5 mt-0.5" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : isGeneratingFromLogo ? (
                         <div className="flex flex-col items-center justify-center py-6 gap-3 text-slate-400 text-xs font-semibold bg-slate-950/20 rounded-xl p-4 border border-white/4">
                           <Loader2 className="animate-spin text-brand-primary" size={24} />
                           <span>Analyzing logo colors and applying custom theme...</span>

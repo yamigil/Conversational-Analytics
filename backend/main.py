@@ -683,10 +683,8 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
         if response.ok:
             data = response.json()
             for item in data:
-                logo_url = item.get("logo") or ""
-                if not logo_url and item.get("domain"):
-                    logo_url = f"https://logo.clearbit.com/{item['domain']}"
-                if logo_url:
+                if item.get("domain"):
+                    logo_url = f"https://www.google.com/s2/favicons?domain={item['domain']}&sz=128"
                     results.append({
                         "title": item.get("name", query),
                         "url": logo_url,

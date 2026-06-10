@@ -2808,9 +2808,9 @@ const App: React.FC = () => {
                         <div className="flex flex-col gap-2">
                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Search Results (Select to apply theme)</label>
                           <div className="grid grid-cols-4 gap-3 bg-slate-950/20 rounded-xl p-3 border border-white/4 max-h-48 overflow-y-auto">
-                            {logoSearchResults.map((logo, idx) => (
+                            {logoSearchResults.map((logo) => (
                               <div 
-                                key={idx}
+                                key={logo.url}
                                 onClick={() => handleSelectSearchLogo(logo.url, logo.title)}
                                 className="p-2 bg-white/5 border border-white/6 hover:border-brand-primary/50 hover:bg-brand-primary/5 rounded-xl cursor-pointer flex flex-col items-center justify-center aspect-square gap-1.5 transition group"
                               >
@@ -2820,7 +2820,7 @@ const App: React.FC = () => {
                                     alt={logo.title} 
                                     className="max-w-full max-h-full object-contain group-hover:scale-105 transition"
                                     onError={() => {
-                                      setLogoSearchResults(prev => prev.filter((_, idx2) => idx2 !== idx));
+                                      setLogoSearchResults(prev => prev.filter(r => r.url !== logo.url));
                                     }}
                                   />
                                 </div>

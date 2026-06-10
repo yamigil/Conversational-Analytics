@@ -653,6 +653,7 @@ const App: React.FC = () => {
   };
 
   const handleSignOut = async () => {
+    trackClick("sign_out");
     try {
       await auth.signOut();
       setCurrentPage("home");
@@ -661,6 +662,62 @@ const App: React.FC = () => {
     }
   };
 
+  // Google Analytics (GA4) Telemetry initialization
+  useEffect(() => {
+    const measurementId = import.meta.env.VITE_GA_MEASUREMENT_ID;
+    if (measurementId) {
+      if (!document.getElementById("google-tag-manager")) {
+        const script = document.createElement("script");
+        script.id = "google-tag-manager";
+        script.async = true;
+        script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
+        document.head.appendChild(script);
+
+        (window as any).dataLayer = (window as any).dataLayer || [];
+        (window as any).gtag = function gtag() {
+          (window as any).dataLayer.push(arguments);
+        };
+        (window as any).gtag("js", new Date());
+      }
+      
+      (window as any).gtag("config", measurementId, {
+        user_id: user ? user.email : undefined,
+        anonymize_ip: true
+      });
+    }
+  }, [user]);
+
+  // Telemetry Audit log triggers
+  const logAudit = async (eventType: string, details: any = {}) => {
+    try {
+      await authenticatedFetch("/api/telemetry/audit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ event_type: eventType, details })
+      });
+    } catch (err) {
+      console.error("Failed to post audit log:", err);
+    }
+  };
+
+  const trackClick = (buttonName: string, category: string = "button_click") => {
+    if ((window as any).gtag) {
+      (window as any).gtag("event", "click", {
+        event_category: category,
+        event_label: buttonName
+      });
+    }
+  };
+
+  // Audit log login event
+  useEffect(() => {
+    if (user) {
+      logAudit("LOGIN", { login_time: new Date().toISOString() });
+    }
+  }, [user]);
+
   // Navigation & Branding State
   const [currentPage, setCurrentPage] = useState<"home" | "chat" | "settings">(() => {
     return (sessionStorage.getItem("ca_current_page") as "home" | "chat" | "settings") || "home";
@@ -668,6 +725,21 @@ const App: React.FC = () => {
 
   useEffect(() => {
     sessionStorage.setItem("ca_current_page", currentPage);
+
+    // GA4 Page view tracking
+    if ((window as any).gtag) {
+      const measurementId = import.meta.env.VITE_GA_MEASUREMENT_ID;
+      if (measurementId) {
+        (window as any).gtag("event", "page_view", {
+          page_title: currentPage,
+          page_path: `/${currentPage}`,
+          send_to: measurementId
+        });
+      }
+    }
+
+    // Log page view audit
+    logAudit("PAGE_VIEW", { page: currentPage });
   }, [currentPage]);
 
   const [isArchModalOpen, setIsArchModalOpen] = useState(false);
@@ -1921,6 +1993,7 @@ const App: React.FC = () => {
             <div 
               id="settings-back-home"
               onClick={() => {
+                trackClick("logo_home_link");
                 if (currentPage !== "home") {
                   setCurrentPage("home");
                   if (currentPage === "chat" && selectedAgent) {
@@ -2049,6 +2122,7 @@ const App: React.FC = () => {
             <button 
               id="settings-gear-btn"
               onClick={() => {
+                trackClick("settings_gear");
                 setCurrentPage("settings");
                 if (tourStep === 1) setTourStep(2);
               }}

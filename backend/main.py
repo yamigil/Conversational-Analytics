@@ -9,6 +9,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
 
+# Telemetry imports
+from datetime import datetime, timezone
+from firebase_admin import firestore
+from google.cloud import bigquery
+
 from ca_client import ConversationalAnalyticsClient
 from auth import get_current_user
 from google.api_core import exceptions as google_exceptions
@@ -27,6 +32,74 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Telemetry Pydantic models & helpers
+class AuditLogModel(BaseModel):
+    event_type: str
+    details: Optional[dict] = {}
+
+def log_audit_to_firestore(user_email: str, event_type: str, details: dict):
+    try:
+        db = firestore.client()
+        doc_ref = db.collection("audit_logs").document()
+        doc_ref.set({
+            "timestamp": datetime.now(timezone.utc),
+            "user_email": user_email,
+            "event_type": event_type,
+            "details": details
+        })
+        logger.info(f"Logged audit event to Firestore: {event_type}")
+    except Exception as e:
+        logger.error(f"Failed to log audit event to Firestore: {e}")
+
+def log_chat_to_bigquery(user_email: str, conversation_name: str, agent_name: str, query: str):
+    try:
+        bq_client = bigquery.Client()
+        project_id = get_project_id()
+        dataset_id = f"{project_id}.telemetry"
+        table_id = f"{dataset_id}.chat_logs"
+        
+        # Self-healing dataset check
+        try:
+            bq_client.get_dataset(dataset_id)
+        except Exception:
+            from google.cloud.bigquery import Dataset
+            dataset = Dataset(dataset_id)
+            dataset.location = "us-central1"
+            bq_client.create_dataset(dataset)
+            logger.info(f"Created BigQuery telemetry dataset: {dataset_id}")
+            
+        # Self-healing table check
+        try:
+            bq_client.get_table(table_id)
+        except Exception:
+            from google.cloud.bigquery import Table, SchemaField
+            schema = [
+                SchemaField("timestamp", "TIMESTAMP", mode="REQUIRED"),
+                SchemaField("user_email", "STRING", mode="REQUIRED"),
+                SchemaField("conversation_id", "STRING", mode="REQUIRED"),
+                SchemaField("agent_name", "STRING", mode="REQUIRED"),
+                SchemaField("query", "STRING", mode="REQUIRED"),
+            ]
+            table = Table(table_id, schema=schema)
+            bq_client.create_table(table)
+            logger.info(f"Created BigQuery telemetry table: {table_id}")
+            
+        # Stream insert row
+        row = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "user_email": user_email,
+            "conversation_id": conversation_name,
+            "agent_name": agent_name,
+            "query": query,
+        }
+        errors = bq_client.insert_rows_json(table_id, [row])
+        if errors:
+            logger.error(f"BigQuery streaming insert errors: {errors}")
+        else:
+            logger.info(f"Logged chat event to BigQuery: {query[:50]}...")
+    except Exception as e:
+        logger.error(f"Failed to log chat to BigQuery: {e}")
 
 # Helper to find GCP Project ID for Analytics Agents
 def get_project_id() -> str:
@@ -327,6 +400,14 @@ def get_messages(convo_name: str, user: dict = Depends(get_current_user), client
 @app.post("/api/chat")
 def chat(req: ChatRequestModel, user: dict = Depends(get_current_user), client: ConversationalAnalyticsClient = Depends(get_analytics_client)):
     try:
+        # Log query telemetry to BigQuery
+        log_chat_to_bigquery(
+            user_email=user.get("email", "unknown"),
+            conversation_name=req.conversation_name,
+            agent_name=req.agent_name,
+            query=req.message_text
+        )
+
         # Guide the model's reasoning behavior by appending instructions directly in the prompt
         guided_message = req.message_text
         if req.chat_mode == "thinking":
@@ -664,12 +745,29 @@ def get_branding(user: dict = Depends(get_current_user)):
         logger.error(f"Error fetching branding: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/telemetry/audit")
+def audit_log(req: AuditLogModel, user: dict = Depends(get_current_user)):
+    log_audit_to_firestore(
+        user_email=user.get("email", "unknown"),
+        event_type=req.event_type,
+        details=req.details
+    )
+    return {"status": "success"}
+
 @app.post("/api/branding")
 def save_branding(data: dict = Body(...), user: dict = Depends(get_current_user)):
     try:
         os.makedirs(FRONTEND_DIR, exist_ok=True)
         with open(BRANDING_FILE, "w") as f:
             json.dump(data, f, indent=2)
+            
+        # Log to Firestore audit log
+        log_audit_to_firestore(
+            user_email=user.get("email", "unknown"),
+            event_type="BRANDING_UPDATE",
+            details={"activeBrand": data.get("activeBrand")}
+        )
+        
         return {"status": "success", "message": "Branding updated successfully"}
     except Exception as e:
         logger.error(f"Error saving branding: {e}")

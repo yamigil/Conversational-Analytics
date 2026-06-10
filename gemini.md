@@ -197,3 +197,37 @@ Initialize the local codebase as a git repository, exclude private key files wit
 - **SSO Domain Verification**: Verified that clicking the Google Sign-in button on the custom domain opens the Google accounts popup displaying `to continue to retail.cedemoportal.com`.
 
 
+# Session Summary - Branding Search Fix, Mock Auth Sandbox, Google Cloud CD Automation, and Telemetry Integration (2026-06-10)
+
+## Objective
+Fix the branding search logo results failure and target project 403 authorization errors in production, implement a local development mock auth sandbox, automate the CI/CD deployment pipeline for both frontend and backend services, clean up insecure exposed scripts, and integrate a comprehensive telemetry tracking system.
+
+## 1. Production Project Resolution & Connection Verification Fix
+- **Dynamic Project Discovery**: Updated `get_project_id()` in [main.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/main.py) to resolve the active GCP Project ID dynamically using **`google.auth.default()`** rather than falling back to an obsolete project ID template, resolving the `403 Forbidden` permission denied error when executing the API connection test on Cloud Run.
+
+## 2. Branding Search Logo Domain Fallback
+- **Domain-to-Logo Auto-Construction**: Extended the Clearbit suggestions search pipeline in [main.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/main.py). If Google Image search scraping is blocked by cloud IP rate-limiting filters (returning empty results), the backend extracts domain names (e.g. `fleetpride.com`) and automatically constructs high-res, verified logo images using the free `https://logo.clearbit.com/{domain}` service.
+- **Scrape Failure Safeguard**: Prevented branding logo selectors from rendering empty components in cloud environments.
+
+## 3. Local Mock Auth Sandbox Mode
+- **Credentials-Free Sandbox**: Implemented a local sandbox mode enabled via the `MOCK_AUTH` environment variable (saved in local `.env` files).
+- **Frontend/Backend Bypass**:
+  - The frontend automatically bypasses Firebase SSO popups and injects a mock user session profile when `VITE_MOCK_AUTH` is active.
+  - The backend `get_current_user` dependency bypasses Firebase ID token validation and returns a mock user identity when `MOCK_AUTH` is enabled.
+- This allows developers to run, test, and visually inspect the web app locally on port 8000 using pure static serving.
+
+## 4. Multi-Service CI/CD Deployment Automation
+- **Unified CD Pipeline**: Updated [.github/workflows/firebase-deploy.yml](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/.github/workflows/firebase-deploy.yml) to automate the deployment of BOTH the React static assets (to Firebase Hosting) and the FastAPI container (to Cloud Run) on push to the `main` branch.
+- **GCP Authentication Integration**: Added standard GCP Auth and Deploy Cloud Run Actions using the project deployment service account.
+
+## 5. Security Cleanup of Stale Script Files
+- **Insecure Public File Deletion**: Deleted the obsolete debug file `frontend/public/test_print.py` which was being compiled into static public assets, preventing exposure of internal project credentials and conversation IDs in production.
+
+## 6. Comprehensive Telemetry Tracking Setup
+- **Clickstream Analytics (GA4)**: Configured Google Analytics 4 inside [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx) dynamically using `VITE_GA_MEASUREMENT_ID`. Added event trackings on header page actions and logout clicks, passing the authenticated user's email securely as the GA `user_id`.
+- **Portal Audit Telemetry (Firestore)**: Added a POST `/api/telemetry/audit` backend endpoint. User logins, page views, and settings modifications are logged in Firestore under the `audit_logs` collection.
+- **Conversational Chat Analytics (BigQuery)**: Configured the backend to log every query asked to the Conversational Analytics API into a BigQuery telemetry table `telemetry.chat_logs`.
+- **Self-Healing Datasets**: Telemetry dataset and log tables are automatically created on the fly if missing from the active GCP project.
+
+
+

@@ -28,9 +28,32 @@ To spin up both the backend API and the frontend dashboard development servers c
 
 The application will be available locally at `http://localhost:8000/`.
 
+### Local Sandbox Mode (Mock Authentication)
+To run and test changes locally without hitting Firebase authentication screens, you can enable Mock Auth:
+1. Set `MOCK_AUTH=true` inside `backend/.env`.
+2. Set `VITE_MOCK_AUTH=true` inside `frontend/.env`.
+3. Restart the dev servers. The portal will automatically load a mock user profile (`admin@gilgtz.altostrat.com`) and bypass all SSO login overlays.
+
 ---
 
-## Production Deployment
+## Continuous Deployment (CI/CD)
+
+The project includes a unified deployment workflow in `.github/workflows/firebase-deploy.yml`. Every commit pushed to the `main` branch automatically builds and deploys both services:
+1. **React Static Assets**: Compiled and uploaded to Firebase Hosting global CDN.
+2. **FastAPI Container**: Packaged and deployed to Google Cloud Run.
+
+### Required Deployment Service Account Roles
+To support automated builds, your deployment service account (`demoportal@...`) requires the following IAM permissions:
+* **Cloud Run Developer** (`roles/run.developer`): Deploy revisions to Cloud Run.
+* **Cloud Build Editor** (`roles/cloudbuild.builds.editor`): Build Docker container images.
+* **Storage Admin** (`roles/storage.admin`): Upload source bundles to Cloud Storage.
+* **Artifact Registry Writer** (`roles/artifactregistry.writer`): Push container artifacts.
+* **Service Account User** (`roles/iam.serviceAccountUser`): Bind runtime identity to the service.
+* **Firebase Hosting Admin** (`roles/firebasehosting.admin`): Upload assets to CDN.
+
+---
+
+## Manual Production Deployment (Alternative)
 
 This application is fully containerized and configured for modern, serverless cloud deployments.
 
@@ -85,6 +108,8 @@ Deploy the React static assets to Firebase's global edge CDN and automatically r
 8. **Consolidated Dashboard Layout**: Unified dashboard workspace featuring a clean, centralized "Launch Conversational Analytics" CTA embedded directly inside the Executive Insights card's empty state.
 9. **Fixed-Position Onboarding Tour**: A viewport-immune 12-step guided tour with fixed tooltips and automatic alignment offsets pointing to portal controls, branding search selectors, and live previews.
 10. **State-Persistent Navigation**: The active page and settings tab state are automatically persisted in the browser session, preventing redirects back to the home page upon manual browser refresh.
+11. **Automated Multi-Service CD Pipeline**: GitHub Actions automatically deploys React static assets to Firebase Hosting and FastAPI backend containers to Google Cloud Run on every push to main.
+12. **Multi-Source Telemetry & Audit Logs**: Integrates Google Analytics (GA4) for frontend clickstream logs, Firestore for portal administrative audit trails (logins, branding selections), and BigQuery for conversational API chat logs.
 
 
 

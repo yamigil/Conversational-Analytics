@@ -722,8 +722,45 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
                         })
     except Exception as e:
         logger.warning(f"Clearbit autocomplete failed: {e}")
-        
-    # 2. Try Google Image Search (public scrape) as fallback or secondary results
+    # 3. Try Wikipedia/Wikidata official logo query (works reliably on GCP/Cloud Run without blocking)
+    try:
+        import hashlib
+        headers = {
+            "User-Agent": "ConversationalAnalyticsPortal/1.0 (https://retail.cedemoportal.com; contact: support@cedemoportal.com)"
+        }
+        search_url = f"https://en.wikipedia.org/w/api.php?action=opensearch&search={requests.utils.quote(clean_query)}&limit=3&namespace=0&format=json"
+        wr = requests.get(search_url, headers=headers, timeout=5)
+        if wr.ok:
+            data = wr.json()
+            titles = data[1]
+            for title in titles:
+                wiki_url = f"https://www.wikidata.org/w/api.php?action=wbgetentities&sites=enwiki&titles={requests.utils.quote(title)}&props=claims&format=json"
+                w_resp = requests.get(wiki_url, headers=headers, timeout=5)
+                if w_resp.ok:
+                    wdata = w_resp.json()
+                    entities = wdata.get("entities", {})
+                    for entity_id, entity_info in entities.items():
+                        claims = entity_info.get("claims", {})
+                        logo_claims = claims.get("P154", [])
+                        if logo_claims:
+                            filename = logo_claims[0].get("mainsnak", {}).get("datavalue", {}).get("value")
+                            if filename:
+                                spaced_name = filename.replace(" ", "_")
+                                md5_hash = hashlib.md5(spaced_name.encode('utf-8')).hexdigest()
+                                logo_url = f"https://upload.wikimedia.org/wikipedia/commons/{md5_hash[0]}/{md5_hash[0:2]}/{spaced_name}"
+                                results.append({
+                                    "title": f"{title} Official Logo",
+                                    "url": logo_url,
+                                    "source": "Web Search"
+                                })
+                                break
+                    else:
+                        continue
+                    break
+    except Exception as e:
+        logger.warning(f"Wikipedia logo retrieval failed: {e}")
+
+    # 4. Try Google Image Search (public scrape) as fallback or secondary results
     try:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"

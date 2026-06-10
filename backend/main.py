@@ -739,6 +739,7 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
                 if w_resp.ok:
                     wdata = w_resp.json()
                     entities = wdata.get("entities", {})
+                    found_logo = False
                     for entity_id, entity_info in entities.items():
                         claims = entity_info.get("claims", {})
                         logo_claims = claims.get("P154", [])
@@ -753,10 +754,10 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
                                     "url": logo_url,
                                     "source": "Web Search"
                                 })
+                                found_logo = True
                                 break
-                    else:
-                        continue
-                    break
+                    if found_logo:
+                        break
     except Exception as e:
         logger.warning(f"Wikipedia logo retrieval failed: {e}")
 

@@ -602,10 +602,13 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
         if response.ok:
             data = response.json()
             for item in data:
-                if item.get("logo"):
+                logo_url = item.get("logo") or ""
+                if not logo_url and item.get("domain"):
+                    logo_url = f"https://logo.clearbit.com/{item['domain']}"
+                if logo_url:
                     results.append({
                         "title": item.get("name", query),
-                        "url": item.get("logo"),
+                        "url": logo_url,
                         "source": "Clearbit"
                     })
     except Exception as e:

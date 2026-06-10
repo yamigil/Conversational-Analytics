@@ -1800,7 +1800,7 @@ const App: React.FC = () => {
           .replace(/^(speculative:\s*|domain:\s*)/i, "")
           .replace(/\.(com|org|net|co|io|edu|gov)$/i, "")
           .split(/[\s_-]+/)
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
           .join(" ");
         const brandKey = finalName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "_");
 

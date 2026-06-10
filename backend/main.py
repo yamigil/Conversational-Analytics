@@ -50,7 +50,17 @@ def get_project_id() -> str:
         logger.info(f"Loaded GCP Analytics Project ID: {project_id}")
         return project_id
 
-    # 3. Try loading from Streamlit secrets file of quickstarts if present
+    # 3. Resolve dynamically using google.auth.default
+    try:
+        import google.auth
+        _, auth_project = google.auth.default()
+        if auth_project:
+            logger.info(f"Loaded GCP Project ID dynamically from auth context: {auth_project}")
+            return auth_project
+    except Exception as e:
+        logger.warning(f"Could not resolve project ID via google.auth.default: {e}")
+
+    # 4. Try loading from Streamlit secrets file of quickstarts if present
     quickstart_secrets = "/Users/gilgtz/Documents/Google/Conversational_Analytics/ca-api-quickstarts/.streamlit/secrets.toml"
     if os.path.exists(quickstart_secrets):
         try:

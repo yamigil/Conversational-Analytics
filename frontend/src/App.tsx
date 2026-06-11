@@ -3304,7 +3304,10 @@ const App: React.FC = () => {
                 New here?
               </h3>
               <p className="text-slate-300 text-xs leading-relaxed font-medium">
-                See how to navigate this site and configure credentials, dynamic branding, and query databases using AI agents.
+                {user?.email?.endsWith("@gmail.com")
+                  ? "See how to navigate this site, customize branding, and use AI agents."
+                  : "See how to navigate this site, configure credentials, customize branding, and use AI agents."
+                }
               </p>
             </div>
             <div className="flex gap-3 w-full mt-2">

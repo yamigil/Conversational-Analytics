@@ -335,3 +335,6 @@ Refine the onboarding tour and walkthrough steps based on visual feedback, resol
   * In `handleAgentChange`, shifted the walkthrough step check from `13` to `14`, advancing to Step 15 upon agent selection.
   * In `handleSendMessage`, shifted the step check from `15` to `16`, advancing to Step 17 upon submitting a query.
 
+## 9. Welcome Dialog Description Customization
+- **Tailored Description Copy**: Refactored the welcome tour modal text in `App.tsx` to display email-conditional copy. For Gmail users, references to "configure credentials" have been removed and "query databases" has been replaced with "use AI agents" (yielding: *"See how to navigate this site, customize branding, and use AI agents."*). Corporate users receive the same "use AI agents" updates while retaining "configure credentials" coverage.
+

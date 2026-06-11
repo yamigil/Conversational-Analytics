@@ -230,4 +230,25 @@ Fix the branding search logo results failure and target project 403 authorizatio
 - **Self-Healing Datasets**: Telemetry dataset and log tables are automatically created on the fly if missing from the active GCP project.
 
 
+# Session Summary - Robust Wikipedia Image Fallback, Dynamic Year Penalty & Historical Logo Exclusions (2026-06-11)
+
+## Objective
+Improve brand logo resolution reliability in the settings panel by implementing a robust Wikipedia page images parser fallback. This resolves issues where Google Image search scraping is blocked in cloud environments and Wikidata claims do not contain the `P154` logo property.
+
+## 1. Wikipedia Page Images Fallback Parser
+- **Exclusion Filters**: Created a filtering system to ignore generic Wiki interface icons (e.g. `commons-logo`, `wiktionary-logo`, `wikimedia-logo`, `disambig`, `stub`, `edit-clear`, `lock`, `padlock`, etc.).
+- **Smart Ranking & Scoring**: Implemented a scoring algorithm for Wikipedia candidate images:
+  - Boosts files matching query keywords or page title keywords.
+  - Prioritizes SVG files over raster formats.
+  - Dynamically penalizes older historical logos by parsing years (e.g., `1975`, `2012`) and reducing scores relative to the current year.
+  - Penalizes explicit keywords like `historical`, `old`, and `history`.
+  - Slightly penalizes longer filenames to favor clean, concise brand files.
+- **Direct Image Resolution**: Integrated the Wikipedia `imageinfo` API to retrieve the direct image URL, bypassing the need for Wikimedia Commons MD5 hashing on local uploads.
+
+## 2. API Endpoint Integration
+- **Search Logo Fallback**: Updated the `/api/branding/search-logo` endpoint in [main.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/main.py) to automatically execute the new Wikipedia images parser fallback when Wikidata claims search does not yield a brand logo.
+- **Production Alignment**: Fully tested query responses for niche or subsidiary brands like **Penske Automotive** to guarantee return of official high-resolution branding assets.
+
+
+
 

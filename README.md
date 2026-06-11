@@ -104,7 +104,7 @@ Deploy the React static assets to Firebase's global edge CDN and automatically r
 4. **Self-Healing Auth Recovery Loop**: Automatically intercepts expired Google Cloud credentials (`401` errors) or page-refresh token clearance and triggers the Google SSO popup to refresh the token, transparently retrying the failed request in the background.
 5. **Interactive Visualizer**: Dynamic rendering of SQL scripts and Vega chart visualizers based on the returned query data.
 6. **Layout-Aligned Insights**: Contextual takeaways and summaries positioned below data grids and charts.
-7. **Google Image Search Branding**: Instantly search and retrieve corporate logos via Google Search to apply custom visual themes, HSL colors, welcome messages, and layout configurations.
+7. **Wikipedia/Wikidata Brand Logo Search**: Instantly search and retrieve official corporate logos directly from Wikipedia/Wikidata using an automated image-scoring fallback system to apply custom visual themes, HSL colors, welcome messages, and layout configurations. This bypasses IP rate-limiting blocks on Google Search.
 8. **Consolidated Dashboard Layout**: Unified dashboard workspace featuring a clean, centralized "Launch Conversational Analytics" CTA embedded directly inside the Executive Insights card's empty state.
 9. **Fixed-Position Onboarding Tour**: A viewport-immune 12-step guided tour with fixed tooltips and automatic alignment offsets pointing to portal controls, branding search selectors, and live previews.
 10. **State-Persistent Navigation**: The active page and settings tab state are automatically persisted in the browser session, preventing redirects back to the home page upon manual browser refresh.

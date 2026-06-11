@@ -736,10 +736,10 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
             for title in titles:
                 wiki_url = f"https://www.wikidata.org/w/api.php?action=wbgetentities&sites=enwiki&titles={requests.utils.quote(title)}&props=claims&format=json"
                 w_resp = requests.get(wiki_url, headers=headers, timeout=5)
+                found_logo = False
                 if w_resp.ok:
                     wdata = w_resp.json()
                     entities = wdata.get("entities", {})
-                    found_logo = False
                     for entity_id, entity_info in entities.items():
                         claims = entity_info.get("claims", {})
                         logo_claims = claims.get("P154", [])
@@ -756,8 +756,96 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
                                 })
                                 found_logo = True
                                 break
-                    if found_logo:
-                        break
+                
+                # Fallback: Parse all images on the Wikipedia page looking for a matching logo
+                if not found_logo:
+                    img_list_url = f"https://en.wikipedia.org/w/api.php?action=query&titles={requests.utils.quote(title)}&prop=images&imlimit=100&format=json"
+                    ir = requests.get(img_list_url, headers=headers, timeout=5)
+                    if ir.ok:
+                        idata = ir.json()
+                        pages = idata.get("query", {}).get("pages", {})
+                        for page_id, page_info in pages.items():
+                            images = page_info.get("images", [])
+                            exclude_patterns = [
+                                "commons-logo", "wiktionary-logo", "wikimedia-logo", "wikipedia-logo",
+                                "disambig", "stub", "edit-clear", "question_book", "lock", "padlock",
+                                "icon", "search-logo", "external_link", "decrease", "increase", "symbol"
+                            ]
+                            candidates = []
+                            for img in images:
+                                img_title = img.get("title", "")
+                                img_lower = img_title.lower()
+                                if "logo" in img_lower:
+                                    excluded = False
+                                    for pattern in exclude_patterns:
+                                        if pattern in img_lower:
+                                            excluded = True
+                                            break
+                                    if not excluded:
+                                        candidates.append(img_title)
+                            
+                            if candidates:
+                                # Score candidates
+                                best_candidate = None
+                                best_score = -100.0
+                                import re
+                                query_words = [w for w in re.split(r'\W+', clean_query.lower()) if len(w) > 2]
+                                
+                                for cand in candidates:
+                                    cand_lower = cand.lower()
+                                    score = 0
+                                    for qw in query_words:
+                                        if qw in cand_lower:
+                                            score += 1
+                                    
+                                    title_clean = title.lower().replace("corporation", "").replace("group", "").replace("inc", "").strip()
+                                    title_words = [w for w in re.split(r'\W+', title_clean) if len(w) > 2]
+                                    for tw in title_words:
+                                        if tw in cand_lower:
+                                            score += 2
+                                    
+                                    if cand_lower.endswith(".svg"):
+                                        score += 1.5
+                                        
+                                    year_match = re.search(r'(18|19|20)\d{2}', cand_lower)
+                                    if year_match:
+                                        year = int(year_match.group(0))
+                                        score -= (2026 - year) * 0.5 + 2.0
+                                        
+                                    for keyword in ["historical", "old", "history"]:
+                                        if keyword in cand_lower:
+                                            score -= 5.0
+                                            
+                                    score -= len(cand) * 0.005
+                                    
+                                    if score > best_score:
+                                        best_score = score
+                                        best_candidate = cand
+                                
+                                if not best_candidate:
+                                    best_candidate = candidates[0]
+                                    
+                                # Resolve URL of selected candidate
+                                info_url = f"https://en.wikipedia.org/w/api.php?action=query&titles={requests.utils.quote(best_candidate)}&prop=imageinfo&iiprop=url&format=json"
+                                infor = requests.get(info_url, headers=headers, timeout=5)
+                                if infor.ok:
+                                    infodata = infor.json()
+                                    infopages = infodata.get("query", {}).get("pages", {})
+                                    for ipage_id, ipage_info in infopages.items():
+                                        info_list = ipage_info.get("imageinfo", [])
+                                        if info_list:
+                                            resolved_logo_url = info_list[0].get("url")
+                                            results.append({
+                                                "title": f"{title} Official Logo",
+                                                "url": resolved_logo_url,
+                                                "source": "Web Search"
+                                            })
+                                            found_logo = True
+                                            break
+                            if found_logo:
+                                break
+                if found_logo:
+                    break
     except Exception as e:
         logger.warning(f"Wikipedia logo retrieval failed: {e}")
 

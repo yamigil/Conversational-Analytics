@@ -320,3 +320,6 @@ Refine the onboarding tour and walkthrough steps based on visual feedback, resol
 ## 6. Gmail Settings Tab Restriction Fix
 - **Default Active Tab Initialization**: Updated the Settings gear icon `onClick` handler inside `App.tsx` to dynamically initialize `settingsActiveTab` to `"branding"` for Gmail users (and `"general"` for corporate users) upon opening the settings page. This prevents the right-side Connection Details panel from rendering by default for Gmail users when the tour is inactive.
 
+## 7. Tour Text Optimization
+- **Simplified Descriptions**: Shortened the tooltip text for Step 3 (Customize Branding) and Step 5 (Save Branding Config) to remove repetitive descriptions about inferred accent colors and backgrounds, ensuring the copy is concise and direct.
+

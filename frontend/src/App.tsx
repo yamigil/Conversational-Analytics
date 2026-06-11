@@ -1379,10 +1379,17 @@ const App: React.FC = () => {
           left: (tourStep === 6 || tourStep === 17) ? `${rect.left}px` : undefined,
           zIndex: 1000
         });
-      } else if (tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 11 || tourStep === 14 || tourStep === 15) {
+      } else if (tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14) {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.top - 10}px`,
+          left: `${rect.right + 16}px`,
+          zIndex: 1000
+        });
+      } else if (tourStep === 11 || tourStep === 15) {
+        setTooltipStyle({
+          position: 'fixed',
+          bottom: `${window.innerHeight - rect.bottom - 10}px`,
           left: `${rect.right + 16}px`,
           zIndex: 1000
         });
@@ -3334,8 +3341,11 @@ const App: React.FC = () => {
           {(tourStep === 1 || tourStep === 6 || tourStep === 12 || tourStep === 13 || tourStep === 17) && (
             <div className={`absolute -top-2 ${tourStep === 1 || tourStep === 12 || tourStep === 13 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-t border-l border-amber-500/55 rotate-45`} />
           )}
-          {(tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 11 || tourStep === 14 || tourStep === 15) && (
+          {(tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14) && (
             <div className="absolute -left-2 top-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
+          )}
+          {(tourStep === 11 || tourStep === 15) && (
+            <div className="absolute -left-2 bottom-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
           )}
           {(tourStep === 3) && (
             <div className="absolute -right-2 top-6 w-4 h-4 bg-slate-900 border-t border-r border-amber-500/55 rotate-45" />

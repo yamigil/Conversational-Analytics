@@ -323,3 +323,6 @@ Refine the onboarding tour and walkthrough steps based on visual feedback, resol
 ## 7. Tour Text Optimization
 - **Simplified Descriptions**: Shortened the tooltip text for Step 3 (Customize Branding) and Step 5 (Save Branding Config) to remove repetitive descriptions about inferred accent colors and backgrounds, ensuring the copy is concise and direct.
 
+## 8. Tour Element Highlight Realignment
+- **Corrected Highlight Triggers**: Realigned the visual tour-highlight outlines in the Chat Workspace sidebar. The Active Agent dropdown (`agent-select-container`) now correctly receives the yellow outline on Step 9 (Select AI Agent) and Step 14 (Demo Step 1), and the Conversations history container (`new-convo-btn`) correctly lights up on Step 10 (Manage History).
+

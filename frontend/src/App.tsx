@@ -2445,7 +2445,7 @@ const App: React.FC = () => {
           
           <div className="mb-7 flex flex-col">
             <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2">Active Data Agent</label>
-            <div className={`relative ${tourStep === 8 ? 'tour-highlight rounded-xl' : ''}`} id="agent-select-container">
+            <div className={`relative ${tourStep === 9 || tourStep === 14 ? 'tour-highlight rounded-xl' : ''}`} id="agent-select-container">
               <select 
                 value={selectedAgent}
                 onChange={handleAgentChange}
@@ -2462,7 +2462,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div id="new-convo-btn" className={`flex flex-col flex-1 min-h-0 ${tourStep === 9 ? 'tour-highlight p-2 rounded-xl border border-white/6 bg-white/1' : ''}`}>
+          <div id="new-convo-btn" className={`flex flex-col flex-1 min-h-0 ${tourStep === 10 ? 'tour-highlight p-2 rounded-xl border border-white/6 bg-white/1' : ''}`}>
             <div className="flex justify-between items-center mb-3">
               <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Conversations</span>
               <button 

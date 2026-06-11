@@ -16,7 +16,8 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  Upload
 } from "lucide-react";
 
 import { Dashboard } from "./components/Dashboard";
@@ -627,12 +628,21 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (import.meta.env.VITE_MOCK_AUTH === "true") {
-      setUser({
-        email: "admin@gilgtz.altostrat.com",
-        displayName: "Test User",
-        uid: "mock-user-123",
-      });
-      setAuthLoading(false);
+      if (localStorage.getItem("mock_logout") === "true") {
+        setUser(null);
+        setAuthLoading(false);
+      } else {
+        // Support URL parameter for mock profile selection
+        const params = new URLSearchParams(window.location.search);
+        const isGmailMock = params.get("mock") === "gmail";
+        const email = isGmailMock ? "yamigilgtz@gmail.com" : "admin@gilgtz.altostrat.com";
+        setUser({
+          email: email,
+          displayName: isGmailMock ? "Gmail Test User" : "Argolis Test User",
+          uid: "mock-user-123",
+        });
+        setAuthLoading(false);
+      }
       return;
     }
 
@@ -646,6 +656,18 @@ const App: React.FC = () => {
   const handleLogin = async () => {
     setAuthError(null);
     try {
+      if (import.meta.env.VITE_MOCK_AUTH === "true") {
+        localStorage.removeItem("mock_logout");
+        const params = new URLSearchParams(window.location.search);
+        const isGmailMock = params.get("mock") === "gmail";
+        const email = isGmailMock ? "yamigilgtz@gmail.com" : "admin@gilgtz.altostrat.com";
+        setUser({
+          email: email,
+          displayName: isGmailMock ? "Gmail Test User" : "Argolis Test User",
+          uid: "mock-user-123",
+        });
+        return;
+      }
       await signInWithGoogle();
     } catch (err: any) {
       setAuthError(err.message || "Failed to sign in. Please try again.");
@@ -655,7 +677,12 @@ const App: React.FC = () => {
   const handleSignOut = async () => {
     trackClick("sign_out");
     try {
+      if (import.meta.env.VITE_MOCK_AUTH === "true") {
+        localStorage.setItem("mock_logout", "true");
+      }
       await auth.signOut();
+      sessionStorage.removeItem("gcp_user_access_token");
+      setUser(null);
       setCurrentPage("home");
     } catch (err) {
       console.error("Failed to sign out:", err);
@@ -750,7 +777,7 @@ const App: React.FC = () => {
   const renderLogoSvg = (brandKey: string) => {
     const brand = branding?.brands?.[brandKey];
     if (brand && brand.logoSvg) {
-      const isImg = brand.logoSvg.includes("<img");
+      const isImg = brand.logoSvg.includes("<img") && !brand.logoSvg.includes("google_cloud_logo");
       return (
         <span 
           className={`w-full h-full flex items-center justify-center svg-logo-container ${isImg ? 'bg-white/95 p-0.5 rounded-lg' : ''}`} 
@@ -791,7 +818,7 @@ const App: React.FC = () => {
         );
       default:
         return (
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 35 32" className="w-full h-full">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 0 32 28" className="w-full h-full">
             <path fill="#ea4335" d="M21.85,7.41l1,0,2.85-2.85.14-1.21A12.81,12.81,0,0,0,5,9.6a1.55,1.55,0,0,1,1-.06l5.7-.94s.29-.48.44-.45a7.11,7.11,0,0,1,9.73-.74Z"/>
             <path fill="#4285f4" d="M29.76,9.6a12.84,12.84,0,0,0-3.87-6.24l-4,4A7.11,7.11,0,0,1,24.5,13v.71a3.56,3.56,0,1,1,0,7.12H17.38l-.71.72v4.27l.71.71H24.5A9.26,9.26,0,0,0,29.76,9.6Z"/>
             <path fill="#34a853" d="M10.25,26.49h7.12v-5.7H10.25a3.54,3.54,0,0,1-1.47-.32l-1,.31L4.91,23.63l-.25,1A9.21,9.21,0,0,0,10.25,26.49Z"/>
@@ -988,6 +1015,7 @@ const App: React.FC = () => {
 
   // Refs for scroll, auto-height textarea, and dropdown containers
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const connDropdownRef = useRef<HTMLDivElement>(null);
   const chatModeDropdownRef = useRef<HTMLDivElement>(null);
@@ -1761,6 +1789,99 @@ const App: React.FC = () => {
       setSettingsSaveResult(`Error saving settings: ${e.message}`);
     }
   };
+ 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsGeneratingFromLogo(true);
+    setLogoSearchError("");
+
+    const processUpload = async (svgContent: string | null, base64Image: string | null, mimeType: string | null, fileName: string) => {
+      try {
+        const promptText = fileName.replace(/\.[^/.]+$/, "") || brandName || "Custom Brand";
+        const res = await authenticatedFetch("/api/branding/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: promptText,
+            logo_image: base64Image,
+            logo_mime_type: mimeType,
+            logo_svg_content: svgContent
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const rawName = data.name || promptText;
+          const finalName = rawName
+            .replace(/^(speculative:\s*|domain:\s*)/i, "")
+            .replace(/\.(com|org|net|co|io|edu|gov)$/i, "")
+            .split(/[\s_-]+/)
+            .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(" ");
+          const brandKey = finalName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "_");
+
+          let finalLogoSvg = "";
+          if (data.logoSvg && data.logoSvg.includes("<svg") && !data.logoSvg.includes("polygon points='12 2")) {
+            finalLogoSvg = data.logoSvg;
+          } else if (base64Image) {
+            finalLogoSvg = `<img src="data:${mimeType};base64,${base64Image}" alt="${finalName}" class="w-full h-full object-contain" />`;
+          } else if (svgContent) {
+            finalLogoSvg = svgContent;
+          }
+
+          const rawLogoText = data.logoText || finalName;
+          const finalLogoText = rawLogoText
+            .replace(/^(speculative:\s*|domain:\s*)/i, "")
+            .replace(/\.(com|org|net|co|io|edu|gov)$/i, "")
+            .toUpperCase();
+
+          setBrandName(finalName);
+          if (data.primaryColor) setBrandPrimary(data.primaryColor);
+          if (data.secondaryColor) setBrandSecondary(data.secondaryColor);
+          if (data.backgroundColorStart) setBrandBgStart(data.backgroundColorStart);
+          if (data.backgroundColorEnd) setBrandBgEnd(data.backgroundColorEnd);
+          setBrandLogoText(finalLogoText);
+          if (data.welcomeMessage) setBrandWelcome(data.welcomeMessage);
+          setBrandLogoSvg(finalLogoSvg);
+          setActiveBrandKey(brandKey);
+        } else {
+          const errText = await res.text().catch(() => "");
+          setLogoSearchError(`Logo analysis failed (Status ${res.status}: ${errText || res.statusText}).`);
+        }
+      } catch (err: any) {
+        setLogoSearchError(err.message || "An error occurred during custom logo theme generation.");
+      } finally {
+        setIsGeneratingFromLogo(false);
+      }
+    };
+
+    try {
+      const reader = new FileReader();
+      if (file.type === "image/svg+xml") {
+        reader.onload = async (event) => {
+          const text = event.target?.result as string;
+          await processUpload(text, null, null, file.name);
+        };
+        reader.readAsText(file);
+      } else {
+        reader.onload = async (event) => {
+          const dataUrl = event.target?.result as string;
+          const base64Data = dataUrl.split(",")[1];
+          await processUpload(null, base64Data, file.type, file.name);
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (err: any) {
+      setLogoSearchError(err.message || "Failed to read file.");
+      setIsGeneratingFromLogo(false);
+    } finally {
+      if (logoFileInputRef.current) {
+        logoFileInputRef.current.value = "";
+      }
+    }
+  };
 
   const handleSearchLogo = async () => {
     if (!logoSearchQuery.trim()) return;
@@ -1973,14 +2094,14 @@ const App: React.FC = () => {
         <div className="relative w-full max-w-[440px] bg-slate-900/40 backdrop-blur-xl border border-white/6 rounded-2xl p-8 shadow-2xl flex flex-col gap-6 text-center transition-all duration-300 hover:border-white/10">
           {/* Header Logo */}
           <div className="flex flex-col items-center gap-3">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 ring-1 ring-white/20">
-              <Sparkles className="h-8 w-8 text-white" />
+            <div className="w-16 h-16 rounded-2xl bg-slate-950/40 border border-white/6 flex items-center justify-center p-3 shadow-lg shadow-black/30">
+              <img src="/google_cloud_logo.svg" className="w-full h-full object-contain" alt="Google Cloud Logo" />
             </div>
             <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400 tracking-tight mt-2">
-              Conversational Analytics
+              Google Cloud Agent Hub
             </h1>
-            <p className="text-xs font-semibold text-indigo-400 tracking-widest uppercase mt-0.5">
-              Enterprise Data Assistant
+            <p className="text-[10px] font-semibold text-indigo-400 tracking-widest uppercase mt-0.5">
+              Enterprise Agentic Workspace
             </p>
           </div>
 
@@ -1989,31 +2110,20 @@ const App: React.FC = () => {
           {/* Welcoming Text */}
           <div className="flex flex-col gap-2">
             <p className="text-sm text-slate-300 leading-relaxed">
-              Welcome to your collaborative analytics workspace. Sign in to analyze databases, view dashboards, and generate insights.
-            </p>
-            <p className="text-[11px] text-slate-500 font-medium">
-              Access restricted to authorized personnel only.
+              Welcome to your collaborative conversational analytics workspace. Sign in to analyze databases, view dashboards, and generate insights.
             </p>
           </div>
 
-          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-left flex flex-col gap-1">
-            <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">⚠️ Workspace Policy Restriction</span>
-            <p className="text-[10px] text-slate-300 leading-normal">
-              Corporate accounts (<strong>@google.com</strong>) are blocked by Workspace security policies. Please sign in using your Argolis account.
-            </p>
-          </div>
+          <p className="text-xs text-slate-400">
+            Sign in using your <strong className="text-slate-300 font-semibold">Argolis</strong> or <strong className="text-slate-300 font-semibold">Gmail</strong> account.
+          </p>
 
           {/* Google Sign In Button */}
           <button
             onClick={handleLogin}
             className="w-full flex items-center justify-center gap-3 py-3.5 px-4 bg-white hover:bg-slate-50 text-slate-900 font-semibold rounded-xl border border-slate-200 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer text-sm"
           >
-            <svg className="h-5 w-5" viewBox="0 0 24 24">
-              <path
-                fill="#EA4335"
-                d="M12.24 10.285V14.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.866-3.577-7.866-8s3.536-8 7.866-8c2.462 0 4.105 1.025 5.047 1.926l3.253-3.13C18.427 1.92 15.62 1 12.24 1 5.922 1 12.24 5.922 12.24 12.24s4.922 11.24 11.24 11.24c6.6 0 11-4.636 11-11.24 0-.756-.08-1.333-.18-1.955H12.24z"
-              />
-            </svg>
+            <img src="/google_logo.svg" className="h-5 w-5 object-contain" alt="Google Logo" />
             Sign in with Google
           </button>
           
@@ -2847,7 +2957,7 @@ const App: React.FC = () => {
                     <div className="flex flex-col gap-4 border-t border-white/6 pt-5 mt-2">
                       <h3 className="font-heading text-sm font-semibold text-slate-400">Search Brand Logo</h3>
                       <p className="text-[11px] text-slate-500 -mt-3 leading-relaxed">
-                        Query by corporate name (e.g. <code className="text-[10px] bg-white/4 px-1 rounded">Coca Cola</code>) or web domain name (e.g. <code className="text-[10px] bg-white/4 px-1 rounded">fleetpride.com</code>) to retrieve high-res brand logos.
+                        Query by corporate name (e.g. <code className="text-[10px] bg-white/4 px-1 rounded">Coca Cola</code>), web domain name (e.g. <code className="text-[10px] bg-white/4 px-1 rounded">fleetpride.com</code>), or <code className="text-[10px] bg-white/4 px-1 rounded">upload your own</code> logo.
                       </p>
                       <div className="flex gap-2">
                         <input 
@@ -2865,6 +2975,27 @@ const App: React.FC = () => {
                           className="py-3 px-5 bg-brand-primary hover:opacity-90 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition cursor-pointer border-none"
                         >
                           {isSearchingLogo ? "Searching..." : "Search"}
+                        </button>
+                        
+                        <input 
+                          type="file" 
+                          ref={logoFileInputRef}
+                          onChange={handleLogoUpload}
+                          accept="image/png, image/jpeg, image/svg+xml"
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => logoFileInputRef.current?.click()}
+                          disabled={isGeneratingFromLogo}
+                          className="p-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white rounded-xl transition cursor-pointer flex items-center justify-center shrink-0 w-11 h-11"
+                          title="Upload custom logo file (PNG, JPG, SVG)"
+                        >
+                          {isGeneratingFromLogo ? (
+                            <Loader2 className="animate-spin animate-duration-1000" size={18} />
+                          ) : (
+                            <Upload size={18} />
+                          )}
                         </button>
                       </div>
 
@@ -3147,20 +3278,20 @@ const App: React.FC = () => {
 
           <p className="text-xs text-slate-300 leading-relaxed font-medium">
             {tourStep === 1 && (user?.email?.endsWith("@gmail.com") 
-              ? "Click the settings gear icon in the top right to customize color schemes and update your portal branding profile." 
-              : "Click the settings gear icon in the top right to customize color schemes, manage your portal branding profile, or modify how the website communicates with the Conversational Analytics API.")
+              ? "Click the settings gear icon in the top right to update your portal branding profile." 
+              : "Click the settings gear icon in the top right to manage your portal branding profile or modify how the website communicates with the Conversational Analytics API.")
             }
             {tourStep === 2 && "Select 'SSO User Session' in case you want to access and query custom data agents defined inside your own Google Cloud projects."}
-            {tourStep === 3 && "Set your logo banner titles and search the web for custom brand logos to personalize your analytics portal. Accent colors and backgrounds are automatically inferred and applied based on the brand you select."}
+            {tourStep === 3 && "Set your logo banner titles, search the web, or upload your own custom brand logo to personalize your analytics portal. Accent colors and backgrounds are automatically inferred and applied based on the brand you select."}
             {tourStep === 4 && "Once you have finished customizing the branding settings, click here to see a live preview of how the conversational analytics workspace looks."}
             {tourStep === 5 && "Great job configuring! Click the brand logo or application title in the top-left header to navigate back to the main dashboard."}
-            {tourStep === 6 && "Review high-level executive summaries and trends auto-generated by AI based on your business data. These reports update automatically as new transactions and files are ingested."}
+            {tourStep === 6 && "Review high-level executive summaries and trends auto-generated by AI based on your recent or past conversations."}
             {tourStep === 7 && "Select this action to enter the interactive chat workspace, where you can ask questions and query your data directly using natural conversation."}
-            {tourStep === 8 && "Choose a specialized AI data assistant depending on your query context, such as Sales Insights, Operational Tracking, or Technical Admin assistance."}
+            {tourStep === 8 && "Choose the agent you want to interact to using Conversational Analytics API."}
             {tourStep === 9 && "View or manage your recent conversational analytics sessions with any of the data agents. You can start a new session or delete old ones to keep your workspace organized."}
             {tourStep === 10 && "Toggle between 'Fast Answer' for quick responses, or 'In-Depth Analysis' to activate advanced reasoning models for complex queries and multi-step data visualizations."}
-            {tourStep === 11 && "For advanced profiles, you can switch your active workspace credentials or target Google Cloud projects directly from this quick dropdown menu."}
-            {tourStep === 12 && "Access the secure architecture flow diagram to review the design, data pipeline integration, and Google Cloud security boundaries of this analytics portal."}
+            {tourStep === 11 && "Change how the workspace interacts with the Conversational Analytics API directly from this quick dropdown menu, without going to the settings page."}
+            {tourStep === 12 && "Access the architecture diagram explaining the components used in this portal to provide additional technical context in case it is needed."}
           </p>
 
           {/* Buttons */}

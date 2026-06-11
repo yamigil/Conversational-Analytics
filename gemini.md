@@ -250,5 +250,34 @@ Improve brand logo resolution reliability in the settings panel by implementing 
 - **Production Alignment**: Fully tested query responses for niche or subsidiary brands like **Penske Automotive** to guarantee return of official high-resolution branding assets.
 
 
+# Session Summary - SVG Cloud Logo branding, Simplified Architecture Diagram, Mock Auth URL Parameter, and Portal Polish (2026-06-11 - Session 2)
 
+## Objective
+Enhance branding visual details by replacing raster assets with transparent SVG vectors, simplify the architecture modal layout, and secure credentials by removing explicit selector buttons in mock authentication mode while preserving local testing capabilities.
 
+## 1. High-Fidelity SVG Branding
+- **Vector Google Cloud Logo**: Replaced the white-background Google Cloud logo PNG with a high-fidelity, transparent vector SVG from VectorLogoZone as `google_cloud_logo.svg`.
+- **Favicon Synchronization**: Overwrote `favicon.svg` with the new transparent Google Cloud vector SVG, aligning browser tab branding with the portal theme.
+- **Title and Logo Rendering**: Updated `branding.json` and the isImg container checks in `App.tsx` to utilize the transparent vector file without wrapping it in white-background boxes.
+
+## 2. Browser Tab Title Update
+- **Branded Tab Title**: Modified the HTML `<title>` tag in `index.html` from `"frontend"` to `"Google Cloud Agent Hub"` to synchronize the browser frame with the portal's identity.
+
+## 3. Simplified System Architecture & Interactive Diagram
+- **Simplified 4-Node Flow**: Redesigned the System Architecture & Orchestration modal in `ArchitectureModal.tsx` to present a simplified, 4-node data pipeline sequence:
+  1. **Data Storage** (BigQuery Data Warehouse)
+  2. **Knowledge Catalog** (Business Metadata Context Engine, formerly Dataplex)
+  3. **Reasoning Engine** (Conversational Analytics API mapping queries to SQL)
+  4. **Custom UI** (React & FastAPI Client Interface)
+- **Interactive Helper Chips**: Added animated, pulsing badges inside the modal header to explicitly instruct users to click nodes for detailed component breakdowns and explanations.
+
+## 4. Refined Login Screen & Mock Auth URL Parameter
+- **Credential Protection**: Removed mock selection buttons exposing email addresses from the login screen.
+- **Mock Profile URL parameter**: Added URL parameter parsing (`?mock=gmail`) to toggle between the default mock Argolis user (`admin@gilgtz.altostrat.com`) and mock Gmail user (`yamigilgtz@gmail.com`), allowing local test coverage for both user contexts without exposing credentials.
+- **Login Styling Clean-up**: Deleted the redundant "Access restricted" disclaimer and replaced the yellow warning card with a clean, centered sign-in helper label.
+
+## 5. Security & Cleanup
+- **Temporary Scripts Clean-up**: Deleted the root `scratch/` directory containing all temporary python scrapers, Wikidata scripts, and intermediate HTML dump files to ensure a clean codebase.
+
+## 6. Build & Visual Verification
+- **Vite Build Certification**: Verified the React project compiles successfully with exactly 0 type or bundler errors.

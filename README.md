@@ -33,6 +33,7 @@ To run and test changes locally without hitting Firebase authentication screens,
 1. Set `MOCK_AUTH=true` inside `backend/.env`.
 2. Set `VITE_MOCK_AUTH=true` inside `frontend/.env`.
 3. Restart the dev servers. The portal will automatically load a mock user profile (`admin@gilgtz.altostrat.com`) and bypass all SSO login overlays.
+   * **Simulate Gmail User**: Append `?mock=gmail` to the URL (e.g. `http://localhost:8000/?mock=gmail`) to test restricted settings views and modified tour boundaries.
 
 ---
 
@@ -104,12 +105,13 @@ Deploy the React static assets to Firebase's global edge CDN and automatically r
 4. **Self-Healing Auth Recovery Loop**: Automatically intercepts expired Google Cloud credentials (`401` errors) or page-refresh token clearance and triggers the Google SSO popup to refresh the token, transparently retrying the failed request in the background.
 5. **Interactive Visualizer**: Dynamic rendering of SQL scripts and Vega chart visualizers based on the returned query data.
 6. **Layout-Aligned Insights**: Contextual takeaways and summaries positioned below data grids and charts.
-7. **Wikipedia/Wikidata Brand Logo Search**: Instantly search and retrieve official corporate logos directly from Wikipedia/Wikidata using an automated image-scoring fallback system to apply custom visual themes, HSL colors, welcome messages, and layout configurations. This bypasses IP rate-limiting blocks on Google Search.
+7. **Wikipedia/Wikidata Logo Search & SVG Branding**: Instantly search and retrieve official corporate logos directly from Wikipedia/Wikidata using an automated image-scoring fallback system. Default Google Cloud presets use a high-fidelity, transparent vector SVG to ensure premium dark-mode presentation.
 8. **Consolidated Dashboard Layout**: Unified dashboard workspace featuring a clean, centralized "Launch Conversational Analytics" CTA embedded directly inside the Executive Insights card's empty state.
 9. **Fixed-Position Onboarding Tour**: A viewport-immune 12-step guided tour with fixed tooltips and automatic alignment offsets pointing to portal controls, branding search selectors, and live previews.
 10. **State-Persistent Navigation**: The active page and settings tab state are automatically persisted in the browser session, preventing redirects back to the home page upon manual browser refresh.
 11. **Automated Multi-Service CD Pipeline**: GitHub Actions automatically deploys React static assets to Firebase Hosting and FastAPI backend containers to Google Cloud Run on every push to main.
 12. **Multi-Source Telemetry & Audit Logs**: Integrates Google Analytics (GA4) for frontend clickstream logs, Firestore for portal administrative audit trails (logins, branding selections), and BigQuery for conversational API chat logs.
+13. **Simplified System Architecture Diagram**: A re-designed 4-node flow (BigQuery Storage, Knowledge Catalog, Reasoning Engine, and Custom UI) with interactive pulsing tags directing users to click nodes for detailed component breakdowns.
 
 ---
 *Active Telemetry Stream: `G-C0VB9XKP7E`*

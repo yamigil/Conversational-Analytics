@@ -728,7 +728,14 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
         headers = {
             "User-Agent": "ConversationalAnalyticsPortal/1.0 (https://retail.cedemoportal.com; contact: support@cedemoportal.com)"
         }
-        search_url = f"https://en.wikipedia.org/w/api.php?action=opensearch&search={requests.utils.quote(clean_query)}&limit=3&namespace=0&format=json"
+        # Strip TLD if it's a domain query to improve Wikipedia search matching (e.g. wonder.com -> wonder)
+        wiki_query = clean_query
+        if "." in wiki_query:
+            parts = wiki_query.split(".")
+            if len(parts) > 1 and parts[-1].lower() in ["com", "org", "net", "edu", "gov", "co", "io", "mil", "info", "biz", "app", "dev", "ai"]:
+                wiki_query = " ".join(parts[:-1])
+
+        search_url = f"https://en.wikipedia.org/w/api.php?action=opensearch&search={requests.utils.quote(wiki_query)}&limit=3&namespace=0&format=json"
         wr = requests.get(search_url, headers=headers, timeout=5)
         if wr.ok:
             data = wr.json()
@@ -768,6 +775,8 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
                             images = page_info.get("images", [])
                             exclude_patterns = [
                                 "commons-logo", "wiktionary-logo", "wikimedia-logo", "wikipedia-logo",
+                                "wikiquote-logo", "wikidata-logo", "wikisource-logo", "wikibooks-logo",
+                                "wikinews-logo", "wikiversity-logo", "wikivoyage-logo", "mediawiki-logo",
                                 "disambig", "stub", "edit-clear", "question_book", "lock", "padlock",
                                 "icon", "search-logo", "external_link", "decrease", "increase", "symbol"
                             ]

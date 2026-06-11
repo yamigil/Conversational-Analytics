@@ -1529,8 +1529,8 @@ const App: React.FC = () => {
     setMessages([]);
     fetchConversations(val);
     setIsSidebarOpen(false);
-    if (tourStep === 13) {
-      setTourStep(14);
+    if (tourStep === 14) {
+      setTourStep(15);
     }
   };
 
@@ -1603,8 +1603,8 @@ const App: React.FC = () => {
     const text = (typeof overrideText === "string" ? overrideText : inputText).trim();
     if (!text || !selectedAgent) return;
 
-    if (tourStep === 15) {
-      setTourStep(16);
+    if (tourStep === 16) {
+      setTourStep(17);
     }
 
     setInputText("");

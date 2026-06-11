@@ -1048,6 +1048,7 @@ const App: React.FC = () => {
         setShowConnDropdown(false);
       }
       if (chatModeDropdownRef.current && !chatModeDropdownRef.current.contains(e.target as Node)) {
+        console.log("handleClickOutside closed chatModeDropdown! target:", e.target);
         setShowChatModeDropdown(false);
       }
     };
@@ -1378,7 +1379,7 @@ const App: React.FC = () => {
           left: (tourStep === 6 || tourStep === 17) ? `${rect.left}px` : undefined,
           zIndex: 1000
         });
-      } else if (tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14) {
+      } else if (tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 11 || tourStep === 14 || tourStep === 15) {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.top - 10}px`,
@@ -1392,7 +1393,7 @@ const App: React.FC = () => {
           left: `${rect.left - 336}px`,
           zIndex: 1000
         });
-      } else if (tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 11 || tourStep === 15 || tourStep === 16 || tourStep === 18) {
+      } else if (tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 16 || tourStep === 18) {
         setTooltipStyle({
           position: 'fixed',
           bottom: `${window.innerHeight - rect.top + 12}px`,
@@ -3333,13 +3334,13 @@ const App: React.FC = () => {
           {(tourStep === 1 || tourStep === 6 || tourStep === 12 || tourStep === 13 || tourStep === 17) && (
             <div className={`absolute -top-2 ${tourStep === 1 || tourStep === 12 || tourStep === 13 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-t border-l border-amber-500/55 rotate-45`} />
           )}
-          {(tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14) && (
+          {(tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 11 || tourStep === 14 || tourStep === 15) && (
             <div className="absolute -left-2 top-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
           )}
           {(tourStep === 3) && (
             <div className="absolute -right-2 top-6 w-4 h-4 bg-slate-900 border-t border-r border-amber-500/55 rotate-45" />
           )}
-          {(tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 11 || tourStep === 15 || tourStep === 16 || tourStep === 18) && (
+          {(tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 16 || tourStep === 18) && (
             <div className="absolute -bottom-2 left-6 w-4 h-4 bg-slate-900 border-b border-r border-amber-500/55 rotate-45" />
           )}
 

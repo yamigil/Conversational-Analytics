@@ -20,7 +20,6 @@ export const auth = getAuth(app);
 // Sign in with Google SSO (basic authentication scopes only)
 export const signInWithGoogle = async () => {
   const provider = new GoogleAuthProvider();
-  provider.addScope("https://www.googleapis.com/auth/cloud-platform");
   
   // Force Google account selection
   provider.setCustomParameters({
@@ -29,12 +28,6 @@ export const signInWithGoogle = async () => {
   
   try {
     const result = await signInWithPopup(auth, provider);
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    const accessToken = credential?.accessToken;
-    if (accessToken) {
-      sessionStorage.setItem("gcp_user_access_token", accessToken);
-      logger_log("Google OAuth Access Token saved during initial sign-in.");
-    }
     return result.user;
   } catch (error) {
     console.error("Error signing in with Google SSO:", error);

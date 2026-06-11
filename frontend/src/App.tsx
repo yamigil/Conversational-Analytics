@@ -281,12 +281,11 @@ const MessageThinkingBlock: React.FC<{
             id="show-thinking-btn"
             onClick={() => {
               setIsOpen(!isOpen);
-              if (tourStep === 16 && setTourStep) {
-                setTourStep(0);
-                sessionStorage.setItem("ca_visited_tour", "true");
+              if (tourStep === 17 && setTourStep) {
+                setTourStep(18);
               }
             }}
-            className={`text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition cursor-pointer flex items-center gap-1 select-none border-none bg-transparent p-0 ${tourStep === 16 ? 'tour-highlight px-1.5 py-0.5 rounded bg-sky-400/10' : ''}`}
+            className={`text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition cursor-pointer flex items-center gap-1 select-none border-none bg-transparent p-0 ${tourStep === 17 ? 'tour-highlight px-1.5 py-0.5 rounded bg-sky-400/10' : ''}`}
           >
             {isOpen ? "Hide thinking" : "Show thinking"}
             <ChevronDown size={11} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
@@ -941,28 +940,30 @@ const App: React.FC = () => {
     await fetchAgents();
   };
   const getDisplayStepInfo = (actualStep: number) => {
-    if (actualStep >= 13 && actualStep <= 16) {
+    if (actualStep >= 14 && actualStep <= 18) {
       return {
-        num: actualStep - 12,
-        text: actualStep === 13 ? "Demo: Select AI Agent"
-            : actualStep === 14 ? "Demo: Choose Thinking Mode"
-            : actualStep === 15 ? "Demo: Ask a Question"
-            : "Demo: Show Thinking Process",
-        total: 4
+        num: actualStep - 13,
+        text: actualStep === 14 ? "Demo: Select AI Agent"
+            : actualStep === 15 ? "Demo: Choose Thinking Mode"
+            : actualStep === 16 ? "Demo: Ask a Question"
+            : actualStep === 17 ? "Demo: Show Thinking Process"
+            : "Demo: Multi-turn & Follow-ups",
+        total: 5
       };
     }
     const isGmailUser = user?.email?.endsWith("@gmail.com");
     if (isGmailUser) {
-      if (actualStep === 1) return { num: 1, text: "1. Configure Portal", total: 10 };
-      if (actualStep === 3) return { num: 2, text: "2. Customize Branding", total: 10 };
-      if (actualStep === 4) return { num: 3, text: "3. Live Portal Preview", total: 10 };
-      if (actualStep === 5) return { num: 4, text: "4. Return to Dashboard", total: 10 };
-      if (actualStep === 6) return { num: 5, text: "5. Executive Insights", total: 10 };
-      if (actualStep === 7) return { num: 6, text: "6. Launch Chat Workspace", total: 10 };
-      if (actualStep === 8) return { num: 7, text: "7. Select AI Agent", total: 10 };
-      if (actualStep === 9) return { num: 8, text: "8. Manage History", total: 10 };
-      if (actualStep === 10) return { num: 9, text: "9. Switch Chat Mode", total: 10 };
-      if (actualStep === 12) return { num: 10, text: "10. Reference Architecture", total: 10 };
+      if (actualStep === 1) return { num: 1, text: "1. Configure Portal", total: 11 };
+      if (actualStep === 3) return { num: 2, text: "2. Customize Branding", total: 11 };
+      if (actualStep === 4) return { num: 3, text: "3. Live Portal Preview", total: 11 };
+      if (actualStep === 5) return { num: 4, text: "4. Save Branding Config", total: 11 };
+      if (actualStep === 6) return { num: 5, text: "5. Return to Dashboard", total: 11 };
+      if (actualStep === 7) return { num: 6, text: "6. Executive Insights", total: 11 };
+      if (actualStep === 8) return { num: 7, text: "7. Launch Chat Workspace", total: 11 };
+      if (actualStep === 9) return { num: 8, text: "8. Select AI Agent", total: 11 };
+      if (actualStep === 10) return { num: 9, text: "9. Manage History", total: 11 };
+      if (actualStep === 11) return { num: 10, text: "10. Switch Chat Mode", total: 11 };
+      if (actualStep === 13) return { num: 11, text: "11. Reference Architecture", total: 11 };
     }
     return {
       num: actualStep,
@@ -970,16 +971,17 @@ const App: React.FC = () => {
           : actualStep === 2 ? "2. Connection & Credentials"
           : actualStep === 3 ? "3. Customize Branding"
           : actualStep === 4 ? "4. Live Portal Preview"
-          : actualStep === 5 ? "5. Return to Dashboard"
-          : actualStep === 6 ? "6. Executive Insights"
-          : actualStep === 7 ? "7. Launch Chat Workspace"
-          : actualStep === 8 ? "8. Select AI Agent"
-          : actualStep === 9 ? "9. Manage History"
-          : actualStep === 10 ? "10. Switch Chat Mode"
-          : actualStep === 11 ? "11. Override Connection"
-          : actualStep === 12 ? "12. Reference Architecture"
+          : actualStep === 5 ? "5. Save Branding Config"
+          : actualStep === 6 ? "6. Return to Dashboard"
+          : actualStep === 7 ? "7. Executive Insights"
+          : actualStep === 8 ? "8. Launch Chat Workspace"
+          : actualStep === 9 ? "9. Select AI Agent"
+          : actualStep === 10 ? "10. Manage History"
+          : actualStep === 11 ? "11. Switch Chat Mode"
+          : actualStep === 12 ? "12. Override Connection"
+          : actualStep === 13 ? "13. Reference Architecture"
           : "",
-      total: 12
+      total: 13
     };
   };
 
@@ -1341,18 +1343,20 @@ const App: React.FC = () => {
     else if (tourStep === 2) targetId = "settings-sidebar-nav";
     else if (tourStep === 3) targetId = "settings-branding-controls";
     else if (tourStep === 4) targetId = "settings-trigger-preview-btn";
-    else if (tourStep === 5) targetId = "settings-back-home";
-    else if (tourStep === 6) targetId = "dashboard-executive-insights";
-    else if (tourStep === 7) targetId = "dashboard-launch-chat-btn";
-    else if (tourStep === 8) targetId = "agent-select-container";
-    else if (tourStep === 9) targetId = "new-convo-btn";
-    else if (tourStep === 10) targetId = "chat-mode-btn";
-    else if (tourStep === 11) targetId = "project-override-container";
-    else if (tourStep === 12) targetId = "arch-diagram-btn";
-    else if (tourStep === 13) targetId = "agent-select-container";
-    else if (tourStep === 14) targetId = "chat-mode-btn";
-    else if (tourStep === 15) targetId = "chat-input-container";
-    else if (tourStep === 16) targetId = "show-thinking-btn";
+    else if (tourStep === 5) targetId = "settings-save-branding-btn";
+    else if (tourStep === 6) targetId = "settings-back-home";
+    else if (tourStep === 7) targetId = "dashboard-executive-insights";
+    else if (tourStep === 8) targetId = "dashboard-launch-chat-btn";
+    else if (tourStep === 9) targetId = "agent-select-container";
+    else if (tourStep === 10) targetId = "new-convo-btn";
+    else if (tourStep === 11) targetId = "chat-mode-btn";
+    else if (tourStep === 12) targetId = "project-override-container";
+    else if (tourStep === 13) targetId = "arch-diagram-btn";
+    else if (tourStep === 14) targetId = "agent-select-container";
+    else if (tourStep === 15) targetId = "chat-mode-btn";
+    else if (tourStep === 16) targetId = "chat-input-container";
+    else if (tourStep === 17) targetId = "show-thinking-btn";
+    else if (tourStep === 18) targetId = "chat-suggestions-container";
 
     const updatePosition = () => {
       const el = document.getElementById(targetId);
@@ -1361,16 +1365,20 @@ const App: React.FC = () => {
         return;
       }
       const rect = el.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) {
+        setTimeout(updatePosition, 100);
+        return;
+      }
       
-      if (tourStep === 1 || tourStep === 5 || tourStep === 11 || tourStep === 12) {
+      if (tourStep === 1 || tourStep === 6 || tourStep === 12 || tourStep === 13 || tourStep === 17) {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.bottom + 12}px`,
-          right: (tourStep === 1 || tourStep === 11 || tourStep === 12) ? `${window.innerWidth - rect.right}px` : undefined,
-          left: (tourStep === 5) ? `${rect.left}px` : undefined,
+          right: (tourStep === 1 || tourStep === 12 || tourStep === 13) ? `${window.innerWidth - rect.right}px` : undefined,
+          left: (tourStep === 6 || tourStep === 17) ? `${rect.left}px` : undefined,
           zIndex: 1000
         });
-      } else if (tourStep === 2 || tourStep === 8 || tourStep === 9 || tourStep === 13) {
+      } else if (tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14) {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.top - 10}px`,
@@ -1384,31 +1392,27 @@ const App: React.FC = () => {
           left: `${rect.left - 336}px`,
           zIndex: 1000
         });
-      } else if (tourStep === 4 || tourStep === 6 || tourStep === 7 || tourStep === 10 || tourStep === 14 || tourStep === 15) {
+      } else if (tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 11 || tourStep === 15 || tourStep === 16 || tourStep === 18) {
         setTooltipStyle({
           position: 'fixed',
           bottom: `${window.innerHeight - rect.top + 12}px`,
           left: `${rect.left}px`,
           zIndex: 1000
         });
-      } else if (tourStep === 16) {
-        setTooltipStyle({
-          position: 'fixed',
-          top: `${rect.bottom + 12}px`,
-          left: `${rect.left}px`,
-          zIndex: 1000
-        });
       }
     };
 
-    updatePosition();
+    const t = setTimeout(updatePosition, 50);
     window.addEventListener("resize", updatePosition);
-    return () => window.removeEventListener("resize", updatePosition);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("resize", updatePosition);
+    };
   }, [tourStep, currentPage, settingsActiveTab]);
 
   const startDemoWalkthrough = () => {
     setCurrentPage("chat");
-    setTourStep(13);
+    setTourStep(14);
   };
 
   const handleNextTour = () => {
@@ -1430,31 +1434,33 @@ const App: React.FC = () => {
       setShowPreviewModal(false);
       setTourStep(5);
     } else if (tourStep === 5) {
-      setCurrentPage("home");
       setTourStep(6);
     } else if (tourStep === 6) {
+      setCurrentPage("home");
       setTourStep(7);
     } else if (tourStep === 7) {
-      setCurrentPage("chat");
       setTourStep(8);
     } else if (tourStep === 8) {
+      setCurrentPage("chat");
       setTourStep(9);
     } else if (tourStep === 9) {
       setTourStep(10);
     } else if (tourStep === 10) {
-      if (user?.email?.endsWith("@gmail.com")) {
-        setTourStep(12);
-      } else {
-        setTourStep(11);
-      }
+      setTourStep(11);
     } else if (tourStep === 11) {
-      setTourStep(12);
+      if (user?.email?.endsWith("@gmail.com")) {
+        setTourStep(13);
+      } else {
+        setTourStep(12);
+      }
     } else if (tourStep === 12) {
+      setTourStep(13);
+    } else if (tourStep === 13) {
       setTourStep(0);
       sessionStorage.setItem("ca_visited_tour", "true");
-    } else if (tourStep >= 13 && tourStep <= 15) {
+    } else if (tourStep >= 14 && tourStep <= 17) {
       setTourStep(tourStep + 1);
-    } else if (tourStep === 16) {
+    } else if (tourStep === 18) {
       setTourStep(0);
       sessionStorage.setItem("ca_visited_tour", "true");
     }
@@ -1479,30 +1485,32 @@ const App: React.FC = () => {
       setShowPreviewModal(true);
       setTourStep(4);
     } else if (tourStep === 6) {
-      setCurrentPage("settings");
-      setSettingsActiveTab("branding");
       setTourStep(5);
     } else if (tourStep === 7) {
+      setCurrentPage("settings");
+      setSettingsActiveTab("branding");
       setTourStep(6);
     } else if (tourStep === 8) {
-      setCurrentPage("home");
       setTourStep(7);
     } else if (tourStep === 9) {
+      setCurrentPage("home");
       setTourStep(8);
     } else if (tourStep === 10) {
       setTourStep(9);
     } else if (tourStep === 11) {
       setTourStep(10);
     } else if (tourStep === 12) {
-      if (user?.email?.endsWith("@gmail.com")) {
-        setTourStep(10);
-      } else {
-        setTourStep(11);
-      }
+      setTourStep(11);
     } else if (tourStep === 13) {
+      if (user?.email?.endsWith("@gmail.com")) {
+        setTourStep(11);
+      } else {
+        setTourStep(12);
+      }
+    } else if (tourStep === 14) {
       setCurrentPage("home");
-      setTourStep(12);
-    } else if (tourStep >= 14 && tourStep <= 16) {
+      setTourStep(13);
+    } else if (tourStep >= 15 && tourStep <= 18) {
       setTourStep(tourStep - 1);
     }
   };
@@ -2216,9 +2224,9 @@ const App: React.FC = () => {
                     fetchInsights(selectedAgent);
                   }
                 }
-                if (tourStep === 5) setTourStep(6);
+                if (tourStep === 6) setTourStep(7);
               }}
-              className={`flex items-center gap-3 min-w-0 cursor-pointer hover:opacity-90 active:scale-[0.98] transition select-none group ${tourStep === 5 ? 'tour-highlight p-1 rounded-xl' : ''}`}
+              className={`flex items-center gap-3 min-w-0 cursor-pointer hover:opacity-90 active:scale-[0.98] transition select-none group ${tourStep === 6 ? 'tour-highlight p-1 rounded-xl' : ''}`}
               title="Return to Dashboard"
             >
               <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/6 flex items-center justify-center p-1 text-white shrink-0 group-hover:border-brand-primary/30 group-hover:bg-brand-primary/5 transition">
@@ -2516,8 +2524,8 @@ const App: React.FC = () => {
             renderLogoSvg={() => renderLogoSvg(appActiveBrandKey)} 
             onNavigate={(page) => {
               setCurrentPage(page);
-              if (page === "chat" && tourStep === 7) {
-                setTourStep(8);
+              if (page === "chat" && tourStep === 8) {
+                setTourStep(9);
               }
             }} 
             insightsData={insightsData}
@@ -2676,7 +2684,10 @@ const App: React.FC = () => {
                 if (suggestionsToRender.length === 0) return null;
 
                 return (
-                  <div className="flex flex-col gap-2 mt-2 ml-13 animate-fadeIn">
+                  <div 
+                    id="chat-suggestions-container"
+                    className={`flex flex-col gap-2 mt-2 ml-13 animate-fadeIn ${tourStep === 18 ? 'tour-highlight p-2 rounded-2xl bg-white/2 border border-white/6' : ''}`}
+                  >
                     <div className="flex flex-wrap gap-2">
                       {suggestionsToRender.map((suggestion: string, sIdx: number) => (
                         <button
@@ -2804,7 +2815,7 @@ const App: React.FC = () => {
                           onClick={() => {
                             setChatMode("fast");
                             setShowChatModeDropdown(false);
-                            if (tourStep === 14) setTourStep(15);
+                            if (tourStep === 15) setTourStep(16);
                           }}
                           className={`w-full px-4 py-3 text-left hover:bg-white/4 transition flex flex-col gap-0.5 cursor-pointer border-none bg-transparent ${chatMode === "fast" ? "bg-white/2" : ""}`}
                         >
@@ -2818,7 +2829,7 @@ const App: React.FC = () => {
                           onClick={() => {
                             setChatMode("thinking");
                             setShowChatModeDropdown(false);
-                            if (tourStep === 14) setTourStep(15);
+                            if (tourStep === 15) setTourStep(16);
                           }}
                           className={`w-full px-4 py-3 text-left hover:bg-white/4 transition flex flex-col gap-0.5 cursor-pointer border-none bg-transparent ${chatMode === "thinking" ? "bg-white/2" : ""}`}
                         >
@@ -3208,8 +3219,9 @@ const App: React.FC = () => {
 
                     <div className="flex items-center gap-4 mt-2 border-t border-white/6 pt-5">
                       <button 
+                        id="settings-save-branding-btn"
                         onClick={handleSaveBranding}
-                        className="py-3 px-6 text-sm font-medium bg-brand-primary hover:opacity-90 rounded-xl text-white transition cursor-pointer shadow-md border-none"
+                        className={`py-3 px-6 text-sm font-medium bg-brand-primary hover:opacity-90 rounded-xl text-white transition cursor-pointer shadow-md border-none ${tourStep === 5 ? 'tour-highlight' : ''}`}
                       >
                         Save Branding Config
                       </button>
@@ -3312,16 +3324,16 @@ const App: React.FC = () => {
           style={tooltipStyle}
         >
           {/* Arrow indicator */}
-          {(tourStep === 1 || tourStep === 5 || tourStep === 11 || tourStep === 12 || tourStep === 16) && (
-            <div className={`absolute -top-2 ${tourStep === 1 || tourStep === 11 || tourStep === 12 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-t border-l border-amber-500/55 rotate-45`} />
+          {(tourStep === 1 || tourStep === 6 || tourStep === 12 || tourStep === 13 || tourStep === 17) && (
+            <div className={`absolute -top-2 ${tourStep === 1 || tourStep === 12 || tourStep === 13 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-t border-l border-amber-500/55 rotate-45`} />
           )}
-          {(tourStep === 2 || tourStep === 8 || tourStep === 9 || tourStep === 13) && (
+          {(tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14) && (
             <div className="absolute -left-2 top-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
           )}
           {(tourStep === 3) && (
             <div className="absolute -right-2 top-6 w-4 h-4 bg-slate-900 border-t border-r border-amber-500/55 rotate-45" />
           )}
-          {(tourStep === 4 || tourStep === 6 || tourStep === 7 || tourStep === 10 || tourStep === 14 || tourStep === 15) && (
+          {(tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 11 || tourStep === 15 || tourStep === 16 || tourStep === 18) && (
             <div className="absolute -bottom-2 left-6 w-4 h-4 bg-slate-900 border-b border-r border-amber-500/55 rotate-45" />
           )}
 
@@ -3341,73 +3353,72 @@ const App: React.FC = () => {
             {tourStep === 2 && "Select 'SSO User Session' in case you want to access and query custom data agents defined inside your own Google Cloud projects."}
             {tourStep === 3 && "Set your logo banner titles, search the web, or upload your own custom brand logo to personalize your analytics portal. Accent colors and backgrounds are automatically inferred and applied based on the brand you select."}
             {tourStep === 4 && "Once you have finished customizing the branding settings, click here to see a live preview of how the conversational analytics workspace looks."}
-            {tourStep === 5 && "Great job configuring! Click the brand logo or application title in the top-left header to navigate back to the main dashboard."}
-            {tourStep === 6 && "Review high-level executive summaries and trends auto-generated by AI based on your recent or past conversations."}
-            {tourStep === 7 && "Select this action to enter the interactive chat workspace, where you can ask questions and query your data directly using natural conversation."}
-            {tourStep === 8 && "Choose the agent you want to interact to using Conversational Analytics API."}
-            {tourStep === 9 && "View or manage your recent conversational analytics sessions with any of the data agents. You can start a new session or delete old ones to keep your workspace organized."}
-            {tourStep === 10 && "Toggle between 'Fast Answer' for quick responses, or 'In-Depth Analysis' to activate advanced reasoning models for complex queries and multi-step data visualizations."}
-            {tourStep === 11 && "Change how the workspace interacts with the Conversational Analytics API directly from this quick dropdown menu, without going to the settings page."}
-            {tourStep === 12 && "Access the architecture diagram explaining the components used in this portal to provide additional technical context in case it is needed."}
-            {tourStep === 13 && "To begin the demo, select a specialized AI agent from this dropdown menu to load its analytical capabilities."}
-            {tourStep === 14 && "Select a thinking mode: Toggle 'Fast Answer' for quick responses, or 'In-Depth Analysis' to activate advanced reasoning models for complex queries."}
-            {tourStep === 15 && "Ask a question about your database! Type in the chat input or click one of the suggested query starter pills below (e.g., 'What can you do for me?')."}
-            {tourStep === 16 && "Once the agent begins responding, click 'Show thinking' to inspect the step-by-step reasoning, plan logic, and generated BigQuery SQL queries."}
+            {tourStep === 5 && "Save your branding settings dynamically to apply them across your workspace. Accent colors, titles, logos, and greeting cards will update instantly."}
+            {tourStep === 6 && "Great job configuring! Click the brand logo or application title in the top-left header to navigate back to the main dashboard."}
+            {tourStep === 7 && "Review high-level executive summaries and trends auto-generated by AI based on your recent or past conversations."}
+            {tourStep === 8 && "Select this action to enter the interactive chat workspace, where you can ask questions and query your data directly using natural conversation."}
+            {tourStep === 9 && "Choose the agent you want to interact to using Conversational Analytics API."}
+            {tourStep === 10 && "View or manage your recent conversational analytics sessions with any of the data agents. You can start a new session or delete old ones to keep your workspace organized."}
+            {tourStep === 11 && "Toggle between 'Fast Answer' for quick responses, or 'In-Depth Analysis' to activate advanced reasoning models for complex queries and multi-step data visualizations."}
+            {tourStep === 12 && "Change how the workspace interacts with the Conversational Analytics API directly from this quick dropdown menu, without going to the settings page."}
+            {tourStep === 13 && "Access the architecture diagram explaining the components used in this portal to provide additional technical context in case it is needed."}
+            {tourStep === 14 && "To begin the demo, select a specialized AI agent from this dropdown menu to load its analytical capabilities."}
+            {tourStep === 15 && "Select a thinking mode: Toggle 'Fast Answer' for quick responses, or 'In-Depth Analysis' to activate advanced reasoning models for complex queries."}
+            {tourStep === 16 && "Ask a question about your database! Type in the chat input or click one of the suggested query starter pills below (e.g., 'What can you do for me?')."}
+            {tourStep === 17 && "Once the agent begins responding, click 'Show thinking' to inspect the step-by-step reasoning, plan logic, and generated BigQuery SQL queries."}
+            {tourStep === 18 && "Great query! You can follow-up on your conversation by typing in the input box, or simply click any of the dynamic follow-up suggestions generated by Gemini at the bottom."}
           </p>
 
           {/* Buttons */}
-          <div className="flex items-center justify-between mt-1 pt-3 border-t border-white/6">
-            <button 
-              onClick={handleSkipTour}
-              className="text-[11px] font-bold text-slate-500 hover:text-slate-300 transition cursor-pointer border-none bg-transparent"
-            >
-              Skip Tour
-            </button>
+          <div className="flex flex-col gap-2.5 mt-1 pt-3 border-t border-white/6 w-full">
+            {tourStep === 13 && (
+              <button 
+                onClick={startDemoWalkthrough}
+                className="w-full py-2.5 px-3.5 bg-brand-primary hover:opacity-90 text-white rounded-lg text-xs font-bold cursor-pointer transition shadow-md border-none flex items-center justify-center gap-1.5"
+              >
+                <Sparkles size={13} className="fill-current animate-pulse" />
+                Start Demo Walkthrough
+              </button>
+            )}
 
-            <div className="flex gap-2 items-center">
-              <span className="text-[10px] text-slate-500 font-bold mr-1">
-                {getDisplayStepInfo(tourStep).num} of {getDisplayStepInfo(tourStep).total}
-              </span>
-              {tourStep > 1 && (
-                <button 
-                  onClick={handleBackTour}
-                  className="py-1.5 px-3 bg-white/5 border border-white/6 hover:bg-white/10 text-white rounded-lg text-xs font-semibold cursor-pointer transition border-none"
-                >
-                  Back
-                </button>
-              )}
-              {tourStep === 12 ? (
-                <div className="flex gap-2">
+            <div className="flex items-center justify-between w-full">
+              <button 
+                onClick={handleSkipTour}
+                className="text-[11px] font-bold text-slate-500 hover:text-slate-300 transition cursor-pointer border-none bg-transparent"
+              >
+                Skip Tour
+              </button>
+
+              <div className="flex gap-2 items-center">
+                <span className="text-[10px] text-slate-500 font-bold mr-1">
+                  {getDisplayStepInfo(tourStep).num} of {getDisplayStepInfo(tourStep).total}
+                </span>
+                {tourStep > 1 && (
                   <button 
-                    onClick={handleNextTour}
+                    onClick={handleBackTour}
                     className="py-1.5 px-3 bg-white/5 border border-white/6 hover:bg-white/10 text-white rounded-lg text-xs font-semibold cursor-pointer transition border-none"
                   >
-                    Finish
+                    Back
                   </button>
+                )}
+                {tourStep !== 1 && tourStep !== 8 && tourStep !== 14 && tourStep !== 15 && tourStep !== 16 && tourStep !== 17 ? (
                   <button 
-                    onClick={startDemoWalkthrough}
-                    className="py-1.5 px-3.5 bg-brand-primary hover:opacity-90 text-white rounded-lg text-xs font-semibold cursor-pointer transition shadow-md border-none whitespace-nowrap"
+                    onClick={handleNextTour}
+                    className="py-1.5 px-3.5 bg-brand-primary hover:opacity-90 text-white rounded-lg text-xs font-semibold cursor-pointer transition shadow-md border-none"
                   >
-                    Start Demo Walkthrough
+                    {tourStep === 18 ? "Finish Walkthrough" : (getDisplayStepInfo(tourStep).num === getDisplayStepInfo(tourStep).total ? "Finish" : "Next")}
                   </button>
-                </div>
-              ) : tourStep !== 1 && tourStep !== 7 && tourStep !== 13 && tourStep !== 14 && tourStep !== 15 && tourStep !== 16 ? (
-                <button 
-                  onClick={handleNextTour}
-                  className="py-1.5 px-3.5 bg-brand-primary hover:opacity-90 text-white rounded-lg text-xs font-semibold cursor-pointer transition shadow-md border-none"
-                >
-                  {getDisplayStepInfo(tourStep).num === getDisplayStepInfo(tourStep).total ? "Finish" : "Next"}
-                </button>
-              ) : (
-                <span className="text-[10px] text-amber-400 font-bold animate-pulse mr-1 whitespace-nowrap">
-                  {tourStep === 1 ? "Click gear icon" : 
-                   tourStep === 7 ? "Click card to proceed" : 
-                   tourStep === 13 ? "Select an agent" : 
-                   tourStep === 14 ? "Choose thinking mode" : 
-                   tourStep === 15 ? "Submit query or pill" : 
-                   "Click 'Show thinking'"}
-                </span>
-              )}
+                ) : (
+                  <span className="text-[10px] text-amber-400 font-bold animate-pulse mr-1 whitespace-nowrap">
+                    {tourStep === 1 ? "Click gear icon" : 
+                     tourStep === 8 ? "Click card to proceed" : 
+                     tourStep === 14 ? "Select an agent" : 
+                     tourStep === 15 ? "Choose thinking mode" : 
+                     tourStep === 16 ? "Submit query or pill" : 
+                     "Click 'Show thinking'"}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>

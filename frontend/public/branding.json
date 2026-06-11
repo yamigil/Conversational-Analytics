@@ -2,14 +2,14 @@
   "activeBrand": "default",
   "brands": {
     "default": {
-      "name": "Google Cloud",
+      "name": "Fleet Pride",
       "primaryColor": "217, 89%, 61%",
       "secondaryColor": "142, 70%, 45%",
       "backgroundColorStart": "#0b0f19",
       "backgroundColorEnd": "#1a2333",
       "welcomeMessage": "Welcome to your data assistant. How can I help you analyze your databases today?",
-      "logoUrl": "/google_cloud_logo.svg",
-      "logoText": "Google Cloud Analytics",
+      "logoUrl": "",
+      "logoText": "FLEET PRIDE",
       "logoSvg": "<img src='/google_cloud_logo.svg' class='w-full h-full object-contain' />"
     }
   }

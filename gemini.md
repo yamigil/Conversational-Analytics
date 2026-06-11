@@ -283,11 +283,37 @@ Enhance branding visual details by replacing raster assets with transparent SVG 
 - **Vite Build Certification**: Verified the React project compiles successfully with exactly 0 type or bundler errors.
 
 ## 7. Interactive Chat Demo Walkthrough
-- **Guided Chat Walkthrough Opt-in**: Added a "Start Demo Walkthrough" action at the end of the standard 12-step guided onboarding tour.
-- **Fluid Interactive Step Advancement**: Created a 4-step interactive walkthrough that guides the user on how to run a query:
+- **Guided Chat Walkthrough Opt-in**: Added a "Start Demo Walkthrough" action at the end of the standard 13-step guided onboarding tour.
+- **Fluid Interactive Step Advancement**: Created a 5-step interactive walkthrough that guides the user on how to run a query:
   1. **Demo Step 1: Select AI Agent** (highlights the agent selector, advances on selection).
   2. **Demo Step 2: Choose Thinking Mode** (highlights the reasoning mode button, advances on option selection).
   3. **Demo Step 3: Ask a Question** (highlights the chat input bar, advances on sending a query).
   4. **Demo Step 4: Show Thinking Process** (highlights the "Show thinking" button, completes the tour on click).
+  5. **Demo Step 5: Multi-turn & Follow-ups** (highlights the dynamic suggested queries at the bottom, finishes walkthrough on click).
 - **Amber Highlights & Pulsing Indicators**: Integrated conditional highlight classes and helper text reminders to ensure the walkthrough runs smoothly.
+
+
+# Session Summary - Save Config Step, Walkthrough Suggestions Step, Stacked Buttons, and Google OAuth 403 Bypass (2026-06-11 - Session 3)
+
+## Objective
+Refine the onboarding tour and walkthrough steps based on visual feedback, resolve coordinate misalignment race conditions during page transitions, and fix the production Google Sign-in 403 Access Denied block for Gmail users.
+
+## 1. Onboarding Tour Save Branding Config Step
+- **Save Branding Config Step**: Added a new Step 5 pointing to the "Save Branding Config" button to explain that settings changes must be saved. All subsequent steps were shifted (main tour is now 13 steps).
+- **Header Back Home Navigation**: Shifted settings logo back-home target check and highlight styles to Step 6.
+
+## 2. Walkthrough Demo Expansion
+- **Follow-up suggestions highlight**: Added a new Demo Step 5 of 5 (index 18) highlighting the dynamically generated suggested query pills at the bottom of the AI response to teach users about multi-turn queries.
+
+## 3. Visual Layout and Tooltip Coordinates Polish
+- **Non-Crammed Stacked Layout**: Stacked the primary "Start Demo Walkthrough" CTA vertically above the standard "Back" and "Finish" buttons in the Reference Architecture step tooltip. This completely resolves text truncation and button overlaps.
+- **Self-Healing Coordinates**: Added a layout bounding rect check (`rect.width === 0 && rect.height === 0`) inside the tooltip position listener to handle page transitions. If elements are temporarily un-laid-out, the calculator waits for the final DOM positions, preventing alignment offsets.
+
+## 4. Google OAuth 403 access_denied Bypass
+- **Separated Scopes**: Removed the restricted `https://www.googleapis.com/auth/cloud-platform` scope from the initial sign-in callback (`signInWithGoogle`) in `firebase.ts`. This allows anyone (including any Gmail account) to log in instantly without hitting unverified developer-only restrictions.
+- **Incremental SSO Scope Request**: The `cloud-platform` scope is requested incrementally (`requestGCPToken`) only when corporate users configure and activate SSO mode inside settings. Since Gmail users can never toggle this mode, they never encounter the 403 block.
+
+## 5. Build & E2E Validation
+- **Vite Build Certification**: Verified the React project compiles successfully with exactly 0 type or bundler errors.
+- **E2E Browser Verification**: Verified the onboarding flow runs correctly to the end, the buttons on the final step stack nicely without overflow, the back button updates positions properly, and the new suggested questions step triggers and highlights.
 

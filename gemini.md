@@ -325,7 +325,7 @@ Refine the onboarding tour and walkthrough steps based on visual feedback, resol
 
 ## 8. Tour Element Highlight Realignment
 - **Corrected Highlight Triggers**: Realigned the visual tour-highlight outlines in the Chat Workspace sidebar. The Active Agent dropdown (`agent-select-container`) now correctly receives the yellow outline on Step 9 (Select AI Agent) and Step 14 (Demo Step 1), and the Conversations history container (`new-convo-btn`) correctly lights up on Step 10 (Manage History).
-- **Chat Mode Button Fix**: Updated the tour-highlight condition on the chat mode selection button (`chat-mode-btn`) in `App.tsx` from `10 || 14` to `11 || 15`, bringing the button to the foreground (z-index 49) and allowing clicks to toggle the dropdown while the tour tooltip is active.
+- **Chat Mode Button & Dropdown Fix**: Updated the tour-highlight condition on the chat mode selection button (`chat-mode-btn`) in `App.tsx` from `10 || 14` to `11 || 15`, bringing the button to the foreground (z-index 49). To prevent the dropdown options from being layered directly underneath the onboarding tour tooltip (which has a `z-index` of `1000` and covers the area directly above the button), elevated the custom dropdown container (`showChatModeDropdown`) `z-index` to `2000` dynamically when `tourStep > 0`. This makes the dropdown options overlay visible and interactive during both the main tour and walkthrough.
 - **Walkthrough Advance Triggers Fix**: Corrected step index advancement checks inside user action handlers:
   * In `handleAgentChange`, shifted the walkthrough step check from `13` to `14`, advancing to Step 15 upon agent selection.
   * In `handleSendMessage`, shifted the step check from `15` to `16`, advancing to Step 17 upon submitting a query.

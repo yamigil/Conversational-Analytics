@@ -2804,7 +2804,10 @@ const App: React.FC = () => {
                   <div className="relative" ref={chatModeDropdownRef}>
                     <button 
                       id="chat-mode-btn"
-                      onClick={() => setShowChatModeDropdown(!showChatModeDropdown)}
+                      onClick={() => {
+                        console.log("Chat mode button clicked! Old state:", showChatModeDropdown);
+                        setShowChatModeDropdown(!showChatModeDropdown);
+                      }}
                       className={`flex items-center gap-1.5 px-3 py-1.5 bg-white/3 hover:bg-white/6 border border-white/6 rounded-lg text-xs font-semibold text-slate-300 transition cursor-pointer select-none border-none ${(tourStep === 11 || tourStep === 15) ? 'tour-highlight' : ''}`}
                     >
                       <Sparkles size={12} className={chatMode === "thinking" ? "text-sky-400 fill-sky-400/20 animate-pulse" : "text-slate-400"} />
@@ -2813,7 +2816,7 @@ const App: React.FC = () => {
                     </button>
                     
                     {showChatModeDropdown && (
-                      <div className="absolute bottom-full left-0 mb-2 w-64 bg-slate-950/95 border border-white/8 rounded-xl shadow-xl overflow-hidden backdrop-blur-md z-50 animate-slideUp">
+                      <div className={`absolute bottom-full left-0 mb-2 w-64 bg-slate-950/95 border border-white/8 rounded-xl shadow-xl overflow-hidden backdrop-blur-md animate-slideUp ${tourStep > 0 ? 'z-[2000]' : 'z-50'}`}>
                         <button
                           onClick={() => {
                             setChatMode("fast");

@@ -68,7 +68,10 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+    <div 
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
+    >
       <style>{`
         @keyframes flowLine {
           0% { transform: translateX(-100%); }
@@ -88,7 +91,10 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
         }
       `}</style>
       {/* Modal Card Box */}
-      <div className="glass-panel w-full max-w-5xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh] bg-slate-950/95 border-white/10">
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="glass-panel w-full max-w-5xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh] bg-slate-950/95 border-white/10"
+      >
         
         {/* Modal Header */}
         <div className="flex justify-between items-center px-8 py-5 border-b border-white/6 bg-white/2">

@@ -338,3 +338,6 @@ Refine the onboarding tour and walkthrough steps based on visual feedback, resol
 ## 9. Welcome Dialog Description Customization
 - **Tailored Description Copy**: Refactored the welcome tour modal text in `App.tsx` to display email-conditional copy. For Gmail users, references to "configure credentials" have been removed and "query databases" has been replaced with "use AI agents" (yielding: *"See how to navigate this site, customize branding, and use AI agents."*). Corporate users receive the same "use AI agents" updates while retaining "configure credentials" coverage.
 
+## 10. Reference Architecture Modal Outside Click-Away
+- **Dismiss on Backdrop Click**: Added an `onClick={onClose}` handler to the root modal fixed overlay wrapper in `ArchitectureModal.tsx`. Bound `e.stopPropagation()` to the modal card element to block click bubbles. This allows users to click anywhere on the blurred backdrop background to dismiss the Reference Architecture diagram instantly.
+

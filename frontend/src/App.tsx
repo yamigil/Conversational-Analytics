@@ -2246,7 +2246,7 @@ const App: React.FC = () => {
               <button 
                 id="arch-diagram-btn"
                 onClick={handleOpenArchitecture}
-                className={`flex items-center gap-2 text-xs font-semibold text-brand-primary bg-brand-primary/10 border border-brand-primary/20 px-3 py-2 rounded-xl hover:bg-brand-primary hover:text-white transition duration-200 cursor-pointer shrink-0 animate-slideIn ${tourStep === 12 ? 'tour-highlight' : ''}`}
+                className={`flex items-center gap-2 text-xs font-semibold text-brand-primary bg-brand-primary/10 border border-brand-primary/20 px-3 py-2 rounded-xl hover:bg-brand-primary hover:text-white transition duration-200 cursor-pointer shrink-0 animate-slideIn ${tourStep === 13 ? 'tour-highlight' : ''}`}
               >
                 <Network size={12} />
                 <span className="hidden md:inline">Show Architecture</span>
@@ -2254,7 +2254,7 @@ const App: React.FC = () => {
             )}
 
             {/* Interactive Connection & Identity Selector */}
-            <div id="project-override-container" className={`relative ${tourStep === 11 ? 'tour-highlight' : ''}`} ref={connDropdownRef}>
+            <div id="project-override-container" className={`relative ${tourStep === 12 ? 'tour-highlight' : ''}`} ref={connDropdownRef}>
               {user?.email?.endsWith("@gmail.com") ? (
                 <div className="flex items-center gap-2 text-[10px] text-slate-300 bg-white/4 border border-white/6 px-3.5 py-1.5 rounded-full select-none font-semibold transition whitespace-nowrap">
                   <span className={`w-2 h-2 rounded-full ${

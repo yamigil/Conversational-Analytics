@@ -317,3 +317,6 @@ Refine the onboarding tour and walkthrough steps based on visual feedback, resol
 - **Vite Build Certification**: Verified the React project compiles successfully with exactly 0 type or bundler errors.
 - **E2E Browser Verification**: Verified the onboarding flow runs correctly to the end, the buttons on the final step stack nicely without overflow, the back button updates positions properly, and the new suggested questions step triggers and highlights.
 
+## 6. Gmail Settings Tab Restriction Fix
+- **Default Active Tab Initialization**: Updated the Settings gear icon `onClick` handler inside `App.tsx` to dynamically initialize `settingsActiveTab` to `"branding"` for Gmail users (and `"general"` for corporate users) upon opening the settings page. This prevents the right-side Connection Details panel from rendering by default for Gmail users when the tour is inactive.
+

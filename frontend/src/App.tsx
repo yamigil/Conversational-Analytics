@@ -2371,12 +2371,15 @@ const App: React.FC = () => {
               onClick={() => {
                 trackClick("settings_gear");
                 setCurrentPage("settings");
+                if (user?.email?.endsWith("@gmail.com")) {
+                  setSettingsActiveTab("branding");
+                } else {
+                  setSettingsActiveTab("general");
+                }
                 if (tourStep === 1) {
                   if (user?.email?.endsWith("@gmail.com")) {
-                    setSettingsActiveTab("branding");
                     setTourStep(3);
                   } else {
-                    setSettingsActiveTab("general");
                     setTourStep(2);
                   }
                 }

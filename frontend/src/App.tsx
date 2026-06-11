@@ -238,7 +238,9 @@ const MessageThinkingBlock: React.FC<{
   statuses: string[]; 
   thoughts: { title: string; body: string }[]; 
   isStreaming?: boolean;
-}> = ({ statuses, thoughts, isStreaming }) => {
+  tourStep?: number;
+  setTourStep?: (step: number) => void;
+}> = ({ statuses, thoughts, isStreaming, tourStep, setTourStep }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   // If statuses and thoughts are empty and we are not streaming, do not render
@@ -276,8 +278,15 @@ const MessageThinkingBlock: React.FC<{
         
         {(statuses.length > 0 || thoughts.length > 0) && (
           <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition cursor-pointer flex items-center gap-1 select-none border-none bg-transparent p-0"
+            id="show-thinking-btn"
+            onClick={() => {
+              setIsOpen(!isOpen);
+              if (tourStep === 16 && setTourStep) {
+                setTourStep(0);
+                sessionStorage.setItem("ca_visited_tour", "true");
+              }
+            }}
+            className={`text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition cursor-pointer flex items-center gap-1 select-none border-none bg-transparent p-0 ${tourStep === 16 ? 'tour-highlight px-1.5 py-0.5 rounded bg-sky-400/10' : ''}`}
           >
             {isOpen ? "Hide thinking" : "Show thinking"}
             <ChevronDown size={11} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
@@ -932,6 +941,16 @@ const App: React.FC = () => {
     await fetchAgents();
   };
   const getDisplayStepInfo = (actualStep: number) => {
+    if (actualStep >= 13 && actualStep <= 16) {
+      return {
+        num: actualStep - 12,
+        text: actualStep === 13 ? "Demo: Select AI Agent"
+            : actualStep === 14 ? "Demo: Choose Thinking Mode"
+            : actualStep === 15 ? "Demo: Ask a Question"
+            : "Demo: Show Thinking Process",
+        total: 4
+      };
+    }
     const isGmailUser = user?.email?.endsWith("@gmail.com");
     if (isGmailUser) {
       if (actualStep === 1) return { num: 1, text: "1. Configure Portal", total: 10 };
@@ -1330,6 +1349,10 @@ const App: React.FC = () => {
     else if (tourStep === 10) targetId = "chat-mode-btn";
     else if (tourStep === 11) targetId = "project-override-container";
     else if (tourStep === 12) targetId = "arch-diagram-btn";
+    else if (tourStep === 13) targetId = "agent-select-container";
+    else if (tourStep === 14) targetId = "chat-mode-btn";
+    else if (tourStep === 15) targetId = "chat-input-container";
+    else if (tourStep === 16) targetId = "show-thinking-btn";
 
     const updatePosition = () => {
       const el = document.getElementById(targetId);
@@ -1347,7 +1370,7 @@ const App: React.FC = () => {
           left: (tourStep === 5) ? `${rect.left}px` : undefined,
           zIndex: 1000
         });
-      } else if (tourStep === 2 || tourStep === 8 || tourStep === 9) {
+      } else if (tourStep === 2 || tourStep === 8 || tourStep === 9 || tourStep === 13) {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.top - 10}px`,
@@ -1361,10 +1384,17 @@ const App: React.FC = () => {
           left: `${rect.left - 336}px`,
           zIndex: 1000
         });
-      } else if (tourStep === 4 || tourStep === 6 || tourStep === 7 || tourStep === 10) {
+      } else if (tourStep === 4 || tourStep === 6 || tourStep === 7 || tourStep === 10 || tourStep === 14 || tourStep === 15) {
         setTooltipStyle({
           position: 'fixed',
           bottom: `${window.innerHeight - rect.top + 12}px`,
+          left: `${rect.left}px`,
+          zIndex: 1000
+        });
+      } else if (tourStep === 16) {
+        setTooltipStyle({
+          position: 'fixed',
+          top: `${rect.bottom + 12}px`,
           left: `${rect.left}px`,
           zIndex: 1000
         });
@@ -1375,6 +1405,11 @@ const App: React.FC = () => {
     window.addEventListener("resize", updatePosition);
     return () => window.removeEventListener("resize", updatePosition);
   }, [tourStep, currentPage, settingsActiveTab]);
+
+  const startDemoWalkthrough = () => {
+    setCurrentPage("chat");
+    setTourStep(13);
+  };
 
   const handleNextTour = () => {
     if (tourStep === 1) {
@@ -1415,6 +1450,11 @@ const App: React.FC = () => {
     } else if (tourStep === 11) {
       setTourStep(12);
     } else if (tourStep === 12) {
+      setTourStep(0);
+      sessionStorage.setItem("ca_visited_tour", "true");
+    } else if (tourStep >= 13 && tourStep <= 15) {
+      setTourStep(tourStep + 1);
+    } else if (tourStep === 16) {
       setTourStep(0);
       sessionStorage.setItem("ca_visited_tour", "true");
     }
@@ -1459,6 +1499,11 @@ const App: React.FC = () => {
       } else {
         setTourStep(11);
       }
+    } else if (tourStep === 13) {
+      setCurrentPage("home");
+      setTourStep(12);
+    } else if (tourStep >= 14 && tourStep <= 16) {
+      setTourStep(tourStep - 1);
     }
   };
 
@@ -1476,6 +1521,9 @@ const App: React.FC = () => {
     setMessages([]);
     fetchConversations(val);
     setIsSidebarOpen(false);
+    if (tourStep === 13) {
+      setTourStep(14);
+    }
   };
 
   const handleConvoClick = (convoName: string) => {
@@ -1546,6 +1594,10 @@ const App: React.FC = () => {
   const handleSendMessage = async (overrideText?: unknown) => {
     const text = (typeof overrideText === "string" ? overrideText : inputText).trim();
     if (!text || !selectedAgent) return;
+
+    if (tourStep === 15) {
+      setTourStep(16);
+    }
 
     setInputText("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
@@ -2569,7 +2621,7 @@ const App: React.FC = () => {
                               };
                               return (
                                 <>
-                                  <MessageThinkingBlock statuses={parsed.statuses} thoughts={parsed.thoughts} />
+                                  <MessageThinkingBlock statuses={parsed.statuses} thoughts={parsed.thoughts} tourStep={tourStep} setTourStep={setTourStep} />
                                   {parsed.answer && (
                                     <div dangerouslySetInnerHTML={{ __html: marked.parse(formatMarkdown(parsed.answer)) }} />
                                   )}
@@ -2666,7 +2718,7 @@ const App: React.FC = () => {
 
                         return (
                           <>
-                            <MessageThinkingBlock statuses={parsedStreaming.statuses} thoughts={parsedStreaming.thoughts} isStreaming={true} />
+                            <MessageThinkingBlock statuses={parsedStreaming.statuses} thoughts={parsedStreaming.thoughts} isStreaming={true} tourStep={tourStep} setTourStep={setTourStep} />
                             {parsedStreaming.answer && (
                               <div dangerouslySetInnerHTML={{ __html: marked.parse(formatMarkdown(parsedStreaming.answer)) }} />
                             )}
@@ -2715,7 +2767,10 @@ const App: React.FC = () => {
 
             {/* Chat Input Container */}
             <div className="px-4 md:px-10 pb-4 md:pb-8 pt-2 mt-auto">
-              <div className="glass-panel flex flex-col gap-2 px-4 md:px-6 py-3 md:py-4 rounded-2xl shadow-xl">
+              <div 
+                id="chat-input-container"
+                className={`glass-panel flex flex-col gap-2 px-4 md:px-6 py-3 md:py-4 rounded-2xl shadow-xl ${(tourStep === 15) ? 'tour-highlight' : ''}`}
+              >
                 <textarea 
                   ref={textareaRef}
                   value={inputText}
@@ -2736,7 +2791,7 @@ const App: React.FC = () => {
                     <button 
                       id="chat-mode-btn"
                       onClick={() => setShowChatModeDropdown(!showChatModeDropdown)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 bg-white/3 hover:bg-white/6 border border-white/6 rounded-lg text-xs font-semibold text-slate-300 transition cursor-pointer select-none border-none ${tourStep === 9 ? 'tour-highlight' : ''}`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 bg-white/3 hover:bg-white/6 border border-white/6 rounded-lg text-xs font-semibold text-slate-300 transition cursor-pointer select-none border-none ${(tourStep === 10 || tourStep === 14) ? 'tour-highlight' : ''}`}
                     >
                       <Sparkles size={12} className={chatMode === "thinking" ? "text-sky-400 fill-sky-400/20 animate-pulse" : "text-slate-400"} />
                       <span>{chatMode === "thinking" ? "Thinking Mode" : "Fast Mode"}</span>
@@ -2749,6 +2804,7 @@ const App: React.FC = () => {
                           onClick={() => {
                             setChatMode("fast");
                             setShowChatModeDropdown(false);
+                            if (tourStep === 14) setTourStep(15);
                           }}
                           className={`w-full px-4 py-3 text-left hover:bg-white/4 transition flex flex-col gap-0.5 cursor-pointer border-none bg-transparent ${chatMode === "fast" ? "bg-white/2" : ""}`}
                         >
@@ -2762,6 +2818,7 @@ const App: React.FC = () => {
                           onClick={() => {
                             setChatMode("thinking");
                             setShowChatModeDropdown(false);
+                            if (tourStep === 14) setTourStep(15);
                           }}
                           className={`w-full px-4 py-3 text-left hover:bg-white/4 transition flex flex-col gap-0.5 cursor-pointer border-none bg-transparent ${chatMode === "thinking" ? "bg-white/2" : ""}`}
                         >
@@ -3255,16 +3312,16 @@ const App: React.FC = () => {
           style={tooltipStyle}
         >
           {/* Arrow indicator */}
-          {(tourStep === 1 || tourStep === 5 || tourStep === 11 || tourStep === 12) && (
+          {(tourStep === 1 || tourStep === 5 || tourStep === 11 || tourStep === 12 || tourStep === 16) && (
             <div className={`absolute -top-2 ${tourStep === 1 || tourStep === 11 || tourStep === 12 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-t border-l border-amber-500/55 rotate-45`} />
           )}
-          {(tourStep === 2 || tourStep === 8 || tourStep === 9) && (
+          {(tourStep === 2 || tourStep === 8 || tourStep === 9 || tourStep === 13) && (
             <div className="absolute -left-2 top-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
           )}
           {(tourStep === 3) && (
             <div className="absolute -right-2 top-6 w-4 h-4 bg-slate-900 border-t border-r border-amber-500/55 rotate-45" />
           )}
-          {(tourStep === 4 || tourStep === 6 || tourStep === 7 || tourStep === 10) && (
+          {(tourStep === 4 || tourStep === 6 || tourStep === 7 || tourStep === 10 || tourStep === 14 || tourStep === 15) && (
             <div className="absolute -bottom-2 left-6 w-4 h-4 bg-slate-900 border-b border-r border-amber-500/55 rotate-45" />
           )}
 
@@ -3292,6 +3349,10 @@ const App: React.FC = () => {
             {tourStep === 10 && "Toggle between 'Fast Answer' for quick responses, or 'In-Depth Analysis' to activate advanced reasoning models for complex queries and multi-step data visualizations."}
             {tourStep === 11 && "Change how the workspace interacts with the Conversational Analytics API directly from this quick dropdown menu, without going to the settings page."}
             {tourStep === 12 && "Access the architecture diagram explaining the components used in this portal to provide additional technical context in case it is needed."}
+            {tourStep === 13 && "To begin the demo, select a specialized AI agent from this dropdown menu to load its analytical capabilities."}
+            {tourStep === 14 && "Select a thinking mode: Toggle 'Fast Answer' for quick responses, or 'In-Depth Analysis' to activate advanced reasoning models for complex queries."}
+            {tourStep === 15 && "Ask a question about your database! Type in the chat input or click one of the suggested query starter pills below (e.g., 'What can you do for me?')."}
+            {tourStep === 16 && "Once the agent begins responding, click 'Show thinking' to inspect the step-by-step reasoning, plan logic, and generated BigQuery SQL queries."}
           </p>
 
           {/* Buttons */}
@@ -3315,7 +3376,22 @@ const App: React.FC = () => {
                   Back
                 </button>
               )}
-              {tourStep !== 1 && tourStep !== 7 ? (
+              {tourStep === 12 ? (
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleNextTour}
+                    className="py-1.5 px-3 bg-white/5 border border-white/6 hover:bg-white/10 text-white rounded-lg text-xs font-semibold cursor-pointer transition border-none"
+                  >
+                    Finish
+                  </button>
+                  <button 
+                    onClick={startDemoWalkthrough}
+                    className="py-1.5 px-3.5 bg-brand-primary hover:opacity-90 text-white rounded-lg text-xs font-semibold cursor-pointer transition shadow-md border-none whitespace-nowrap"
+                  >
+                    Start Demo Walkthrough
+                  </button>
+                </div>
+              ) : tourStep !== 1 && tourStep !== 7 && tourStep !== 13 && tourStep !== 14 && tourStep !== 15 && tourStep !== 16 ? (
                 <button 
                   onClick={handleNextTour}
                   className="py-1.5 px-3.5 bg-brand-primary hover:opacity-90 text-white rounded-lg text-xs font-semibold cursor-pointer transition shadow-md border-none"
@@ -3324,7 +3400,12 @@ const App: React.FC = () => {
                 </button>
               ) : (
                 <span className="text-[10px] text-amber-400 font-bold animate-pulse mr-1 whitespace-nowrap">
-                  {tourStep === 1 ? "Click gear icon" : "Click card to proceed"}
+                  {tourStep === 1 ? "Click gear icon" : 
+                   tourStep === 7 ? "Click card to proceed" : 
+                   tourStep === 13 ? "Select an agent" : 
+                   tourStep === 14 ? "Choose thinking mode" : 
+                   tourStep === 15 ? "Submit query or pill" : 
+                   "Click 'Show thinking'"}
                 </span>
               )}
             </div>

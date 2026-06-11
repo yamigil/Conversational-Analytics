@@ -281,3 +281,13 @@ Enhance branding visual details by replacing raster assets with transparent SVG 
 
 ## 6. Build & Visual Verification
 - **Vite Build Certification**: Verified the React project compiles successfully with exactly 0 type or bundler errors.
+
+## 7. Interactive Chat Demo Walkthrough
+- **Guided Chat Walkthrough Opt-in**: Added a "Start Demo Walkthrough" action at the end of the standard 12-step guided onboarding tour.
+- **Fluid Interactive Step Advancement**: Created a 4-step interactive walkthrough that guides the user on how to run a query:
+  1. **Demo Step 1: Select AI Agent** (highlights the agent selector, advances on selection).
+  2. **Demo Step 2: Choose Thinking Mode** (highlights the reasoning mode button, advances on option selection).
+  3. **Demo Step 3: Ask a Question** (highlights the chat input bar, advances on sending a query).
+  4. **Demo Step 4: Show Thinking Process** (highlights the "Show thinking" button, completes the tour on click).
+- **Amber Highlights & Pulsing Indicators**: Integrated conditional highlight classes and helper text reminders to ensure the walkthrough runs smoothly.
+

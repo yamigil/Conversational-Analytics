@@ -54,16 +54,29 @@ security = HTTPBearer()
 def get_current_user(authorization: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     """
     FastAPI dependency to verify Firebase ID Token from Authorization header.
-    Raises 401 Unauthorized if verification fails.
+    Raises 401 Unauthorized if verification fails or 403 Forbidden if restricted and not google.com.
     """
+    restrict = os.getenv("RESTRICT_TO_GOOGLE") == "true"
+    
     if os.getenv("MOCK_AUTH") == "true":
-        return {"email": "admin@gilgtz.altostrat.com", "uid": "mock-user-123"}
+        mock_email = "admin@google.com" if restrict else "admin@gilgtz.altostrat.com"
+        return {"email": mock_email, "uid": "mock-user-123"}
 
     token = authorization.credentials
     try:
         # Verify the ID token using Firebase Admin SDK
         decoded_token = auth.verify_id_token(token)
+        if restrict:
+            email = decoded_token.get("email", "").lower()
+            if not (email.endswith("@google.com") or email.endswith("altostrat.com")):
+                logger.warning(f"Access denied for email under restriction mode: {email}")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access restricted to @google.com and Argolis accounts only.",
+                )
         return decoded_token
+    except HTTPException:
+        raise
     except Exception as e:
         logger.warning(f"Failed to verify ID Token: {e}")
         raise HTTPException(

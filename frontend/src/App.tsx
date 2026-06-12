@@ -634,7 +634,15 @@ const App: React.FC = () => {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  const isAllowedDomain = (email: string | null | undefined): boolean => {
+    if (!email) return false;
+    const lower = email.toLowerCase();
+    return lower.endsWith("@google.com") || lower.endsWith("altostrat.com");
+  };
+
   useEffect(() => {
+    const restrictToGoogle = import.meta.env.VITE_RESTRICT_TO_GOOGLE === "true";
+
     if (import.meta.env.VITE_MOCK_AUTH === "true") {
       if (localStorage.getItem("mock_logout") === "true") {
         setUser(null);
@@ -643,32 +651,56 @@ const App: React.FC = () => {
         // Support URL parameter for mock profile selection
         const params = new URLSearchParams(window.location.search);
         const isGmailMock = params.get("mock") === "gmail";
-        const email = isGmailMock ? "yamigilgtz@gmail.com" : "admin@gilgtz.altostrat.com";
-        setUser({
-          email: email,
-          displayName: isGmailMock ? "Gmail Test User" : "Argolis Test User",
-          uid: "mock-user-123",
-        });
+        
+        if (restrictToGoogle && isGmailMock) {
+          setUser(null);
+          setAuthError("Access restricted to @google.com and Argolis accounts only.");
+        } else {
+          const email = isGmailMock 
+            ? "yamigilgtz@gmail.com" 
+            : (restrictToGoogle ? "admin@google.com" : "admin@gilgtz.altostrat.com");
+          setUser({
+            email: email,
+            displayName: isGmailMock ? "Gmail Test User" : "Argolis Test User",
+            uid: "mock-user-123",
+          });
+        }
         setAuthLoading(false);
       }
       return;
     }
 
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      setUser(currentUser);
+      if (restrictToGoogle && currentUser && currentUser.email && !isAllowedDomain(currentUser.email)) {
+        auth.signOut();
+        setUser(null);
+        setAuthError("Access restricted to @google.com and Argolis accounts only.");
+      } else {
+        setUser(currentUser);
+      }
       setAuthLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
   const handleLogin = async () => {
+    const restrictToGoogle = import.meta.env.VITE_RESTRICT_TO_GOOGLE === "true";
     setAuthError(null);
     try {
       if (import.meta.env.VITE_MOCK_AUTH === "true") {
         localStorage.removeItem("mock_logout");
         const params = new URLSearchParams(window.location.search);
         const isGmailMock = params.get("mock") === "gmail";
-        const email = isGmailMock ? "yamigilgtz@gmail.com" : "admin@gilgtz.altostrat.com";
+        
+        if (restrictToGoogle && isGmailMock) {
+          setUser(null);
+          setAuthError("Access restricted to @google.com and Argolis accounts only.");
+          return;
+        }
+        
+        const email = isGmailMock 
+          ? "yamigilgtz@gmail.com" 
+          : (restrictToGoogle ? "admin@google.com" : "admin@gilgtz.altostrat.com");
         setUser({
           email: email,
           displayName: isGmailMock ? "Gmail Test User" : "Argolis Test User",
@@ -1360,6 +1392,19 @@ const App: React.FC = () => {
     else if (tourStep === 18) targetId = "chat-suggestions-container";
 
     const updatePosition = () => {
+      if (window.innerWidth < 768) {
+        setTooltipStyle({
+          position: 'fixed',
+          bottom: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'calc(100% - 32px)',
+          maxWidth: '400px',
+          zIndex: 1000
+        });
+        return;
+      }
+
       const el = document.getElementById(targetId);
       if (!el) {
         setTimeout(updatePosition, 100);
@@ -2183,7 +2228,15 @@ const App: React.FC = () => {
           </div>
 
           <p className="text-xs text-slate-400">
-            Sign in using your <strong className="text-slate-300 font-semibold">Argolis</strong> or <strong className="text-slate-300 font-semibold">Gmail</strong> account.
+            {import.meta.env.VITE_RESTRICT_TO_GOOGLE === "true" ? (
+              <>
+                Sign in using your <strong className="text-slate-300 font-semibold">Google</strong> or <strong className="text-slate-300 font-semibold">Argolis</strong> account.
+              </>
+            ) : (
+              <>
+                Sign in using your <strong className="text-slate-300 font-semibold">Google, Argolis,</strong> or <strong className="text-slate-300 font-semibold">Gmail</strong> account.
+              </>
+            )}
           </p>
 
           {/* Google Sign In Button */}
@@ -3341,20 +3394,24 @@ const App: React.FC = () => {
           style={tooltipStyle}
         >
           {/* Arrow indicator */}
-          {(tourStep === 1 || tourStep === 6 || tourStep === 12 || tourStep === 13 || tourStep === 17) && (
-            <div className={`absolute -top-2 ${tourStep === 1 || tourStep === 12 || tourStep === 13 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-t border-l border-amber-500/55 rotate-45`} />
-          )}
-          {(tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14) && (
-            <div className="absolute -left-2 top-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
-          )}
-          {(tourStep === 11 || tourStep === 15) && (
-            <div className="absolute -left-2 bottom-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
-          )}
-          {(tourStep === 3) && (
-            <div className="absolute -right-2 top-6 w-4 h-4 bg-slate-900 border-t border-r border-amber-500/55 rotate-45" />
-          )}
-          {(tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 16 || tourStep === 18) && (
-            <div className="absolute -bottom-2 left-6 w-4 h-4 bg-slate-900 border-b border-r border-amber-500/55 rotate-45" />
+          {window.innerWidth >= 768 && (
+            <>
+              {(tourStep === 1 || tourStep === 6 || tourStep === 12 || tourStep === 13 || tourStep === 17) && (
+                <div className={`absolute -top-2 ${tourStep === 1 || tourStep === 12 || tourStep === 13 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-t border-l border-amber-500/55 rotate-45`} />
+              )}
+              {(tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14) && (
+                <div className="absolute -left-2 top-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
+              )}
+              {(tourStep === 11 || tourStep === 15) && (
+                <div className="absolute -left-2 bottom-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
+              )}
+              {(tourStep === 3) && (
+                <div className="absolute -right-2 top-6 w-4 h-4 bg-slate-900 border-t border-r border-amber-500/55 rotate-45" />
+              )}
+              {(tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 16 || tourStep === 18) && (
+                <div className="absolute -bottom-2 left-6 w-4 h-4 bg-slate-900 border-b border-r border-amber-500/55 rotate-45" />
+              )}
+            </>
           )}
 
           {/* Content */}

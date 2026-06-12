@@ -272,15 +272,45 @@
     <div class="section">
       <div class="section-header">
         <span class="section-num">4</span>
-        <h2>Act IV: Conversational Business Intelligence</h2>
+        <h2>Act IV: Conversational Intelligence & Machine Learning</h2>
       </div>
       <p class="section-desc">
-        Sarah opens the chat workspace to test the conversational interface. She selects the retail analytics agent and types her question: <em>"What was our total revenue by store location last quarter?"</em>. The portal translates her business question, retrieves the live metrics, and returns an interactive bar chart and takeaways.
+        Sarah enters the chat workspace to test the conversational interface. Rather than writing code or requesting database exports, she can speak to her data naturally.
       </p>
-      <div class="img-container">
-        <img src="docs/screenshots/chat_workspace.png" alt="Conversational Chat Interface">
+
+      <!-- Phase 1 -->
+      <h3 style="color: #60a5fa; font-size: 1.05rem; font-weight: 600; margin-top: 25px; margin-bottom: 10px;">Phase 1: Discovering Capabilities</h3>
+      <p class="section-desc" style="margin-bottom: 15px;">
+        Sarah starts by asking: <em>"What can you do for me?"</em>. The agent reads the database metadata catalog and responds with a clear list of supported tables, segments, and preset queries that she can run instantly.
+      </p>
+      <div class="img-container" style="margin-bottom: 25px;">
+        <img src="docs/screenshots/chat_capabilities.png" alt="Capabilities Discovery Screen">
       </div>
-      <div class="img-caption">Figure 4: Chat response rendering the Fleet Pride revenue chart and insights.</div>
+      <div class="img-caption" style="margin-bottom: 35px;">Figure 4.1: Capabilities response showing options and starter query suggestions.</div>
+
+      <!-- Phase 2 -->
+      <h3 style="color: #60a5fa; font-size: 1.05rem; font-weight: 600; margin-top: 25px; margin-bottom: 10px;">Phase 2: In-Depth Query & Expanded Thinking</h3>
+      <p class="section-desc" style="margin-bottom: 15px;">
+        Sarah toggles on **In-Depth Analysis** to activate advanced reasoning capabilities. She asks: <em>"What is our total revenue by store location?"</em>. To understand how the agent compiles and processes her query, she clicks the **Show thinking** button, expanding the step-by-step reasoning path showing the table schemas and columns it analyzed.
+      </p>
+      <div class="img-container" style="margin-bottom: 25px;">
+        <img src="docs/screenshots/chat_thinking.png" alt="Expanded Thinking Process Screen">
+      </div>
+      <div class="img-caption" style="margin-bottom: 35px;">Figure 4.2: Reasoning steps showing the agent's query plan logs.</div>
+
+      <!-- Phase 3 -->
+      <h3 style="color: #60a5fa; font-size: 1.05rem; font-weight: 600; margin-top: 25px; margin-bottom: 10px;">Phase 3: Machine Learning & Time-Series Forecasting</h3>
+      <p class="section-desc" style="margin-bottom: 15px;">
+        Sarah requests a prediction: <em>"Forecast the next 3 months of sales."</em> The agent utilizes advanced **Machine Learning algorithms out-of-the-box** built directly into the database catalog:
+      </p>
+      <ul style="color: var(--text-sub); font-size: 0.9rem; line-height: 1.6; margin-left: 20px; margin-bottom: 20px; list-style-type: disc;">
+        <li><strong>TimesFM (Time Series Forecasting):</strong> Automatically scans historical data points to generate accurate demand forecasts and future projections.</li>
+        <li><strong>Contribution Analysis:</strong> Explains variance by showing which products, brands, or segments contributed the most to sales performance.</li>
+      </ul>
+      <div class="img-container" style="margin-bottom: 25px;">
+        <img src="docs/screenshots/chat_forecast.png" alt="Advanced Sales Forecasting Screen">
+      </div>
+      <div class="img-caption">Figure 4.3: Forecasting charts and projected sales trends.</div>
     </div>
 
     <!-- Act 5: Deconstructing the Magic -->

@@ -56,7 +56,7 @@ def get_current_user(authorization: HTTPAuthorizationCredentials = Depends(secur
     FastAPI dependency to verify Firebase ID Token from Authorization header.
     Raises 401 Unauthorized if verification fails or 403 Forbidden if restricted and not google.com.
     """
-    restrict = os.getenv("RESTRICT_TO_GOOGLE") == "true"
+    restrict = os.getenv("RESTRICT_TO_GOOGLE", "true") != "false"
     
     if os.getenv("MOCK_AUTH") == "true":
         mock_email = "admin@google.com" if restrict else "admin@gilgtz.altostrat.com"

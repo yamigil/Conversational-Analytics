@@ -1,6 +1,10 @@
-# Conversational Analytics Agent Web App
+# BigQuery Conversational Analytics: Showcase Hub
 
-A premium, glassmorphic conversational interface for querying and visualizing advertising performance data from Google Cloud BigQuery.
+**Talk to your data like you talk to a coworker. Powered by Gemini, directly on BigQuery.**
+
+A customizable, white-label frontend template that allows Customer Engineers to easily embed and showcase the power of BigQuery Data Agents, Knowledge Catalog, and Conversational Analytics to both technical and business audiences without building a custom frontend from scratch.
+
+This demo highlights Conversational Analytics (CA) on BigQuery data warehouses, powered by Gemini for Google Cloud. Its purpose is to show how non-technical users can move beyond static dashboards to engage directly with raw enterprise data using natural language. Run forecasting out-of-the-box using built-in database machine learning models (like TimesFM and Contribution Analysis), and verify results instantly with step-by-step thinking logs.
 
 ## Directory Structure
 

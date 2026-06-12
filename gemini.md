@@ -341,3 +341,35 @@ Refine the onboarding tour and walkthrough steps based on visual feedback, resol
 ## 10. Reference Architecture Modal Outside Click-Away
 - **Dismiss on Backdrop Click**: Added an `onClick={onClose}` handler to the root modal fixed overlay wrapper in `ArchitectureModal.tsx`. Bound `e.stopPropagation()` to the modal card element to block click bubbles. This allows users to click anywhere on the blurred backdrop background to dismiss the Reference Architecture diagram instantly.
 
+
+# Session Summary - Secure Defaults, SSO Restriction, Mobile Tour Auto-Toggle & Fleet Pride Narrative Walkthrough (2026-06-12)
+
+## Objective
+Configure production-safe access restrictions by default, protect Google users from OAuth scope permission blocks by disabling SSO modes, automate mobile tour layout drawer states, and rewrite the visual guide to present a non-technical walkthrough based on a custom customer presentation for Fleet Pride.
+
+## 1. Secure Production Restrictions by Default
+- **Fallback Verification Logic**: Updated `backend/auth.py` and `frontend/src/App.tsx` so that access restrictions default to `true` (Google corporate and Argolis domains only) if the variables `RESTRICT_TO_GOOGLE` and `VITE_RESTRICT_TO_GOOGLE` are not configured, securing production builds by default.
+- **Dynamic Login Sublabel**: Adjusted the frontend login card message logic to display the Google/Argolis restriction sublabel by default.
+
+## 2. SSO Credential Restrictions for Google Users
+- **Disabled OAuth Block Path**: Modified `isCorporateUser` in the frontend to return `true` only for `altostrat.com` (Argolis) accounts.
+- **Dropdown Visibility Control**: Hides the "SSO User Session" option from the Settings configuration and the Header connection dropdowns for all `@google.com` (Googler) users, protecting them from the Google Ads API verification block.
+
+## 3. Simplified Branding Facade for Googlers
+- **Unified Role Checks**: Refactored the settings panel layout and tour steps to treat Googlers identically to Gmail users (applying the `!isCorporateUser` checks).
+- **Tab Navigation Restriction**: Hides the "General Configuration" connection settings tab for Googlers, locking their active workspace profile exclusively to the branding customization tab.
+- **Skipped Walkthrough Steps**: Automatically skips the connection configuration tooltip steps (Step 2 and 12) during the onboarding tour for Googlers.
+
+## 4. Responsive Tour Drawer Auto-Toggle (Mobile)
+- **Automatic Drawer State Handler**: Created a `useEffect` hook in `App.tsx` to automatically expand the mobile sidebar drawer during tour steps targeting drawer contents (Step 9, 10, 14) and collapse it when directing back to the main chat pane (Step 11, 15, 16, 18).
+- **Responsive Copy Descriptions**: Customized the tooltip text for steps 9, 10, and 14 on mobile to guide users to open the top-left menu (☰).
+
+## 5. Non-Technical Client Presentation Guide (Fleet Pride)
+- **Fleet Pride Branding Screenshots**: Captured new screenshots of the dashboard, settings branding profile, and chat workspace under the active **Fleet Pride AI Experience Hub** branding.
+- **Visual Walkthrough (UserGuide.html)**: Rewrote the printable visual guide as a non-technical journey of Sarah (Category Manager) delivering a demo to Fleet Pride executives.
+- **Out-of-the-Box Machine Learning**: Integrated conversational screenshots detailing capabilities discovery, step-by-step thinking logs, and BigQuery ML forecasting (utilizing pre-trained **TimesFM** for time-series predictions and **Contribution Analysis** for regional segment breakdowns).
+
+## 6. Build & E2E Verification
+- **Vite Build Certification**: Confirmed the frontend compiles successfully with exactly 0 type or bundler errors.
+- **Backend Compiler Verification**: Confirmed Python files compiled successfully without errors.
+

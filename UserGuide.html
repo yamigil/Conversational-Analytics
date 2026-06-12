@@ -212,9 +212,9 @@
 
     <!-- Overview Box -->
     <div style="background-color: var(--panel-dark); border: 1px solid var(--brand-primary); border-radius: 16px; padding: 25px; margin-bottom: 40px;">
-      <h3 style="color: #60a5fa; font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; tracking-wider: 0.05em;">Demo Mission & Context</h3>
+      <h3 style="color: #60a5fa; font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; tracking-wider: 0.05em;">Demo Walkthrough Guide</h3>
       <p style="font-size: 0.9rem; color: var(--text-sub); line-height: 1.5;">
-        This visual guide is designed for <strong>GCP Technical Sellers (Customer Engineers / Solution Architects)</strong> and <strong>Business Sellers (FSRs)</strong> to learn how to build, deploy, and walkthrough the Conversational Analytics Showcase. Below, we narrate the user journey of <strong>Sarah, a non-technical Category Manager at Tractor Supply Co.</strong>, exploring the platform for the first time.
+        This guide walks through the user journey of <strong>Sarah, a Category Manager</strong>, who is preparing a tailored conversational analytics presentation for a client, <strong>Fleet Pride</strong> (a leading distributor of heavy-duty truck and trailer parts).
       </p>
     </div>
 
@@ -225,15 +225,12 @@
         <h2>Act I: Secure Enterprise Authentication</h2>
       </div>
       <p class="section-desc">
-        Sarah (our Category Manager) begins her day. She needs to analyze last quarter's revenue across store locations to prepare for an executive meeting. Normally, she would file a ticket with the data team and wait days. Instead, she opens the portal and logs in securely using Google SSO.
+        Sarah starts her day. She needs to show the Fleet Pride executive team how easily they can query store locations and parts inventories. She opens the portal and logs in securely using her corporate single sign-on (SSO) credentials.
       </p>
-      <div style="background: rgba(59, 130, 246, 0.05); border-left: 4px solid var(--brand-primary); padding: 15px; border-radius: 4px; margin-bottom: 20px; font-size: 0.9rem;">
-        <strong>⚙️ How it works under the hood:</strong> The portal's auth module securely redirects users to Google Identity. If the internal restriction mode is active (<code>RESTRICT_TO_GOOGLE=true</code>), the backend token verifier (<code>auth.py</code>) validates the token and restricts API access strictly to corporate <code>@google.com</code> and Argolis <code>altostrat.com</code> email domains.
-      </div>
       <div class="img-container">
         <img src="docs/screenshots/login.png" alt="Secure Login Screen">
       </div>
-      <div class="img-caption">Figure 1: Sarah's login screen showing the Google SSO option.</div>
+      <div class="img-caption">Figure 1: Sarah's secure single sign-on screen.</div>
     </div>
 
     <!-- Act 2: Guided Onboarding Tour -->
@@ -243,65 +240,62 @@
         <h2>Act II: The Warm Welcome (Guided Onboarding Tour)</h2>
       </div>
       <p class="section-desc">
-        Upon her first successful login, Sarah is greeted by a fluid, step-by-step guided tour. Rather than throwing her into an empty dashboard, the tour automatically walks her through the settings gear, brand layout configuration, system architecture, and chat input. On mobile viewports, the tooltip dynamically snaps to the bottom center, keeping the UI clean.
+        Upon logging in, Sarah is welcomed by a step-by-step guided tour. The walkthrough highlights the settings gear, brand layout configuration, system architecture, and conversational chat input, ensuring a smooth first-time experience.
       </p>
       <div class="img-container">
         <img src="docs/screenshots/tour_step_1.png" alt="Guided Tour Popup">
       </div>
-      <div class="img-caption">Figure 2: Step 1 of the Guided Onboarding Tour highlighting the Settings Gear Icon.</div>
+      <div class="img-caption">Figure 2: The guided tour highlighting the configuration controls.</div>
     </div>
 
     <!-- Act 3: Customizing the Brand Space -->
     <div class="section">
       <div class="section-header">
         <span class="section-num">3</span>
-        <h2>Act III: Brand-Tailored Customization</h2>
+        <h2>Act III: Client-Tailored Customization</h2>
       </div>
       <p class="section-desc">
-        Sarah wants the portal to match her brand identity. She clicks the Settings gear, loads the <strong>Branding Profile</strong> tab, searches the web for the official Tractor Supply SVG logo, and saves her settings. Instantly, the dashboard theme colors, SVG headers, and default greeting cards update to fit Tractor Supply's styling.
+        Sarah wants the demo portal to match her client's brand. She clicks the Settings icon, enters the <strong>Branding Profile</strong> tab, searches for the official Fleet Pride branding, and saves. Instantly, all theme colors, SVG headers, and default greeting cards update to align with Fleet Pride's corporate styling.
       </p>
-      <div style="background: rgba(245, 158, 11, 0.05); border-left: 4px solid var(--brand-amber); padding: 15px; border-radius: 4px; margin-bottom: 20px; font-size: 0.9rem;">
-        <strong>🔒 Restricted Facade:</strong> To prevent Google corporate users from hitting permission blocks, we hide the connection settings from non-Argolis users. Googlers and Gmail users bypass credential configs and default to secure Service Account (ADC) mode, while Argolis users retain full User SSO access.
-      </div>
       <div class="img-container" style="margin-bottom: 25px;">
         <img src="docs/screenshots/settings.png" alt="Portal Settings Panel">
       </div>
-      <div class="img-caption" style="margin-bottom: 30px;">Figure 3.1: Sarah personalizing the logo, greeting text, and styling profile.</div>
+      <div class="img-caption" style="margin-bottom: 30px;">Figure 3.1: Sarah personalizing the interface with Fleet Pride branding.</div>
       
       <div class="img-container">
         <img src="docs/screenshots/dashboard.png" alt="Brand Dashboard Home">
       </div>
-      <div class="img-caption">Figure 3.2: Customized Home Dashboard aligned with the active brand layout.</div>
+      <div class="img-caption">Figure 3.2: Customized Home Dashboard branded for Fleet Pride.</div>
     </div>
 
     <!-- Act 4: The Chat Interaction -->
     <div class="section">
       <div class="section-header">
         <span class="section-num">4</span>
-        <h2>Act IV: Conversational BI (Natural Language to SQL)</h2>
+        <h2>Act IV: Conversational Business Intelligence</h2>
       </div>
       <p class="section-desc">
-        Sarah navigates to the chat workspace. She selects the "Retail Analytics Agent" from the sidebar and toggles on **In-Depth Analysis (Thinking Mode)**. She types her question: <em>"What was our total revenue by store location last quarter?"</em>. The reasoning engine translates her question, compiles the SQL, runs it against BigQuery, and returns an interactive Vega chart and structured Insights Card summarizing the trends.
+        Sarah opens the chat workspace to test the conversational interface. She selects the retail analytics agent and types her question: <em>"What was our total revenue by store location last quarter?"</em>. The portal translates her business question, retrieves the live metrics, and returns an interactive bar chart and takeaways.
       </p>
       <div class="img-container">
         <img src="docs/screenshots/chat_workspace.png" alt="Conversational Chat Interface">
       </div>
-      <div class="img-caption">Figure 4: Chat response rendering the Vega revenue bar chart, SQL statement, and executive insights.</div>
+      <div class="img-caption">Figure 4: Chat response rendering the Fleet Pride revenue chart and insights.</div>
     </div>
 
     <!-- Act 5: Deconstructing the Magic -->
     <div class="section">
       <div class="section-header">
         <span class="section-num">5</span>
-        <h2>Act V: Technical Transparency (Show Architecture)</h2>
+        <h2>Act V: Operational Transparency</h2>
       </div>
       <p class="section-desc">
-        Sarah's Customer Engineer or Solution Architect joins the conversation. To explain how this setup works securely under the hood, they click **Show Architecture** in the header. The app displays an interactive, node-based flowchart mapping out the GCP data orchestrations (BigQuery, Knowledge Catalog, FastAPI/Gemini Reasoning Engine, and React UI).
+        To demonstrate to the Fleet Pride executives how their queries are securely handled, Sarah clicks <strong>Show Architecture</strong> in the header. The app displays a clean, visual flowchart showing the secure, end-to-end data pipeline from the browser query to the database, proving enterprise compliance.
       </p>
       <div class="img-container">
         <img src="docs/screenshots/architecture.png" alt="Interactive System Architecture Modal">
       </div>
-      <div class="img-caption">Figure 5: 4-Node simplified GCP data architecture flow modal.</div>
+      <div class="img-caption">Figure 5: High-level visual pipeline diagram.</div>
     </div>
 
   </div>

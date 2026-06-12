@@ -984,7 +984,7 @@ const App: React.FC = () => {
         total: 5
       };
     }
-    const isGmailUser = user?.email?.endsWith("@gmail.com");
+    const isGmailUser = !isCorporateUser(user?.email || auth.currentUser?.email || null);
     if (isGmailUser) {
       if (actualStep === 1) return { num: 1, text: "1. Configure Portal", total: 11 };
       if (actualStep === 3) return { num: 2, text: "2. Customize Branding", total: 11 };
@@ -1031,7 +1031,8 @@ const App: React.FC = () => {
   });
 
   useEffect(() => {
-    if (user?.email?.endsWith("@gmail.com")) {
+    const email = user?.email || auth.currentUser?.email || null;
+    if (!isCorporateUser(email)) {
       if (settingsActiveTab !== "branding") {
         setSettingsActiveTab("branding");
       }
@@ -1479,9 +1480,10 @@ const App: React.FC = () => {
   };
 
   const handleNextTour = () => {
+    const email = user?.email || auth.currentUser?.email || null;
     if (tourStep === 1) {
       setCurrentPage("settings");
-      if (user?.email?.endsWith("@gmail.com")) {
+      if (!isCorporateUser(email)) {
         setSettingsActiveTab("branding");
         setTourStep(3);
       } else {
@@ -1511,7 +1513,7 @@ const App: React.FC = () => {
     } else if (tourStep === 10) {
       setTourStep(11);
     } else if (tourStep === 11) {
-      if (user?.email?.endsWith("@gmail.com")) {
+      if (!isCorporateUser(email)) {
         setTourStep(13);
       } else {
         setTourStep(12);
@@ -1530,11 +1532,12 @@ const App: React.FC = () => {
   };
 
   const handleBackTour = () => {
+    const email = user?.email || auth.currentUser?.email || null;
     if (tourStep === 2) {
       setCurrentPage("home");
       setTourStep(1);
     } else if (tourStep === 3) {
-      if (user?.email?.endsWith("@gmail.com")) {
+      if (!isCorporateUser(email)) {
         setCurrentPage("home");
         setTourStep(1);
       } else {
@@ -1565,7 +1568,7 @@ const App: React.FC = () => {
     } else if (tourStep === 12) {
       setTourStep(11);
     } else if (tourStep === 13) {
-      if (user?.email?.endsWith("@gmail.com")) {
+      if (!isCorporateUser(email)) {
         setTourStep(11);
       } else {
         setTourStep(12);
@@ -2326,7 +2329,7 @@ const App: React.FC = () => {
 
             {/* Interactive Connection & Identity Selector */}
             <div id="project-override-container" className={`relative ${tourStep === 12 ? 'tour-highlight' : ''}`} ref={connDropdownRef}>
-              {user?.email?.endsWith("@gmail.com") ? (
+              {!isCorporateUser(user?.email || auth.currentUser?.email || null) ? (
                 <div className="flex items-center gap-2 text-[10px] text-slate-300 bg-white/4 border border-white/6 px-3.5 py-1.5 rounded-full select-none font-semibold transition whitespace-nowrap">
                   <span className={`w-2 h-2 rounded-full ${
                     connectionStatus === "error" ? "bg-rose-500 shadow-[0_0_8px_#ef4444]" : "bg-emerald-500 shadow-[0_0_8px_#10b981]"
@@ -2442,13 +2445,14 @@ const App: React.FC = () => {
               onClick={() => {
                 trackClick("settings_gear");
                 setCurrentPage("settings");
-                if (user?.email?.endsWith("@gmail.com")) {
+                const email = user?.email || auth.currentUser?.email || null;
+                if (!isCorporateUser(email)) {
                   setSettingsActiveTab("branding");
                 } else {
                   setSettingsActiveTab("general");
                 }
                 if (tourStep === 1) {
-                  if (user?.email?.endsWith("@gmail.com")) {
+                  if (!isCorporateUser(email)) {
                     setTourStep(3);
                   } else {
                     setTourStep(2);
@@ -2949,7 +2953,7 @@ const App: React.FC = () => {
             <div className="flex flex-col md:flex-row gap-6">
                {/* Settings Nav */}
               <nav id="settings-sidebar-nav" className={`glass-panel w-full md:w-64 p-4 rounded-2xl flex flex-col gap-2 h-fit ${tourStep === 2 ? 'tour-highlight' : ''}`}>
-                {!user?.email?.endsWith("@gmail.com") && (
+                {isCorporateUser(user?.email || auth.currentUser?.email || null) && (
                   <button 
                     onClick={() => setSettingsActiveTab("general")}
                     className={`px-4 py-3 text-left text-sm font-semibold rounded-lg cursor-pointer transition duration-150 ${settingsActiveTab === "general" ? "bg-white/8 text-white border-l-3 border-l-brand-primary" : "text-slate-400 hover:text-white hover:bg-white/2"}`}
@@ -3367,7 +3371,7 @@ const App: React.FC = () => {
                 New here?
               </h3>
               <p className="text-slate-300 text-xs leading-relaxed font-medium">
-                {user?.email?.endsWith("@gmail.com")
+                {!isCorporateUser(user?.email || auth.currentUser?.email || null)
                   ? "See how to navigate this site, customize branding, and use AI agents."
                   : "See how to navigate this site, configure credentials, customize branding, and use AI agents."
                 }
@@ -3433,7 +3437,7 @@ const App: React.FC = () => {
           </div>
 
           <p className="text-xs text-slate-300 leading-relaxed font-medium">
-            {tourStep === 1 && (user?.email?.endsWith("@gmail.com") 
+            {tourStep === 1 && (!isCorporateUser(user?.email || auth.currentUser?.email || null) 
               ? "Click the settings gear icon in the top right to update your portal branding profile." 
               : "Click the settings gear icon in the top right to manage your portal branding profile or modify how the website communicates with the Conversational Analytics API.")
             }

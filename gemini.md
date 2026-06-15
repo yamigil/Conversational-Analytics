@@ -389,9 +389,11 @@ Implement GCP storage cost optimizations by purging obsolete snapshots and image
 - **Target Left Offset Alignment**: Recalculated the viewport positioning offset for step 3 to align with the new tooltip width (`left: rect.left - 356px` instead of `336px`).
 - **Link Text Wrapping Prevention**: Added `whitespace-nowrap` class to the "Skip Tour" button to prevent layout wrapping.
 - **Skip Link Visual Highlights**: Changed Skip Tour color styling to `text-slate-400` with `hover:text-amber-400 hover:underline` to match the guided tour box accent style and make link interactivity visually explicit.
+- **Single-Line Step Indicator**: Added `whitespace-nowrap` to the tour step progress indicator text (`{num} of {total}`) to prevent it from wrapping to a second line.
 
 ## 3. Z-Index Overlay Fix & Region Override Selection
 - **Z-Index Layering Fix**: Updated the connection override dropdown container in [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx) to elevate its `z-index` to `2000` dynamically when `tourStep > 0`. This resolves a layering conflict where the dropdown was positioned underneath the tour tooltip overlay, rendering it fully visible and clickable.
+- **Header z-index Elevation**: Dynamically elevated the header's `z-index` to `1010` during the tour. This prevents the onboarding tour tooltip overlay (which has `z-index: 1000`) from blocking clicks on header targets (such as the connection override selector button and settings gear), rendering them fully clickable.
 - **Top-Right Region Dropdown Selector**: Embedded a GCP Location (Region) dropdown selector directly inside the connection override pop-up menu. It dynamically calls `handleLocationChange` and syncs with `settingsLocation` state, allowing corporate users to switch regions on-the-fly from the chat header.
 - **Settings State Syncing**: Configured the `settingsLocation` state in `App.tsx` to read and initialize from local storage (`gcp_selected_location`) upon initial page load to synchronize workspace and settings configurations.
 

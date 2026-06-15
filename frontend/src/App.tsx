@@ -2319,7 +2319,7 @@ const App: React.FC = () => {
       
       {/* Global Header Banner */}
       {user && (
-        <header className="h-16 bg-slate-950/80 backdrop-blur-md border-b border-white/6 px-4 md:px-8 flex items-center justify-between z-40 shrink-0 select-none animate-fadeIn">
+        <header className={`h-16 bg-slate-950/80 backdrop-blur-md border-b border-white/6 px-4 md:px-8 flex items-center justify-between shrink-0 select-none animate-fadeIn ${tourStep > 0 ? 'z-[1010]' : 'z-40'}`}>
           {/* Left: Hamburger Button (mobile chat only) & Logo/Title (Click to go Home) */}
           <div className="flex items-center gap-2.5 min-w-0">
             {currentPage === "chat" && (
@@ -3584,7 +3584,7 @@ const App: React.FC = () => {
               </button>
 
               <div className="flex gap-2 items-center">
-                <span className="text-[10px] text-slate-500 font-bold mr-1">
+                <span className="text-[10px] text-slate-500 font-bold mr-1 whitespace-nowrap">
                   {getDisplayStepInfo(tourStep).num} of {getDisplayStepInfo(tourStep).total}
                 </span>
                 {tourStep > 1 && (

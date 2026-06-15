@@ -24,14 +24,69 @@ logger = logging.getLogger("ca-web-app")
 
 app = FastAPI(title="Conversational Analytics Showcase")
 
-# Enable CORS for local development
+# Enable CORS with security hardening
+from urllib.parse import urlparse
+import socket
+
+def is_safe_url(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+            
+        # Prevent accessing localhost and local metadata services
+        if hostname.lower() in ("localhost", "127.0.0.1", "::1", "metadata.google.internal"):
+            return False
+            
+        # Resolve hostname to verify destination IP range
+        ip = socket.gethostbyname(hostname)
+        ip_parts = [int(x) for x in ip.split(".")]
+        
+        # Check private ranges
+        if ip_parts[0] == 10:  # 10.0.0.0/8
+            return False
+        if ip_parts[0] == 172 and 16 <= ip_parts[1] <= 31:  # 172.16.0.0/12
+            return False
+        if ip_parts[0] == 192 and ip_parts[1] == 168:  # 192.168.0.0/16
+            return False
+        if ip_parts[0] == 127:  # Loopback
+            return False
+        if ip_parts[0] == 169 and ip_parts[1] == 254:  # link-local / metadata server (169.254.169.254)
+            return False
+            
+        return True
+    except Exception:
+        return False
+
+# Load allowed origins from environment
+allowed_origins = ["*"]
+allowed_origins_env = os.environ.get("ALLOWED_ORIGINS")
+if allowed_origins_env:
+    allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+
+is_wildcard = (len(allowed_origins) == 1 and allowed_origins[0] == "*")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=allowed_origins,
+    allow_credentials=not is_wildcard,  # Forbidden to set True with wildcard origin
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Standard security headers middleware
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
 
 # Telemetry Pydantic models & helpers
 class AuditLogModel(BaseModel):
@@ -305,7 +360,7 @@ def get_agents(user: dict = Depends(get_current_user), client: ConversationalAna
         raise HTTPException(status_code=403, detail="Permission denied. Your account does not have the required Discovery Engine Viewer or Gemini Data Analytics User IAM roles in this project.")
     except Exception as e:
         logger.error(f"Error listing agents: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to list data agents. Please verify your connection settings.")
 
 @app.post("/api/conversations")
 def create_conversation(req: CreateConvoRequest, user: dict = Depends(get_current_user), client: ConversationalAnalyticsClient = Depends(get_analytics_client)):
@@ -313,7 +368,7 @@ def create_conversation(req: CreateConvoRequest, user: dict = Depends(get_curren
         return client.create_conversation(req.agent_name)
     except Exception as e:
         logger.error(f"Error creating conversation: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to create conversation session.")
 
 @app.get("/api/conversations/{agent_name:path}")
 def get_conversations(agent_name: str, user: dict = Depends(get_current_user), client: ConversationalAnalyticsClient = Depends(get_analytics_client)):
@@ -323,7 +378,7 @@ def get_conversations(agent_name: str, user: dict = Depends(get_current_user), c
         return [c for c in convos if c.get("name") not in deleted]
     except Exception as e:
         logger.error(f"Error listing conversations: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to list active conversations.")
 
 @app.get("/api/insights/{agent_name:path}")
 def get_insights(agent_name: str, user: dict = Depends(get_current_user), client: ConversationalAnalyticsClient = Depends(get_analytics_client)):
@@ -405,7 +460,7 @@ def delete_conversation(convo_name: str, user: dict = Depends(get_current_user),
         return {"status": "success", "message": f"Conversation {convo_name} deleted successfully"}
     except Exception as e:
         logger.error(f"Error deleting conversation {convo_name}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to delete conversation.")
 
 
 @app.get("/api/messages/{convo_name:path}")
@@ -418,7 +473,7 @@ def get_messages(convo_name: str, user: dict = Depends(get_current_user), client
         raise
     except Exception as e:
         logger.error(f"Error listing messages: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to retrieve conversation history.")
 
 @app.post("/api/chat")
 def chat(req: ChatRequestModel, user: dict = Depends(get_current_user), client: ConversationalAnalyticsClient = Depends(get_analytics_client)):
@@ -458,7 +513,7 @@ def chat(req: ChatRequestModel, user: dict = Depends(get_current_user), client: 
         return StreamingResponse(event_generator(), media_type="text/event-stream")
     except Exception as e:
         logger.error(f"Error streaming chat: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An error occurred while streaming chat responses.")
 
 
 @app.post("/api/branding/generate")
@@ -488,17 +543,21 @@ def generate_branding(req: GenerateBrandingRequest, user: dict = Depends(get_cur
 
     try:
         if req.logo_url and not req.logo_image:
-            try:
-                import requests
-                import base64
-                img_resp = requests.get(req.logo_url, timeout=5)
-                if img_resp.status_code == 200:
-                    req.logo_image = base64.b64encode(img_resp.content).decode("utf-8")
-                    content_type = img_resp.headers.get("Content-Type")
-                    if content_type:
-                        req.logo_mime_type = content_type.split(";")[0]
-            except Exception as ex:
-                logger.warning(f"Failed to fetch logo from URL {req.logo_url} for theme generation: {ex}")
+            if not is_safe_url(req.logo_url):
+                logger.warning(f"SSRF Prevention: Blocked unsafe logo URL download request: {req.logo_url}")
+            else:
+                try:
+                    import requests
+                    import base64
+                    img_resp = requests.get(req.logo_url, timeout=5)
+                    if img_resp.status_code == 200:
+                        req.logo_image = base64.b64encode(img_resp.content).decode("utf-8")
+                        content_type = img_resp.headers.get("Content-Type")
+                        if content_type:
+                            req.logo_mime_type = content_type.split(";")[0]
+                except Exception as ex:
+                    logger.warning(f"Failed to fetch logo from URL {req.logo_url} for theme generation: {ex}")
+
 
         credentials, project = google.auth.default(scopes=['https://www.googleapis.com/auth/cloud-platform'])
         session = AuthorizedSession(credentials)
@@ -982,7 +1041,7 @@ def get_branding(user: dict = Depends(get_current_user)):
             }
     except Exception as e:
         logger.error(f"Error fetching branding: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to retrieve branding settings.")
 
 @app.post("/api/telemetry/audit")
 def audit_log(req: AuditLogModel, user: dict = Depends(get_current_user)):
@@ -1022,7 +1081,7 @@ def save_branding(data: dict = Body(...), user: dict = Depends(get_current_user)
         return {"status": "success", "message": "Branding updated successfully"}
     except Exception as e:
         logger.error(f"Error saving branding: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to save branding configurations.")
 
 # Mount Static Files (placed at the bottom so it doesn't mask API routes)
 if os.path.exists(FRONTEND_DIR):

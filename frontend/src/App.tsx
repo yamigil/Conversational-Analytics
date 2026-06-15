@@ -3095,16 +3095,16 @@ const App: React.FC = () => {
                       </small>
                     </div>
 
-                    <div className="flex items-center gap-4 mt-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-2 w-full">
                       <button 
                         onClick={handleSaveGeneralConfig}
-                        className="py-3 px-6 text-xs font-semibold bg-brand-primary hover:opacity-90 rounded-xl text-white transition cursor-pointer shadow-md border-none animate-slideIn"
+                        className="w-full sm:w-auto py-3 px-6 text-xs font-semibold bg-brand-primary hover:opacity-90 rounded-xl text-white transition cursor-pointer shadow-md border-none animate-slideIn"
                       >
                         Save Connection Config
                       </button>
                       <button 
                         onClick={handleTestConnection}
-                        className="py-3 px-5 text-xs font-medium bg-white/5 border border-white/6 hover:bg-white/10 rounded-xl text-white transition cursor-pointer"
+                        className="w-full sm:w-auto py-3 px-5 text-xs font-medium bg-white/5 border border-white/6 hover:bg-white/10 rounded-xl text-white transition cursor-pointer"
                       >
                         Test API Connection
                       </button>
@@ -3182,7 +3182,7 @@ const App: React.FC = () => {
                           value={logoSearchQuery}
                           onChange={(e) => setLogoSearchQuery(e.target.value)}
                           onKeyDown={(e) => { if (e.key === 'Enter') handleSearchLogo(); }}
-                          className="flex-1 py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 outline-none focus:border-brand-primary"
+                          className="flex-1 min-w-0 py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 outline-none focus:border-brand-primary"
                         />
                         <button
                           type="button"
@@ -3328,7 +3328,7 @@ const App: React.FC = () => {
 
                           {/* Editable branding texts */}
                           <div className="flex flex-col gap-3 bg-slate-950/20 border border-white/4 rounded-xl p-4">
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <div className="flex flex-col gap-1.5">
                                 <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider select-none text-left">Header Portal Title</label>
                                 <input
@@ -3365,11 +3365,11 @@ const App: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-4 mt-2 border-t border-white/6 pt-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-2 border-t border-white/6 pt-5 w-full">
                       <button 
                         id="settings-save-branding-btn"
                         onClick={handleSaveBranding}
-                        className={`py-3 px-6 text-sm font-medium bg-brand-primary hover:opacity-90 rounded-xl text-white transition cursor-pointer shadow-md border-none ${tourStep === 5 ? 'tour-highlight' : ''}`}
+                        className={`w-full sm:w-auto py-3 px-6 text-sm font-medium bg-brand-primary hover:opacity-90 rounded-xl text-white transition cursor-pointer shadow-md border-none ${tourStep === 5 ? 'tour-highlight' : ''}`}
                       >
                         Save Branding Config
                       </button>
@@ -3377,7 +3377,7 @@ const App: React.FC = () => {
                         type="button"
                         onClick={() => setShowPreviewModal(true)}
                         id="settings-trigger-preview-btn"
-                        className="py-3 px-5 text-sm font-semibold bg-white/5 border border-white/6 hover:bg-white/10 text-white rounded-xl transition cursor-pointer"
+                        className="w-full sm:w-auto py-3 px-5 text-sm font-semibold bg-white/5 border border-white/6 hover:bg-white/10 text-white rounded-xl transition cursor-pointer"
                       >
                         Show Live Preview
                       </button>

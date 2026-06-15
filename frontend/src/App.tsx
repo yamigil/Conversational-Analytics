@@ -36,6 +36,7 @@ interface BrandConfig {
   logoText: string;
   logoSvg?: string;
   gcpProjectId?: string;
+  gcpLocation?: string;
 }
 
 interface BrandingData {
@@ -563,6 +564,15 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}): Promi
         ...options.headers,
       };
     }
+
+    // Inject mock selected GCP location if present
+    const selectedLocation = localStorage.getItem("gcp_selected_location");
+    if (selectedLocation) {
+      options.headers = {
+        "X-GCP-Location": selectedLocation,
+        ...options.headers,
+      };
+    }
   } else {
     const currentUser = auth.currentUser;
     if (currentUser) {
@@ -588,6 +598,15 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}): Promi
         if (selectedProject) {
           options.headers = {
             "X-GCP-Project-Id": selectedProject,
+            ...options.headers,
+          };
+        }
+
+        // Inject the dynamically selected GCP Location if present
+        const selectedLocation = localStorage.getItem("gcp_selected_location");
+        if (selectedLocation) {
+          options.headers = {
+            "X-GCP-Location": selectedLocation,
             ...options.headers,
           };
         }
@@ -936,6 +955,19 @@ const App: React.FC = () => {
     fetchAgents();
   };
 
+  const handleLocationChange = (location: string) => {
+    localStorage.setItem("gcp_selected_location", location);
+    
+    // Reset active agent and conversations when switching locations to avoid cross-location leaks
+    setSelectedAgent("");
+    setConversations([]);
+    setMessages([]);
+    sessionStorage.removeItem("activeAgentName");
+    
+    // Reload the agents list for the new location
+    fetchAgents();
+  };
+
   const isCorporateUser = (email: string | null): boolean => {
     if (!email) return false;
     const lowerEmail = email.toLowerCase();
@@ -1042,6 +1074,7 @@ const App: React.FC = () => {
   }, [settingsActiveTab, user]);
 
   const [settingsProjectId, setSettingsProjectId] = useState("");
+  const [settingsLocation, setSettingsLocation] = useState("global");
   const [settingsTestResult, setSettingsTestResult] = useState("");
   const [settingsTestSuccess, setSettingsTestSuccess] = useState<boolean | null>(null);
   const [settingsSaveResult, setSettingsSaveResult] = useState("");
@@ -1120,8 +1153,8 @@ const App: React.FC = () => {
         const data: BrandingData = await res.json();
         setBranding(data);
         
-        // Always default to Google Cloud (default) unless they actively selected another profile in this session
-        const sessionActiveKey = sessionStorage.getItem("ca_active_brand") || "default";
+        // Retrieve the last active brand key from localStorage, or fall back to the saved active brand from backend, or "default"
+        const sessionActiveKey = localStorage.getItem("ca_active_brand") || data.activeBrand || "default";
         setActiveBrandKey(sessionActiveKey);
         setAppActiveBrandKey(sessionActiveKey);
         
@@ -1138,6 +1171,7 @@ const App: React.FC = () => {
         setBrandWelcome(active.welcomeMessage);
         setBrandLogoSvg(active.logoSvg || "");
         setSettingsProjectId(active.gcpProjectId || "");
+        setSettingsLocation(active.gcpLocation || "all");
       }
     } catch (e) {
       console.error("Failed to load branding configuration:", e);
@@ -1839,7 +1873,8 @@ const App: React.FC = () => {
         ...branding.brands,
         [activeBrandKey]: {
           ...branding.brands[activeBrandKey],
-          gcpProjectId: settingsProjectId
+          gcpProjectId: settingsProjectId,
+          gcpLocation: settingsLocation
         }
       }
     };
@@ -1904,7 +1939,7 @@ const App: React.FC = () => {
       if (res.ok) {
         setBranding(updated);
         setAppActiveBrandKey(activeBrandKey);
-        sessionStorage.setItem("ca_active_brand", activeBrandKey);
+        localStorage.setItem("ca_active_brand", activeBrandKey);
         applyBrandingCSS(updated.brands[activeBrandKey]);
         setSettingsSaveResult("Branding settings saved successfully!");
         setTimeout(() => setSettingsSaveResult(""), 3000);
@@ -2117,7 +2152,7 @@ const App: React.FC = () => {
         setBranding(updated);
         setActiveBrandKey("default");
         setAppActiveBrandKey("default");
-        sessionStorage.setItem("ca_active_brand", "default");
+        localStorage.setItem("ca_active_brand", "default");
         const defaultBrand = updated.brands["default"];
         setBrandName(defaultBrand.name);
         setBrandPrimary(defaultBrand.primaryColor);
@@ -3028,7 +3063,31 @@ const App: React.FC = () => {
                       </div>
                     )}
 
-
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-semibold text-slate-400">GCP Location (Region)</label>
+                      <div className="relative">
+                        <select 
+                          value={settingsLocation} 
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setSettingsLocation(val);
+                            handleLocationChange(val);
+                          }}
+                          className="w-full py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 outline-none focus:border-brand-primary/50 cursor-pointer appearance-none"
+                        >
+                          <option value="global">Global (Default)</option>
+                          <option value="us-central1">us-central1 (Iowa)</option>
+                          <option value="europe-west1">europe-west1 (Belgium)</option>
+                          <option value="us">us (US Multi-region)</option>
+                          <option value="eu">eu (EU Multi-region)</option>
+                          <option value="all">All Common Regions (Scan All)</option>
+                        </select>
+                        <ChevronDown className="absolute right-4 top-4 text-slate-400 pointer-events-none" size={14} />
+                      </div>
+                      <small className="text-[10px] text-slate-400">
+                        Choose the Google Cloud region where your Dialogflow CX or Vertex AI Data Agents are deployed.
+                      </small>
+                    </div>
 
                     <div className="flex items-center gap-4 mt-2">
                       <button 
@@ -3070,7 +3129,7 @@ const App: React.FC = () => {
                             onChange={(e) => {
                               const val = e.target.value;
                               setActiveBrandKey(val);
-                              sessionStorage.setItem("ca_active_brand", val);
+                              localStorage.setItem("ca_active_brand", val);
                               if (branding) {
                                 const b = branding.brands[val];
                                 setBrandName(b.name);
@@ -3081,6 +3140,8 @@ const App: React.FC = () => {
                                 setBrandLogoText(b.logoText);
                                 setBrandWelcome(b.welcomeMessage);
                                 setBrandLogoSvg(b.logoSvg || "");
+                                setSettingsProjectId(b.gcpProjectId || "");
+                                setSettingsLocation(b.gcpLocation || "all");
                               }
                             }}
                             className="w-full py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 focus:border-brand-primary outline-none cursor-pointer appearance-none"

@@ -150,28 +150,51 @@ def get_project_id() -> str:
     logger.warning("No project ID found, using default YamiArcade fallback.")
     return "studio-8562875242-77194"
 
-# Dynamic client injection dependency based on GCP OAuth Access Token & Project ID
+# Helper to find GCP Location/Region for Analytics Agents
+def get_location() -> str:
+    # 1. First, check if a location is defined inside the branding.json settings!
+    if os.path.exists(BRANDING_FILE):
+        try:
+            with open(BRANDING_FILE, "r") as f:
+                branding_data = json.load(f)
+                active_brand = branding_data.get("activeBrand", "default")
+                brand_settings = branding_data.get("brands", {}).get(active_brand, {})
+                location = brand_settings.get("gcpLocation")
+                if location:
+                    logger.info(f"Loaded GCP Location from branding settings: {location}")
+                    return location
+        except Exception as e:
+            logger.warning(f"Could not load location from branding settings: {e}")
+
+    # 2. Explicitly configured in env/.env or default
+    return os.getenv("GCP_LOCATION") or "global"
+
+# Dynamic client injection dependency based on GCP OAuth Access Token, Project ID & Location
 def get_analytics_client(
     x_gcp_user_token: Optional[str] = Header(None),
-    x_gcp_project_id: Optional[str] = Header(None)
+    x_gcp_project_id: Optional[str] = Header(None),
+    x_gcp_location: Optional[str] = Header(None)
 ) -> ConversationalAnalyticsClient:
     target_project = x_gcp_project_id or get_project_id()
+    target_location = x_gcp_location or get_location()
+    
     if x_gcp_user_token:
         try:
-            logger.info(f"Initializing ConversationalAnalyticsClient using End-User SSO Credentials for project: {target_project}")
-            return ConversationalAnalyticsClient(target_project, user_token=x_gcp_user_token)
+            logger.info(f"Initializing ConversationalAnalyticsClient using End-User SSO Credentials for project: {target_project}, location: {target_location}")
+            return ConversationalAnalyticsClient(target_project, user_token=x_gcp_user_token, location=target_location)
         except Exception as e:
             logger.error(f"Failed to initialize ConversationalAnalyticsClient with user token: {e}. Falling back to Service Account.")
     
-    # If a custom project is requested in Service Account mode, try to instantiate it. Otherwise fallback.
+    # If a custom project or location is requested in Service Account mode, try to instantiate it. Otherwise fallback.
     default_project = get_project_id()
-    if target_project != default_project:
+    default_location = get_location()
+    if target_project != default_project or target_location != default_location:
         try:
-            return ConversationalAnalyticsClient(target_project)
+            return ConversationalAnalyticsClient(target_project, location=target_location)
         except Exception as e:
-            logger.error(f"Failed to initialize Service Account client for project {target_project}: {e}")
-    # Always return a client for the freshly resolved default project
-    return ConversationalAnalyticsClient(default_project)
+            logger.error(f"Failed to initialize Service Account client for project {target_project}, location {target_location}: {e}")
+    # Always return a client for the freshly resolved default project and location
+    return ConversationalAnalyticsClient(default_project, location=default_location)
 
 # Pydantic models for request bodies
 class CreateConvoRequest(BaseModel):
@@ -917,6 +940,25 @@ def logo_proxy(url: str = Query(...)):
 @app.get("/api/branding")
 def get_branding(user: dict = Depends(get_current_user)):
     try:
+        # 1. Try to load from Firestore first
+        try:
+            db = firestore.client()
+            doc_ref = db.collection("settings").document("branding")
+            doc = doc_ref.get()
+            if doc.exists:
+                branding_data = doc.to_dict()
+                # Also save locally as a fallback
+                try:
+                    os.makedirs(FRONTEND_DIR, exist_ok=True)
+                    with open(BRANDING_FILE, "w") as f:
+                        json.dump(branding_data, f, indent=2)
+                except Exception as e:
+                    logger.warning(f"Failed to write branding fallback file: {e}")
+                return branding_data
+        except Exception as fe:
+            logger.warning(f"Could not load branding from Firestore: {fe}. Falling back to local file.")
+
+        # 2. Fallback to local file
         if os.path.exists(BRANDING_FILE):
             with open(BRANDING_FILE, "r") as f:
                 return json.load(f)
@@ -954,6 +996,18 @@ def audit_log(req: AuditLogModel, user: dict = Depends(get_current_user)):
 @app.post("/api/branding")
 def save_branding(data: dict = Body(...), user: dict = Depends(get_current_user)):
     try:
+        # 1. Try to save in Firestore first
+        firestore_saved = False
+        try:
+            db = firestore.client()
+            doc_ref = db.collection("settings").document("branding")
+            doc_ref.set(data)
+            logger.info("Successfully saved branding settings in Firestore.")
+            firestore_saved = True
+        except Exception as fe:
+            logger.warning(f"Could not save branding to Firestore: {fe}. Saving only to local file.")
+
+        # 2. Save to local file
         os.makedirs(FRONTEND_DIR, exist_ok=True)
         with open(BRANDING_FILE, "w") as f:
             json.dump(data, f, indent=2)
@@ -962,7 +1016,7 @@ def save_branding(data: dict = Body(...), user: dict = Depends(get_current_user)
         log_audit_to_firestore(
             user_email=user.get("email", "unknown"),
             event_type="BRANDING_UPDATE",
-            details={"activeBrand": data.get("activeBrand")}
+            details={"activeBrand": data.get("activeBrand"), "firestore_sync": firestore_saved}
         )
         
         return {"status": "success", "message": "Branding updated successfully"}

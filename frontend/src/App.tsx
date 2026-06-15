@@ -1588,7 +1588,7 @@ const App: React.FC = () => {
       setShowPreviewModal(false);
       setTourStep(3);
     } else if (tourStep === 5) {
-      setShowPreviewModal(true);
+      setShowPreviewModal(false);
       setTourStep(4);
     } else if (tourStep === 6) {
       setTourStep(5);
@@ -3490,7 +3490,7 @@ const App: React.FC = () => {
                 <div className="absolute -right-2 top-6 w-4 h-4 bg-slate-900 border-t border-r border-amber-500/55 rotate-45" />
               )}
               {(tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 16 || tourStep === 18) && (
-                <div className="absolute -bottom-2 left-6 w-4 h-4 bg-slate-900 border-b border-r border-amber-500/55 rotate-45" />
+                <div className={`absolute -bottom-2 ${tourStep === 4 || tourStep === 5 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-b border-r border-amber-500/55 rotate-45`} />
               )}
             </>
           )}

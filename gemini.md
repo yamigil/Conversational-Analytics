@@ -373,3 +373,28 @@ Configure production-safe access restrictions by default, protect Google users f
 - **Vite Build Certification**: Confirmed the frontend compiles successfully with exactly 0 type or bundler errors.
 - **Backend Compiler Verification**: Confirmed Python files compiled successfully without errors.
 
+
+# Session Summary - GCP Cost Optimization, Onboarding Tour Alignment & Connection Dropdown Region Selector (2026-06-15)
+
+## Objective
+Implement GCP storage cost optimizations by purging obsolete snapshots and images while ensuring RE9 progress is preserved, align onboarding tour tooltip dimensions and spacing to prevent text wrapping on final walkthrough actions, fix connection override selector z-index overlap, and add the GCP Location (Region) selector dropdown inside the top-right connection override pop-up panel for corporate users.
+
+## 1. GCP Cost Optimization & Safety Audit
+- **GCP Snapshots Purged**: Deleted 6 obsolete historical snapshots (`vonsarcade-central-backup-june11`, `vonsarcade-central-backup-june8`, `vonsarcade-east-backup-june8`, `vonsarcade-northeast-backup-june10`, `vonsarcade-useast4-backup-may31`, `vonsarcade-west-backup-june5`) to minimize persistent disk storage charges.
+- **Outdated Windows Images Purged**: Safely deleted 2 legacy custom Windows OS boot images (`win2025-g2-image-backup-june10`, `win2025-g2-image-backup-june11`).
+- **Critical Backup Protection**: Verified and preserved the active regional boot images (`win2025-g2-image-west`, `win2025-g2-image-northeast`, `win2025-g2-image`) and universal baseline template images, ensuring no loss of game configurations or user progress.
+
+## 2. Onboarding Tour Spacing & Spacing Fixes
+- **Tooltip Dimensions Adjustment**: Increased the guided tour tooltip card container width from `w-80` to `w-[340px]` to resolve button crowding on the final step.
+- **Target Left Offset Alignment**: Recalculated the viewport positioning offset for step 3 to align with the new tooltip width (`left: rect.left - 356px` instead of `336px`).
+- **Link Text Wrapping Prevention**: Added `whitespace-nowrap` class to the "Skip Tour" button to prevent layout wrapping.
+- **Skip Link Visual Highlights**: Changed Skip Tour color styling to `text-slate-400` with `hover:text-amber-400 hover:underline` to match the guided tour box accent style and make link interactivity visually explicit.
+
+## 3. Z-Index Overlay Fix & Region Override Selection
+- **Z-Index Layering Fix**: Updated the connection override dropdown container in [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx) to elevate its `z-index` to `2000` dynamically when `tourStep > 0`. This resolves a layering conflict where the dropdown was positioned underneath the tour tooltip overlay, rendering it fully visible and clickable.
+- **Top-Right Region Dropdown Selector**: Embedded a GCP Location (Region) dropdown selector directly inside the connection override pop-up menu. It dynamically calls `handleLocationChange` and syncs with `settingsLocation` state, allowing corporate users to switch regions on-the-fly from the chat header.
+- **Settings State Syncing**: Configured the `settingsLocation` state in `App.tsx` to read and initialize from local storage (`gcp_selected_location`) upon initial page load to synchronize workspace and settings configurations.
+
+## 4. Build & Production Verification
+- **Static Assets Compilation**: Executed `npm run build` inside the frontend directory to compile the updated typescript assets, ensuring all fixes and layout adjustments are packaged and hot-loaded by the web server.
+

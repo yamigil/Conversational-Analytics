@@ -1455,6 +1455,10 @@ const App: React.FC = () => {
         setTimeout(updatePosition, 100);
         return;
       }
+      
+      // Auto-scroll target element into view if it's partially hidden
+      el.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+      
       const rect = el.getBoundingClientRect();
       if (rect.width === 0 && rect.height === 0) {
         setTimeout(updatePosition, 100);
@@ -1491,10 +1495,12 @@ const App: React.FC = () => {
           zIndex: 1000
         });
       } else if (tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 16 || tourStep === 18) {
+        const useRightAlign = (tourStep === 4 || tourStep === 5);
         setTooltipStyle({
           position: 'fixed',
           bottom: `${window.innerHeight - rect.top + 12}px`,
-          left: `${rect.left}px`,
+          left: useRightAlign ? undefined : `${rect.left}px`,
+          right: useRightAlign ? `${window.innerWidth - rect.right}px` : undefined,
           zIndex: 1000
         });
       }

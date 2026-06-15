@@ -1,17 +1,15 @@
 {
   "brands": {
     "default": {
-      "logoSvg": "<img src='/google_cloud_logo.svg' class='w-full h-full object-contain' />",
-      "welcomeMessage": "Welcome to your data assistant. How can I help you analyze your databases today?",
-      "gcpProjectId": "gilbertos-project-340619",
       "logoUrl": "",
-      "secondaryColor": "142, 70%, 45%",
-      "backgroundColorStart": "#0b0f19",
-      "gcpLocation": "all",
-      "primaryColor": "217, 89%, 61%",
-      "backgroundColorEnd": "#1a2333",
+      "welcomeMessage": "Welcome to your data assistant. How can I help you analyze your databases today?",
       "name": "Google Cloud",
-      "logoText": "Google Cloud"
+      "logoSvg": "<img src='/google_cloud_logo.svg' class='w-full h-full object-contain' />",
+      "primaryColor": "217, 89%, 61%",
+      "backgroundColorStart": "#0b0f19",
+      "backgroundColorEnd": "#1a2333",
+      "logoText": "Google Cloud",
+      "secondaryColor": "142, 70%, 45%"
     }
   },
   "activeBrand": "default"

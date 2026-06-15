@@ -1074,7 +1074,9 @@ const App: React.FC = () => {
   }, [settingsActiveTab, user]);
 
   const [settingsProjectId, setSettingsProjectId] = useState("");
-  const [settingsLocation, setSettingsLocation] = useState("global");
+  const [settingsLocation, setSettingsLocation] = useState<string>(
+    localStorage.getItem("gcp_selected_location") || "global"
+  );
   const [settingsTestResult, setSettingsTestResult] = useState("");
   const [settingsTestSuccess, setSettingsTestSuccess] = useState<boolean | null>(null);
   const [settingsSaveResult, setSettingsSaveResult] = useState("");
@@ -1491,7 +1493,7 @@ const App: React.FC = () => {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.top - 10}px`,
-          left: `${rect.left - 336}px`,
+          left: `${rect.left - 356}px`,
           zIndex: 1000
         });
       } else if (tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 16 || tourStep === 18) {
@@ -2400,7 +2402,7 @@ const App: React.FC = () => {
                   </button>
                   
                   {showConnDropdown && (
-                    <div className="absolute top-full right-0 mt-2 w-64 bg-slate-950/95 border border-white/8 rounded-xl shadow-xl overflow-hidden backdrop-blur-md z-50 animate-slideDown flex flex-col">
+                    <div className={`absolute top-full right-0 mt-2 w-64 bg-slate-950/95 border border-white/8 rounded-xl shadow-xl overflow-hidden backdrop-blur-md animate-slideDown flex flex-col ${tourStep > 0 ? 'z-[2000]' : 'z-50'}`}>
                       <div className="px-3 py-2 bg-white/3 border-b border-white/6 text-[9px] font-bold uppercase tracking-wider text-slate-400 select-none text-left">
                         Active Identity
                       </div>
@@ -2454,6 +2456,31 @@ const App: React.FC = () => {
                           </div>
                         </>
                       )}
+
+                      <div className="px-3 py-2 bg-white/3 border-t border-b border-white/6 text-[9px] font-bold uppercase tracking-wider text-slate-400 select-none text-left mt-1">
+                        GCP Location (Region)
+                      </div>
+                      <div className="p-3 flex flex-col gap-2">
+                        <div className="relative">
+                          <select 
+                            value={settingsLocation} 
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setSettingsLocation(val);
+                              handleLocationChange(val);
+                            }}
+                            className="w-full py-2 px-3 bg-slate-950 border border-white/8 rounded-lg text-xs text-slate-200 focus:border-brand-primary outline-none cursor-pointer appearance-none"
+                          >
+                            <option value="global">Global (Default)</option>
+                            <option value="us-central1">us-central1 (Iowa)</option>
+                            <option value="europe-west1">europe-west1 (Belgium)</option>
+                            <option value="us">us (US Multi-region)</option>
+                            <option value="eu">eu (EU Multi-region)</option>
+                            <option value="all">All Common Regions (Scan All)</option>
+                          </select>
+                          <ChevronDown className="absolute right-3 top-2.5 text-slate-400 pointer-events-none" size={12} />
+                        </div>
+                      </div>
                     </div>
                   )}
                 </>
@@ -3471,7 +3498,7 @@ const App: React.FC = () => {
       {/* Onboarding Tour Tooltip Overlay */}
       {tourStep > 0 && (
         <div 
-          className="absolute bg-slate-900/98 border border-amber-500/55 p-5 rounded-2xl shadow-[0_0_30px_rgba(245,158,11,0.18)] z-50 w-80 backdrop-blur-md animate-fadeIn flex flex-col gap-3.5 select-none"
+          className="absolute bg-slate-900/98 border border-amber-500/55 p-5 rounded-2xl shadow-[0_0_30px_rgba(245,158,11,0.18)] z-50 w-[340px] backdrop-blur-md animate-fadeIn flex flex-col gap-3.5 select-none"
           style={tooltipStyle}
         >
           {/* Arrow indicator */}
@@ -3551,7 +3578,7 @@ const App: React.FC = () => {
             <div className="flex items-center justify-between w-full">
               <button 
                 onClick={handleSkipTour}
-                className="text-[11px] font-bold text-slate-500 hover:text-slate-300 transition cursor-pointer border-none bg-transparent"
+                className="text-[11px] font-bold text-slate-400 hover:text-amber-400 hover:underline transition cursor-pointer border-none bg-transparent whitespace-nowrap"
               >
                 Skip Tour
               </button>

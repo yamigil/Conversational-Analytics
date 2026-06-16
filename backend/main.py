@@ -222,7 +222,7 @@ def get_location() -> str:
             logger.warning(f"Could not load location from branding settings: {e}")
 
     # 2. Explicitly configured in env/.env or default
-    return os.getenv("GCP_LOCATION") or "global"
+    return os.getenv("GCP_LOCATION") or "all"
 
 # Dynamic client injection dependency based on GCP OAuth Access Token, Project ID & Location
 def get_analytics_client(

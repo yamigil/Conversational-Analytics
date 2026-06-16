@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "gilbertos-project-340619"
+  },
+  "targets": {
+    "gilbertos-project-340619": {
+      "hosting": {
+        "showcase": [
+          "gilbertos-showcase-portal"
+        ]
+      }
+    }
   }
 }

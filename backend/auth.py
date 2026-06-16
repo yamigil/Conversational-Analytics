@@ -54,29 +54,52 @@ security = HTTPBearer()
 def get_current_user(authorization: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     """
     FastAPI dependency to verify Firebase ID Token from Authorization header.
-    Raises 401 Unauthorized if verification fails or 403 Forbidden if restricted and not google.com.
+    Raises 401 Unauthorized if verification fails or 403 Forbidden if restricted and not in the allowed list.
     """
-    restrict = os.getenv("RESTRICT_TO_GOOGLE", "true") != "false"
+    restrict_to_google = os.getenv("RESTRICT_TO_GOOGLE", "true") != "false"
+    allowed_domains_env = os.getenv("ALLOWED_DOMAINS")
+    allowed_emails_env = os.getenv("ALLOWED_EMAILS")
     
     if os.getenv("MOCK_AUTH") == "true":
         if os.getenv("ENVIRONMENT") == "production":
             logger.warning("Security Warning: MOCK_AUTH is enabled in environment but bypassed because ENVIRONMENT is set to 'production'!")
         else:
-            mock_email = "admin@google.com" if restrict else "admin@gilgtz.altostrat.com"
+            mock_email = "admin@google.com" if restrict_to_google else "admin@gilgtz.altostrat.com"
             return {"email": mock_email, "uid": "mock-user-123"}
 
     token = authorization.credentials
     try:
         # Verify the ID token using Firebase Admin SDK
         decoded_token = auth.verify_id_token(token)
-        if restrict:
-            email = decoded_token.get("email", "").lower()
+        email = decoded_token.get("email", "").lower()
+        
+        # 1. If ALLOWED_EMAILS is configured, check if the email is explicitly in the list
+        if allowed_emails_env:
+            allowed_emails = [e.strip().lower() for e in allowed_emails_env.split(",") if e.strip()]
+            if email not in allowed_emails:
+                logger.warning(f"Access denied: email {email} is not in the allowed emails list.")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied. Your email is not authorized to access this portal.",
+                )
+        # 2. Else if ALLOWED_DOMAINS is configured, check if the email ends with any of the allowed domains
+        elif allowed_domains_env:
+            allowed_domains = [d.strip().lower() for d in allowed_domains_env.split(",") if d.strip()]
+            if not any(email.endswith(f"@{domain}") or email == domain for domain in allowed_domains):
+                logger.warning(f"Access denied: email {email} domain is not in the allowed domains list.")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Access restricted to authorized domains: {allowed_domains_env}",
+                )
+        # 3. Else, fall back to the legacy RESTRICT_TO_GOOGLE behavior
+        elif restrict_to_google:
             if not (email.endswith("@google.com") or email.endswith("altostrat.com")):
                 logger.warning(f"Access denied for email under restriction mode: {email}")
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Access restricted to @google.com and Argolis accounts only.",
                 )
+                
         return decoded_token
     except HTTPException:
         raise

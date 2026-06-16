@@ -1075,7 +1075,7 @@ const App: React.FC = () => {
 
   const [settingsProjectId, setSettingsProjectId] = useState("");
   const [settingsLocation, setSettingsLocation] = useState<string>(
-    localStorage.getItem("gcp_selected_location") || "global"
+    localStorage.getItem("gcp_selected_location") || "all"
   );
   const [settingsTestResult, setSettingsTestResult] = useState("");
   const [settingsTestSuccess, setSettingsTestSuccess] = useState<boolean | null>(null);
@@ -1473,28 +1473,28 @@ const App: React.FC = () => {
           top: `${rect.bottom + 12}px`,
           right: (tourStep === 1 || tourStep === 12 || tourStep === 13) ? `${window.innerWidth - rect.right}px` : undefined,
           left: (tourStep === 6 || tourStep === 17) ? `${rect.left}px` : undefined,
-          zIndex: 2200
+          zIndex: 9999
         });
       } else if (tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14) {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.top - 10}px`,
           left: `${rect.right + 16}px`,
-          zIndex: 2200
+          zIndex: 9999
         });
       } else if (tourStep === 11 || tourStep === 15) {
         setTooltipStyle({
           position: 'fixed',
           bottom: `${window.innerHeight - rect.bottom - 10}px`,
           left: `${rect.right + 16}px`,
-          zIndex: 2200
+          zIndex: 9999
         });
       } else if (tourStep === 3) {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.top - 10}px`,
           left: `${rect.left - 356}px`,
-          zIndex: 2200
+          zIndex: 9999
         });
       } else if (tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 16 || tourStep === 18) {
         const useRightAlign = (tourStep === 4 || tourStep === 5);
@@ -1503,7 +1503,7 @@ const App: React.FC = () => {
           bottom: `${window.innerHeight - rect.top + 12}px`,
           left: useRightAlign ? undefined : `${rect.left}px`,
           right: useRightAlign ? `${window.innerWidth - rect.right}px` : undefined,
-          zIndex: 2200
+          zIndex: 9999
         });
       }
     };
@@ -2471,12 +2471,12 @@ const App: React.FC = () => {
                             }}
                             className="w-full py-2 px-3 bg-slate-950 border border-white/8 rounded-lg text-xs text-slate-200 focus:border-brand-primary outline-none cursor-pointer appearance-none"
                           >
+                            <option value="all">All Common Regions (Scan All)</option>
                             <option value="global">Global (Default)</option>
                             <option value="us-central1">us-central1 (Iowa)</option>
                             <option value="europe-west1">europe-west1 (Belgium)</option>
                             <option value="us">us (US Multi-region)</option>
                             <option value="eu">eu (EU Multi-region)</option>
-                            <option value="all">All Common Regions (Scan All)</option>
                           </select>
                           <ChevronDown className="absolute right-3 top-2.5 text-slate-400 pointer-events-none" size={12} />
                         </div>
@@ -3108,12 +3108,12 @@ const App: React.FC = () => {
                           }}
                           className="w-full py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 outline-none focus:border-brand-primary/50 cursor-pointer appearance-none"
                         >
+                          <option value="all">All Common Regions (Scan All)</option>
                           <option value="global">Global (Default)</option>
                           <option value="us-central1">us-central1 (Iowa)</option>
                           <option value="europe-west1">europe-west1 (Belgium)</option>
                           <option value="us">us (US Multi-region)</option>
                           <option value="eu">eu (EU Multi-region)</option>
-                          <option value="all">All Common Regions (Scan All)</option>
                         </select>
                         <ChevronDown className="absolute right-4 top-4 text-slate-400 pointer-events-none" size={14} />
                       </div>
@@ -3498,7 +3498,7 @@ const App: React.FC = () => {
       {/* Onboarding Tour Tooltip Overlay */}
       {tourStep > 0 && (
         <div 
-          className="absolute bg-slate-900/98 border border-amber-500/55 p-5 rounded-2xl shadow-[0_0_30px_rgba(245,158,11,0.18)] z-50 w-[340px] backdrop-blur-md animate-fadeIn flex flex-col gap-3.5 select-none"
+          className="absolute bg-slate-900/98 border border-amber-500/55 p-5 rounded-2xl shadow-[0_0_30px_rgba(245,158,11,0.18)] z-[9999] w-[340px] animate-fadeIn flex flex-col gap-3.5 select-none"
           style={tooltipStyle}
         >
           {/* Arrow indicator */}

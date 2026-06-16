@@ -1467,11 +1467,11 @@ const App: React.FC = () => {
         return;
       }
       
-      if (tourStep === 1 || tourStep === 6 || tourStep === 12 || tourStep === 13 || tourStep === 17) {
+      if (tourStep === 1 || tourStep === 6 || tourStep === 13 || tourStep === 17) {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.bottom + 12}px`,
-          right: (tourStep === 1 || tourStep === 12 || tourStep === 13) ? `${window.innerWidth - rect.right}px` : undefined,
+          right: (tourStep === 1 || tourStep === 13) ? `${window.innerWidth - rect.right}px` : undefined,
           left: (tourStep === 6 || tourStep === 17) ? `${rect.left}px` : undefined,
           zIndex: 9999
         });
@@ -1489,7 +1489,7 @@ const App: React.FC = () => {
           left: `${rect.right + 16}px`,
           zIndex: 9999
         });
-      } else if (tourStep === 3) {
+      } else if (tourStep === 3 || tourStep === 12) {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.top - 10}px`,
@@ -1517,6 +1517,7 @@ const App: React.FC = () => {
   }, [tourStep, currentPage, settingsActiveTab]);
 
   const startDemoWalkthrough = () => {
+    setIsArchModalOpen(false);
     setCurrentPage("chat");
     setTourStep(14);
   };
@@ -1563,6 +1564,7 @@ const App: React.FC = () => {
     } else if (tourStep === 12) {
       setTourStep(13);
     } else if (tourStep === 13) {
+      setIsArchModalOpen(false);
       setTourStep(0);
       sessionStorage.setItem("ca_visited_tour", "true");
     } else if (tourStep >= 14 && tourStep <= 17) {
@@ -1610,6 +1612,7 @@ const App: React.FC = () => {
     } else if (tourStep === 12) {
       setTourStep(11);
     } else if (tourStep === 13) {
+      setIsArchModalOpen(false);
       if (!isCorporateUser(email)) {
         setTourStep(11);
       } else {
@@ -1624,6 +1627,7 @@ const App: React.FC = () => {
   };
 
   const handleSkipTour = () => {
+    setIsArchModalOpen(false);
     setTourStep(0);
     sessionStorage.setItem("ca_visited_tour", "true");
   };
@@ -2290,7 +2294,7 @@ const App: React.FC = () => {
               </>
             ) : (
               <>
-                Sign in using your <strong className="text-slate-300 font-semibold">Google, Argolis,</strong> or <strong className="text-slate-300 font-semibold">Gmail</strong> account.
+                Sign in using your <strong className="text-slate-300 font-semibold">Gmail</strong> account.
               </>
             )}
           </p>
@@ -3504,8 +3508,8 @@ const App: React.FC = () => {
           {/* Arrow indicator */}
           {window.innerWidth >= 768 && (
             <>
-              {(tourStep === 1 || tourStep === 6 || tourStep === 12 || tourStep === 13 || tourStep === 17) && (
-                <div className={`absolute -top-2 ${tourStep === 1 || tourStep === 12 || tourStep === 13 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-t border-l border-amber-500/55 rotate-45`} />
+              {(tourStep === 1 || tourStep === 6 || tourStep === 13 || tourStep === 17) && (
+                <div className={`absolute -top-2 ${tourStep === 1 || tourStep === 13 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-t border-l border-amber-500/55 rotate-45`} />
               )}
               {(tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14) && (
                 <div className="absolute -left-2 top-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
@@ -3513,7 +3517,7 @@ const App: React.FC = () => {
               {(tourStep === 11 || tourStep === 15) && (
                 <div className="absolute -left-2 bottom-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
               )}
-              {(tourStep === 3) && (
+              {(tourStep === 3 || tourStep === 12) && (
                 <div className="absolute -right-2 top-6 w-4 h-4 bg-slate-900 border-t border-r border-amber-500/55 rotate-45" />
               )}
               {(tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 16 || tourStep === 18) && (

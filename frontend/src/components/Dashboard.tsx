@@ -47,7 +47,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Executive Insights & Highlights Panel */}
       <div 
         id="dashboard-executive-insights"
-        className={`w-full max-w-5xl glass-panel p-4 sm:p-8 rounded-2xl mb-8 animate-slideIn flex flex-col gap-5 ${tourStep === 6 ? 'tour-highlight' : ''}`} 
+        className={`w-full max-w-5xl glass-panel p-4 sm:p-8 rounded-2xl mb-8 animate-slideIn flex flex-col gap-5 ${tourStep === 7 ? 'tour-highlight' : ''}`} 
         style={{ animationDelay: "0.1s" }}
       >
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
@@ -66,7 +66,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <button
               id="dashboard-launch-chat-btn"
               onClick={() => onNavigate("chat")}
-              className={`py-2.5 px-4 text-xs font-semibold bg-brand-primary hover:opacity-90 rounded-xl text-white transition cursor-pointer select-none border-none flex items-center gap-1.5 shrink-0 shadow-lg ${tourStep === 7 ? 'tour-highlight' : ''}`}
+              className={`py-2.5 px-4 text-xs font-semibold bg-brand-primary hover:opacity-90 rounded-xl text-white transition cursor-pointer select-none border-none flex items-center gap-1.5 shrink-0 shadow-lg ${tourStep === 8 ? 'tour-highlight' : ''}`}
             >
               <MessageSquare size={13} />
               Ask a Question
@@ -99,7 +99,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <button
               id="dashboard-launch-chat-btn"
               onClick={() => onNavigate("chat")}
-              className={`py-2.5 px-5 text-xs font-semibold bg-brand-primary hover:opacity-90 rounded-xl text-white transition cursor-pointer select-none border-none flex items-center gap-2 ${tourStep === 7 ? 'tour-highlight' : ''}`}
+              className={`py-2.5 px-5 text-xs font-semibold bg-brand-primary hover:opacity-90 rounded-xl text-white transition cursor-pointer select-none border-none flex items-center gap-2 ${tourStep === 8 ? 'tour-highlight' : ''}`}
             >
               <MessageSquare size={14} />
               Launch Conversational Analytics

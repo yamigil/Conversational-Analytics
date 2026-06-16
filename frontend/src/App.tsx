@@ -656,12 +656,32 @@ const App: React.FC = () => {
   const isAllowedDomain = (email: string | null | undefined): boolean => {
     if (!email) return false;
     const lower = email.toLowerCase();
-    return lower.endsWith("@google.com") || lower.endsWith("altostrat.com");
+    
+    const restrictToGoogle = import.meta.env.VITE_RESTRICT_TO_GOOGLE !== "false";
+    const allowedDomainsEnv = import.meta.env.VITE_ALLOWED_DOMAINS;
+    
+    if (allowedDomainsEnv) {
+      const allowedDomains = allowedDomainsEnv.split(",").map((d: string) => d.trim().toLowerCase());
+      const emailDomain = lower.split("@")[1];
+      return allowedDomains.some((domain: string) => emailDomain === domain || emailDomain.endsWith("." + domain));
+    }
+    
+    if (restrictToGoogle) {
+      return lower.endsWith("@google.com") || lower.endsWith("altostrat.com");
+    }
+    
+    return true; // No restrictions
+  };
+
+  const getAuthErrorMessage = (): string => {
+    const allowedDomainsEnv = import.meta.env.VITE_ALLOWED_DOMAINS;
+    if (allowedDomainsEnv) {
+      return `Access restricted to ${allowedDomainsEnv.split(",").map((d: string) => `@${d.trim()}`).join(", ")} accounts only.`;
+    }
+    return "Access restricted to @google.com and Argolis accounts only.";
   };
 
   useEffect(() => {
-    const restrictToGoogle = import.meta.env.VITE_RESTRICT_TO_GOOGLE !== "false";
-
     if (import.meta.env.VITE_MOCK_AUTH === "true") {
       if (localStorage.getItem("mock_logout") === "true") {
         setUser(null);
@@ -671,13 +691,13 @@ const App: React.FC = () => {
         const params = new URLSearchParams(window.location.search);
         const isGmailMock = params.get("mock") === "gmail";
         
-        if (restrictToGoogle && isGmailMock) {
+        if (!isAllowedDomain(isGmailMock ? "yamigilgtz@gmail.com" : "admin@google.com")) {
           setUser(null);
-          setAuthError("Access restricted to @google.com and Argolis accounts only.");
+          setAuthError(getAuthErrorMessage());
         } else {
           const email = isGmailMock 
             ? "yamigilgtz@gmail.com" 
-            : (restrictToGoogle ? "admin@google.com" : "admin@gilgtz.altostrat.com");
+            : (import.meta.env.VITE_RESTRICT_TO_GOOGLE !== "false" ? "admin@google.com" : "admin@gilgtz.altostrat.com");
           setUser({
             email: email,
             displayName: isGmailMock ? "Gmail Test User" : "Argolis Test User",
@@ -690,10 +710,10 @@ const App: React.FC = () => {
     }
 
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      if (restrictToGoogle && currentUser && currentUser.email && !isAllowedDomain(currentUser.email)) {
+      if (currentUser && currentUser.email && !isAllowedDomain(currentUser.email)) {
         auth.signOut();
         setUser(null);
-        setAuthError("Access restricted to @google.com and Argolis accounts only.");
+        setAuthError(getAuthErrorMessage());
       } else {
         setUser(currentUser);
       }
@@ -1619,7 +1639,7 @@ const App: React.FC = () => {
         setTourStep(12);
       }
     } else if (tourStep === 14) {
-      setCurrentPage("home");
+      setCurrentPage("chat");
       setTourStep(13);
     } else if (tourStep >= 15 && tourStep <= 18) {
       setTourStep(tourStep - 1);
@@ -3408,7 +3428,7 @@ const App: React.FC = () => {
                         type="button"
                         onClick={() => setShowPreviewModal(true)}
                         id="settings-trigger-preview-btn"
-                        className="w-full sm:w-auto py-3 px-5 text-sm font-semibold bg-white/5 border border-white/6 hover:bg-white/10 text-white rounded-xl transition cursor-pointer"
+                        className={`w-full sm:w-auto py-3 px-5 text-sm font-semibold bg-white/5 border border-white/6 hover:bg-white/10 text-white rounded-xl transition cursor-pointer ${tourStep === 4 ? 'tour-highlight' : ''}`}
                       >
                         Show Live Preview
                       </button>

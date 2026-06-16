@@ -41,11 +41,23 @@ To run and test changes locally without hitting Firebase authentication screens,
 
 ---
 
-## Continuous Deployment (CI/CD)
+## Continuous Deployment (CI/CD) & Multi-Site Architecture
 
-The project includes a unified deployment workflow in `.github/workflows/firebase-deploy.yml`. Every commit pushed to the `main` branch automatically builds and deploys both services:
-1. **React Static Assets**: Compiled and uploaded to Firebase Hosting global CDN.
-2. **FastAPI Container**: Packaged and deployed to Google Cloud Run.
+The project supports automated, multi-site continuous deployment configured via two separate GitHub Action workflows:
+
+### 💼 A. Corporate Portal (https://retail.cedemoportal.com/)
+* **Branch**: `main`
+* **Workflow**: `.github/workflows/firebase-deploy.yml`
+* **Behavior**: Deploys the corporate portal with strict `@google.com` and Altostrat (Argolis) authentication restrictions.
+* **Hosting Target**: `corporate` (mapping to the production site `gilbertos-project-340619` in Firebase).
+
+### 🚀 B. Recruiter Showcase Portal (https://showcase.cedemoportal.com/)
+* **Branch**: `showcase`
+* **Workflow**: `.github/workflows/firebase-deploy-showcase.yml`
+* **Behavior**: Deploys a public showcase portal tailored for external recruiters, allowing **any Gmail account** to log in and query the demo workspace.
+* **Hosting Target**: `showcase` (mapping to the site `gilbertos-showcase-portal` in Firebase).
+* **First-Party Authentication**: To bypass browser cross-site tracking protections and prevent automatic session logouts on macOS/Safari, the showcase build hardcodes `VITE_FIREBASE_AUTH_DOMAIN` to `"showcase.cedemoportal.com"`.
+  * *Note: The redirect URI `https://showcase.cedemoportal.com/__/auth/handler` must be whitelisted in your GCP project's OAuth 2.0 Client ID settings!*
 
 ### Required Deployment Service Account Roles
 To support automated builds, your deployment service account (`demoportal@...`) requires the following IAM permissions:

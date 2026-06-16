@@ -400,3 +400,34 @@ Implement GCP storage cost optimizations by purging obsolete snapshots and image
 ## 4. Build & Production Verification
 - **Static Assets Compilation**: Executed `npm run build` inside the frontend directory to compile the updated typescript assets, ensuring all fixes and layout adjustments are packaged and hot-loaded by the web server.
 
+# Session Summary - Recruiter Showcase Portal, Gmail Authentication, Onboarding Tour Fixes & First-Party Session Persistence (2026-06-16)
+
+## Objective
+Establish a fully-automated, multi-site continuous deployment pipeline separating your corporate portal (`retail.cedemoportal.com`) from a public recruiter showcase portal (`showcase.cedemoportal.com`), securely allow external Gmail logins on the showcase branch, fix macOS/Safari third-party cookie blocking that caused automatic session drops, and resolve layout overlap and state bugs across the 18-step onboarding guided tour.
+
+## 1. Declarative Multi-Site Targeting & Routing
+- **Multi-Target Hosting**: Refactored [firebase.json](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/firebase.json) to declare separate hosting targets (`corporate` and `showcase`) with separate rewrite rules routing `/api/**` traffic to their respective backend services (`ca-analytics-portal` and `ca-analytics-portal-showcase`).
+- **Target Configurations**: Configured [.firebaserc](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/.firebaserc) to map the `corporate` and `showcase` targets to their respective Firebase Hosting site IDs, bypassing local proxy blocks.
+- **Showcase CD Automation**: Created [.github/workflows/firebase-deploy-showcase.yml](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/.github/workflows/firebase-deploy-showcase.yml) to automate builds on pushes to the `showcase` branch. Re-ordered steps to deploy the Cloud Run backend *before* the Firebase Hosting frontend to prevent routing conflicts.
+- **Public Container Access**: Collapsed Cloud Run deployment flags into a single-line string to ensure the `--allow-unauthenticated` flag is parsed correctly, guaranteeing public container access.
+
+## 2. Secure Gmail Authentication & First-Party Session Persistence
+- **GCP Environment Variable Parsing**: Refactored the showcase deployment to inject `RESTRICT_TO_GOOGLE=false` and `ALLOWED_DOMAINS=gmail.com` into the container environment variables.
+- **Gmail Authorization**: Updated the backend validation logic in [auth.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/auth.py) to securely authorize any Gmail account when `RESTRICT_TO_GOOGLE` is disabled.
+- **First-Party Auth Domain**: Solved a critical macOS/Safari session drop issue (Cross-Site Tracking Protection) by hardcoding `VITE_FIREBASE_AUTH_DOMAIN` to `"showcase.cedemoportal.com"` in the showcase workflow. This hosts the auth handler and the app on the exact same domain, preventing the browser from deleting session cookies.
+- **GCP OAuth Whitelisting**: Whitelisted `https://showcase.cedemoportal.com/__/auth/handler` in the GCP Console OAuth 2.0 Authorized redirect URIs, resolving the `Error 400: redirect_uri_mismatch` block.
+- **Client-Side Domain Restriction (Gmail-Only)**: Refactored `isAllowedDomain` and the `onAuthStateChanged` listener in `App.tsx` to read `VITE_ALLOWED_DOMAINS` at compile-time. If configured (e.g. `"gmail.com"`), the frontend immediately blocks non-Gmail accounts client-side upon login, triggers `auth.signOut()`, and renders a clean, tailored error message: `"Access restricted to @gmail.com accounts only."`, completely avoiding late-stage backend connection errors.
+
+## 3. Onboarding Tour Layout & Interaction Fixes
+- **Step 12 Dropdown Click Blockage Fix**: Resolved a major layout bug where the Step 12 tour card rendered directly below the Connection Selector button and blocked its dropdown menu. Repositioned the tooltip card to the **left** of the button (`left: rect.left - 356px` and top-aligned) and pointed its arrow to the right, leaving the dropdown space fully open and interactive.
+- **Step 13 Reference Architecture Auto-Dismissal**: Integrated automatic modal close events (`setIsArchModalOpen(false)`) into all four tour navigation handlers (**Next**, **Back**, **Start Demo Walkthrough**, and **Skip Tour**), ensuring the architecture diagram dismisses cleanly whenever a user navigates away or exits the tour.
+- **Showcase Login Subtitle Customization**: Tailored the login sub-header in showcase mode (`VITE_RESTRICT_TO_GOOGLE="false"`) to only mention Gmail, rendering: `"Sign in using your Gmail account."` and stripping out corporate Altostrat/Google references.
+- **Pulsing Outline Highlights Realignment (Steps 3, 6, 7)**: 
+  * Added the missing `tour-highlight` class outline to the **"Show Live Preview"** button (`settings-trigger-preview-btn`) in `App.tsx` during Step 4.
+  * Corrected the step index check on the **Executive Insights & Highlights** card in `Dashboard.tsx` from `6` to `7` to align with the official coordinates of Step 7.
+  * Corrected the step index check on the **"Launch Conversational Analytics"** CTA buttons in `Dashboard.tsx` from `7` to `8` to align with the official coordinates of Step 8, ensuring they pulse with the gold glow at the exact right moment.
+- **Demo Walkthrough Back-Navigation Correction (Step 14)**: Fixed a routing bug in `handleBackTour` where clicking "Back" from the first step of the demo walkthrough (`tourStep === 14`) redirected the user to the home page (`setCurrentPage("home")`) instead of keeping them inside the active chat workspace (`"chat"`), ensuring a seamless and natural navigation flow.
+
+## 4. Production Build Verification
+- **Compilation Certification**: Verified the React project compiles successfully with exactly 0 type or bundler errors.
+- **Live GCP Service State**: Configured the public invoker policy on the running `ca-analytics-portal-showcase` service on Google Cloud Run to allow public access.

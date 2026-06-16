@@ -5,6 +5,9 @@
   "targets": {
     "gilbertos-project-340619": {
       "hosting": {
+        "corporate": [
+          "gilbertos-project-340619"
+        ],
         "showcase": [
           "gilbertos-showcase-portal"
         ]

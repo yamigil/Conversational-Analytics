@@ -66,10 +66,7 @@ jobs:
           service: ca-analytics-portal-showcase
           region: us-central1
           source: ./
-          flags: |
-            --allow-unauthenticated 
-            --port 8000 
-            --set-env-vars RESTRICT_TO_GOOGLE=false,ALLOWED_EMAILS=${{ secrets.ALLOWED_EMAILS }},ALLOWED_DOMAINS=${{ secrets.ALLOWED_DOMAINS }}
+          flags: '--allow-unauthenticated --port 8000 --set-env-vars RESTRICT_TO_GOOGLE=false,ALLOWED_EMAILS=${{ secrets.ALLOWED_EMAILS }},ALLOWED_DOMAINS=${{ secrets.ALLOWED_DOMAINS }}'
 
       - name: Deploy to Firebase Hosting (Showcase)
         if: steps.filter.outputs.frontend == 'true'

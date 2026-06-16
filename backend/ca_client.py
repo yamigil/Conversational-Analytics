@@ -68,6 +68,9 @@ class ConversationalAnalyticsClient:
             
             for agent in agents:
                 agent_dict = MessageToDict(agent._pb if hasattr(agent, '_pb') else agent)
+                # Filter out soft-deleted agents (which have deleteTime set in their metadata)
+                if "deleteTime" in agent_dict:
+                    continue
                 # Extract location from agent name to filter locally
                 agent_loc = self._get_location_from_name(agent_dict.get("name", "")).lower()
                 if not target_locations or agent_loc in target_locations:
@@ -85,6 +88,9 @@ class ConversationalAnalyticsClient:
                     agents = agent_client.list_data_agents(request=request)
                     for agent in agents:
                         agent_dict = MessageToDict(agent._pb if hasattr(agent, '_pb') else agent)
+                        # Filter out soft-deleted agents
+                        if "deleteTime" in agent_dict:
+                            continue
                         results.append(agent_dict)
                 except Exception as ex:
                     logger.warning(f"Failed fallback list for location {loc}: {ex}")

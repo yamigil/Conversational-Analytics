@@ -1,14 +1,14 @@
 {
   "brands": {
     "default": {
-      "backgroundColorStart": "#0b0f19",
-      "primaryColor": "217, 89%, 61%",
       "secondaryColor": "142, 70%, 45%",
-      "name": "Google Cloud",
-      "logoSvg": "<img src='/google_cloud_logo.svg' class='w-full h-full object-contain' />",
       "welcomeMessage": "Welcome to your data assistant. How can I help you analyze your databases today?",
-      "logoUrl": "",
       "logoText": "Google Cloud",
+      "primaryColor": "217, 89%, 61%",
+      "logoSvg": "<img src='/google_cloud_logo.svg' class='w-full h-full object-contain' />",
+      "name": "Google Cloud",
+      "backgroundColorStart": "#0b0f19",
+      "logoUrl": "",
       "backgroundColorEnd": "#1a2333"
     }
   },

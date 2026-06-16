@@ -1447,7 +1447,7 @@ const App: React.FC = () => {
           transform: 'translateX(-50%)',
           width: 'calc(100% - 32px)',
           maxWidth: '400px',
-          zIndex: 1000
+          zIndex: 2200
         });
         return;
       }
@@ -1473,28 +1473,28 @@ const App: React.FC = () => {
           top: `${rect.bottom + 12}px`,
           right: (tourStep === 1 || tourStep === 12 || tourStep === 13) ? `${window.innerWidth - rect.right}px` : undefined,
           left: (tourStep === 6 || tourStep === 17) ? `${rect.left}px` : undefined,
-          zIndex: 1000
+          zIndex: 2200
         });
       } else if (tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14) {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.top - 10}px`,
           left: `${rect.right + 16}px`,
-          zIndex: 1000
+          zIndex: 2200
         });
       } else if (tourStep === 11 || tourStep === 15) {
         setTooltipStyle({
           position: 'fixed',
           bottom: `${window.innerHeight - rect.bottom - 10}px`,
           left: `${rect.right + 16}px`,
-          zIndex: 1000
+          zIndex: 2200
         });
       } else if (tourStep === 3) {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.top - 10}px`,
           left: `${rect.left - 356}px`,
-          zIndex: 1000
+          zIndex: 2200
         });
       } else if (tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 16 || tourStep === 18) {
         const useRightAlign = (tourStep === 4 || tourStep === 5);
@@ -1503,7 +1503,7 @@ const App: React.FC = () => {
           bottom: `${window.innerHeight - rect.top + 12}px`,
           left: useRightAlign ? undefined : `${rect.left}px`,
           right: useRightAlign ? `${window.innerWidth - rect.right}px` : undefined,
-          zIndex: 1000
+          zIndex: 2200
         });
       }
     };

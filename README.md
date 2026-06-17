@@ -133,6 +133,7 @@ Deploy the React static assets to Firebase's global edge CDN and automatically r
 12. **Multi-Source Telemetry & Audit Logs**: Integrates Google Analytics (GA4) for frontend clickstream logs, Firestore for portal administrative audit trails (logins, branding selections), and BigQuery for conversational API chat logs.
 13. **Simplified System Architecture Diagram**: A re-designed 4-node flow (BigQuery Storage, Knowledge Catalog, Reasoning Engine, and Custom UI) with interactive pulsing tags directing users to click nodes for detailed component breakdowns.
 14. **Dynamic Connection & Region Override Selector**: A live top-right connection dropdown allowing corporate (Altostrat) users to override active credential modes (Service Account vs. SSO User Session), switch target GCP projects, and dynamically select GCP locations (regions) on-the-fly, instantly hot-reloading data agents and session catalogs.
+15. **Premium Query Starters Landing Page**: A sleek, dynamic chat landing screen featuring a personalized greeting and a grid of brand-specific query starter cards that instantly populate the chat and trigger database queries to ensure a seamless "cold-start" experience.
 
 ---
 *Active Telemetry Stream: `G-C0VB9XKP7E`*

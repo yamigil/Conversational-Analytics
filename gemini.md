@@ -590,4 +590,26 @@ Diagnose and resolve the issue where the Step 3 tooltip ("3. CUSTOMIZE BRANDING"
 - Re-built the React client bundle via `npm run build` with exactly 0 type or bundler errors, confirming the project is 100% green and certified for production deployment!
 
 
+# Session Summary - Empty Chat Landing Page Premium UI & Guided Walkthrough Fix (2026-06-17 - Part VIII)
+
+## Objective
+Diagnose and resolve the issue where the collapsible "Show thinking" button disappeared during Step 18 of the Walkthrough when the user submitted the query `"What can you do for me?"`.
+
+## 1. Diagnostics & Resolution
+- **Backend Thought Orchestration Context**:
+  * Investigated the frontend state flow and the backend streaming parser. The frontend parses `thoughts` directly from the `systemMessage` payload returned by the backend.
+  * Verified that the backend passes the `chat_mode == "thinking"` flag seamlessly directly to the real Vertex AI / Gemini Data Analytics Agent streaming endpoints.
+  * *Root Cause*: The query `"What can you do for me?"` is a conversational greeting/capability question that does not query the underlying database. The Vertex AI agent orchestration layer intelligently bypasses the SQL thinking process entirely for conversational queries to optimize latency, resulting in a direct text response with no chain-of-thought tags (`<thought>`). Because no thoughts were returned, the frontend's conditional block naturally rendered a direct answer and hid the thinking breakdown section, inadvertently breaking the Walkthrough's next step which asked the user to expand it.
+- **Premium Dynamic Query Starters Landing Page**:
+  * Instead of asking users to type out queries, we transformed the empty chat landing page (`messages.length === 0`). Previously, it rendered `null` (an empty white screen).
+  * *Resolution*: Built a sleek, beautiful chat landing page featuring a greeting (`"What would you like to analyze today?"`) and a dynamic grid of query starter cards uniquely populated for the active brand.
+  * When a user clicks a query starter card, it automatically sets the input and submits a genuine database query.
+- **Walkthrough Guided Tooltip Fix**:
+  * *Resolution*: Updated the Step 17 ("Demo: Ask a Question") tooltip from recommending `"What can you do for me?"` to recommending the first query starter card (`"Show me the monthly trend of cost and revenue"`).
+  * This guarantees that a database query is submitted, which always triggers the thinking engine and ensures the "Show thinking" button is reliably rendered for Step 18.
+
+## 2. Build Certification
+- Re-built the React client bundle via `npm run build` with exactly 0 type or bundler errors, confirming the project is 100% green and certified for production deployment!
+
+
 

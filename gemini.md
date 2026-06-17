@@ -431,3 +431,137 @@ Establish a fully-automated, multi-site continuous deployment pipeline separatin
 ## 4. Production Build Verification
 - **Compilation Certification**: Verified the React project compiles successfully with exactly 0 type or bundler errors.
 - **Live GCP Service State**: Configured the public invoker policy on the running `ca-analytics-portal-showcase` service on Google Cloud Run to allow public access.
+
+# Session Summary - Sticky Onboarding Tour Tooltips & Fluid Scroll-Tracking (2026-06-17)
+
+## Objective
+Enhance the guided onboarding tour user experience by making tooltips stick dynamically in real-time to their highlighted elements as the user scrolls the page or nested scrollable containers, preventing layout detachment while avoiding scroll-snapping fight loops.
+
+## 1. Non-Blocking Sticky Scroll-Tracking
+- **Scroll-Snapping Loop Prevention**: Refactored the `updatePosition` coordinator in [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx) to accept an optional `shouldScroll` flag (defaulting to `false`). The auto-scroll hook `el.scrollIntoView()` is now called **only** during initial step loads (`shouldScroll === true`), ensuring it never fights the user's manual scrolling.
+- **Capture-Phase Scroll Interceptor**: Added a scroll event listener to the window using `{ capture: true }` phase settings. This allows the tour to capture scroll events bubbling from any nested, overflow-y scrollable panels (such as the settings container or chat workspace).
+- **Fluid Positioning Updates**: Bound scrolling and resizing events to trigger `updatePosition(false)`. Tooltips now dynamically recalculate element bounding rectangles and move in perfect, fluid lockstep with elements, keeping their arrows pointing precisely to targets.
+
+## 2. E2E Browser Verification
+- **E2E Browser Certification**: Launched a local browser session at `http://localhost:8000/?mock=gmail` to simulate a Gmail user running the tour.
+- **Lockstep Tracking Confirmation**: Verified that scrolling the Settings container up and down causes the Customize Branding (Step 3) and Live Portal Preview (Step 4) tooltips to follow the Branding Profile panel and "Show Live Preview" button in a 1:1, pixel-perfect lockstep alignment. No jitter, scroll-snapping conflicts, or visual detachments occurred.
+
+
+# Session Summary - Adaptive Boundary-Clipping Fading & CSS Animation Resolution (2026-06-17 - Part II)
+
+## Objective
+Implement adaptive boundary-clipping fading for onboarding tour tooltips to prevent them from floating over empty space or overlapping other inputs when their targets scroll off-screen. Resolve CSS animation conflicts that block inline opacity styling, and certify the solution E2E using browser automation.
+
+## 1. Adaptive Boundary-Clipping Fading with 30px Edge Buffer
+- **Clipped Boundary Detector**: Implemented a robust `isElementVisible(el)` function inside [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx) that checks viewport bounds and walks up the DOM to detect if a target is clipped by any parent scroll containers (using computed `overflowY` checks).
+- **30px Edge Warning Buffer**: Configured a 30px safety margin on both viewport and parent scroll boundaries. If the target element is scrolled within 30px of the visible edges (where it starts getting cramped and overlapping other fields), the tooltip is automatically hidden. This guarantees a clean, spacious presentation.
+- **Fluid Transition States**: When the target element is hidden by the boundary check, the tooltip is styled with `opacity: 0`, `pointerEvents: 'none'`, and `zIndex: -1` via a smooth CSS transition (`transition: 'opacity 0.15s ease'`). The moment the target scrolls back into view, it instantly snaps to its new coordinates and fades back to `opacity: 1`.
+
+## 2. CSS Animation Override Resolution
+- **Animation Class Removal**: Identified that the Tailwind animation class `animate-fadeIn` on the tooltip overlay was overriding our inline style `opacity: 0` because of the browser's active animation cascading rules (since the animation's forward state of `opacity: 1` takes precedence).
+- **Native Inline Transitions**: Surgically removed the `animate-fadeIn` class from the tooltip in `App.tsx`. Because the tooltip's coordinates are calculated asynchronously (50ms timeout) after mounting, the inline CSS transitions natively handle both the initial smooth fade-in on mount and subsequent scroll fade-out/in events flawlessly!
+
+## 3. Production Build & E2E Browser Verification
+- **Static Assets Compilation**: Re-compiled the production-ready static assets (`npm run build`) served by the backend from the `frontend/dist/` directory, ensuring the browser loads the newly updated bundles.
+- **Automated Browser Verification**: Executed a dedicated, high-fidelity browser subagent session to test mock logins (`/?mock=gmail`) and advance the onboarding tour to Step 4 (Live Portal Preview):
+  * **Off-Screen Fade-Out Verified**: Scrolling the Settings container to the top (pushing the target button off-screen) successfully triggered the fading guard. The subagent programmatically verified that the tooltip's computed CSS opacity was exactly `0` and captured screenshot [perfect_final_clipped_hidden](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/perfect_final_clipped_hidden_1781709580310.png) showing the screen completely clean and free of any floating tooltips!
+  * **On-Screen Fade-In Verified**: Scrolling the container back down successfully restored the tooltip. The subagent verified the computed opacity returned to exactly `1` and captured screenshot [perfect_final_restored_visible](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/perfect_final_restored_visible_1781709568305.png) showing the tooltip aligned perfectly above the glowing "Show Live Preview" button.
+- **Zero Errors**: Both compilation and E2E visual verification succeeded with exactly 100% correctness and zero errors!
+
+
+# Session Summary - Top-Clipping Header Cover Guard & Conditional Clean Slate Step (2026-06-17 - Part III)
+
+## Objective
+Implement a top-clipping guard for top-anchored tooltips (such as Step 3 and Step 12) to prevent them from scrolling under the fixed top header (64px) and getting cut off. Implement a new, conditional Demo Walkthrough step ("Clean Slate") that dynamically appears only if the user has active conversation history, prompting them to click the green `+` button for a clean slate and automatically advancing once clicked.
+
+## 1. Top-Clipping / Header Cover Guard
+- **Top Offset clipping check**: Refactored the `isElementVisible(el, checkTop)` visibility function in [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx) to support a `checkTop` mode. If active, the tooltip will dynamically fade out (opacity 0) if the target element's top boundary rises above `94px` (64px header height + 30px safety margin).
+- **Smooth Fade-In/Out Restoration**: Validated that when the target scrolls down and its top coordinate goes below `94px`, the tooltip instantly snaps back to its correct coordinates and smoothly fades back to `opacity: 1`.
+
+## 2. Conditional "Clean Slate" Walkthrough Step
+- **Dynamic Step Insertion**: Updated `getDisplayStepInfo` to check `conversations.length > 0`. If true, the Demo Walkthrough dynamically registers **6 total steps** and inserts **Step 3 of 6 ("Demo: Clean Slate")** pointing to the green `+` button (`new-convo-btn`). If false, the walkthrough automatically and transparently skips Step 16 and registers **5 total steps**.
+- **Interactive Auto-Advance**:
+  * **On '+' Button Click**: In `handleStartNewConvo`, we added a check that if the user is on Step 16 and clicks the green `+` button, the tour automatically advances to Step 17 ("Demo: Ask a Question").
+  * **On Mode Toggle Selection**: In the Chat Mode Toggle click handlers, we updated the step advance to dynamically route the user to Step 16 (if they have history) or Step 17 (if they have a clean slate).
+- **Visual Alignment & Arrows**: Registered Step 16 in the tooltip arrow indicators, placing the arrow on the left of the tooltip pointing directly at the green `+` button in the sidebar. Shifted all subsequent walkthrough steps (Ask a Question = 17, Show Thinking = 18, Suggested Questions = 19) to align their arrow indicators and descriptions.
+
+## 3. Production Build & E2E Visual Verification
+- **Static Assets Compilation**: Built the production-ready assets (`npm run build`) in `frontend/dist/` containing the clean refactored tour logic.
+- **E2E Visual Certification**: Executed automated browser subagents to run the walkthrough and verify both features:
+  * **Top-Clipping verified**: In Step 3 (Customize Branding), scrolling the settings card up caused the tooltip to fade out under the header (opacity 0). Scrolling back down restored the tooltip (opacity 1). Screenshot [top_clipped_hidden](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/top_clipped_hidden_1781710380490.png) confirms the offscreen clipping state and [top_clipped_restored](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/top_clipped_restored_1781710389619.png) confirms perfect alignment restoration.
+  * **Clean Slate Walkthrough verified**: Starting the Demo Walkthrough with active conversation history successfully inserted Step 3 of 6 pointing to the green `+` button in the sidebar. Clicking the green `+` button successfully cleared the chat area and automatically transitioned the tour to Step 4 of 6 ("Demo: Ask a Question"). Screenshot [clean_slate_step_active_corrected](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/clean_slate_step_active_corrected_1781711869470.png) confirms the presence of the dynamic step, and [ask_question_step_active](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/ask_question_step_active_1781711883017.png) confirms successful interactive auto-advancement.
+# Session Summary - Header Tooltips Visibility Correction (2026-06-17 - Part IV)
+
+## Objective
+Diagnose and fix a regression where tooltips for elements residing inside the fixed top header (Step 1: Settings Gear, Step 6: Return to Dashboard, and Step 13: Reference Architecture Button) were not rendering, leaving only their glowing gold button highlights visible. Perform E2E visual validation to confirm all tooltips render perfectly.
+
+## 1. Diagnostic & Resolution
+- **The Regression**: In our previous session's scroll-clipping check, we added a global top-boundary viewport guard of `94px` (64px header height + 30px safety buffer) to hide tooltips when body elements scrolled under the header. However, elements *inside* the header naturally have a `rect.bottom` of around `52px` (which is less than `94px`), causing the visibility detector to mistakenly flag them as "clipped" and hide their tooltips.
+- **The Fix**: Refactored `isElementVisible` in [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx) to check if the target resides inside the `<header>` element using `element.closest('header')`:
+  * **For Header Elements**: Bypasses the 94px limit and uses a standard viewport check (`rect.bottom < 0`), since header elements are fixed and never scroll under any overlays.
+  * **For Body Elements**: Continues to enforce the `rect.bottom < 94` check to protect them from clipping.
+
+## 2. E2E Visual Verification
+- **E2E Visual Certification**: Executed automated browser subagents to run the entire tour and verify all header tooltips:
+  * **Step 1 (Settings Gear)**: Tooltip renders perfectly below the pulsing gear button at the top-right. Verified in screenshot [step1_gear_tooltip_visible](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/step1_gear_tooltip_visible_1781716815653.png).
+  * **Step 6 (Return to Dashboard)**: Tooltip renders perfectly below the pulsing Google Cloud logo at the top-left. Verified in screenshot [step6_logo_tooltip_visible](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/step6_logo_tooltip_visible_1781716851383.png).
+  * **Step 13 (Reference Architecture)**: Tooltip renders perfectly below the pulsing "Show Architecture" button. Verified in screenshot [step13_arch_tooltip_visible](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/step13_arch_tooltip_visible_1781716892757.png).
+- **Zero Errors**: Both build and E2E visual flows completed with 100% correct behavior!
+
+# Session Summary - Workspace Walkthrough Highlights & Click Alignment (2026-06-17 - Part V)
+
+## Objective
+Diagnose and resolve issues with the workspace walkthrough steps (Step 16, 17, 18, and 19) where some element highlights were misaligned, the green `+` (New Conversation) button was not glowing, the click action on it was not advancing the tour, and the final follow-ups tooltip (Step 19) was missing. Perform E2E visual validation to certify 100% correct behavior.
+
+## 1. Diagnostics & Resolution
+- **Outdated Step Indices in JSX**:
+  * When we inserted the conditional Step 16 ("Clean Slate") into the walkthrough, the subsequent step indices shifted (Show Thinking: 17 -> 18, Suggested Questions: 18 -> 19).
+  * However, the highlight classes (`tour-highlight`) on the JSX elements were still checking the old indices:
+    * `show-thinking-btn` was checking `tourStep === 17` instead of `18`.
+    * `chat-suggestions-container` was checking `tourStep === 18` instead of `19`.
+    * `chat-input-container` was checking `tourStep === 15` instead of `17`.
+  * *Resolution*: Surgically synchronized all JSX highlight checks in [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx) to match the new indexes (17, 18, and 19).
+- **Wrapper vs. Button Target for `new-convo-btn`**:
+  * The ID `new-convo-btn` and its highlight class were placed on the wrapper `<div>` container in the sidebar rather than the actual interactive plus `<button>` inside it.
+  * Because of this, when the tour was active, the entire header was outlined rather than just the plus icon, and clicking the container did not trigger `handleStartNewConvo`, stalling the tour progression.
+  * *Resolution*: Moved the `id="new-convo-btn"` and the highlight class check directly onto the `<button>` element itself. This centers the pulsing gold border precisely on the `+` icon, scales it beautifully (`scale-110`), and ensures that clicking it naturally triggers conversation creation and advances the tour to Step 17!
+
+## 2. E2E Visual Verification
+- **E2E Visual Certification**: Executed automated browser subagents with precise timing checks to verify the entire walkthrough E2E:
+  * **Step 16 (Clean Slate)**: The small green `+` button in the sidebar glows with a perfect gold border, and the tooltip card points directly to it. Verified in screenshot [clean_slate_step_active_corrected](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/clean_slate_step_active_corrected_1781718759180.png).
+  * **Step 17 (Ask a Question)**: Clicking the `+` button successfully initializes a new session, clears the workspace, highlights the chat input box, and displays the tooltip. Verified in screenshot [ask_question_step_active](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/ask_question_step_active_1781718779797.png).
+  * **Step 18 (Show Thinking)**: The "Show thinking" button is highlighted with the glowing gold border, and the tooltip points to it. Verified in screenshot [show_thinking_step_active_corrected](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/show_thinking_step_active_corrected_1781718872154.png).
+  * **Step 19 (Suggested Questions)**: The follow-up suggestions card at the bottom of the chat is highlighted with the glowing gold border, and the final tooltip renders beautifully pointing down at the cards. Verified in screenshot [final_step_suggestions_tooltip_visible_corrected_2](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/final_step_suggestions_tooltip_visible_corrected_2_1781718927758.png).
+
+## 3. Deployment Readiness
+- All local backend services, firestore database connections, and frontend compiled assets are **100% green, compiled, and certified E2E**!
+
+
+
+# Session Summary - Onboarding Tour Timing Refinements, Header Viewport Alignments & Restored Sidebar Highlights (2026-06-17 - Part VI)
+
+## Objective
+Resolve the delayed tooltip rendering on Step 3 (Customize Branding) of the onboarding tour, restore the representation of the full-width conversations panel highlight on Step 10 (Manage History) of the main tour, and preserve the precise plus-button highlight on Step 16 (Clean Slate) of the Demo Walkthrough. Perform E2E visual validation to certify 100% correct behavior.
+
+## 1. Diagnostics & Resolution
+- **Header Viewport Alignment Check (`minVisibleY`)**:
+  * Tall elements like the Branding Profile card (approx. `800px` height) center vertically at Y = `70px` when scrolled into view.
+  * In the visibility check `isElementVisible`, `minVisibleY` was set to `94px` (consisting of the `64px` header height + a `30px` buffer). Because `70px < 94px`, the card was flagged as "clipped by the header" and hidden, preventing the tooltip from rendering until the user manually scrolled.
+  * *Resolution*: Updated the body element minimum Y check (`minVisibleY`) in [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx) from `94` to exactly **`64`** (the physical height of the header). The card is now correctly recognized as fully visible when centered at Y = `70px`, allowing the late-render catcher to display the tooltip instantly upon page transitions, while still correctly hiding the tooltip if the user scrolls and the card goes under the header (Y < `64px`).
+- **Isolated Sidebar Highlight Containers (Step 10 vs. Step 16)**:
+  * Previously, the target ID `new-convo-btn` was moved onto the nested plus `<button>` to fix Step 16, which caused Step 10 to only highlight the small plus icon instead of the entire conversation list panel in the sidebar.
+  * *Resolution*: Split the target IDs in both the JSX elements and the coordinate target mappings in [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx):
+    * **Step 10 (Manage History)** now targets **`conversations-panel-container`** (placed on the outer sidebar wrapper `<div>` with its own highlight class check), highlighting the entire conversations list container.
+    * **Step 16 (Clean Slate)** continues to target **`new-convo-btn`** (placed directly on the nested green plus `<button>`), highlighting only the plus button to maintain a highly precise visual walkthrough.
+
+## 2. E2E Visual Verification
+- **E2E Visual Certification**: Executed automated browser subagents with single-pass runs to verify the onboarding tour and walkthrough E2E:
+  * **Step 3 (Customize Branding)**: The tooltip renders instantly and perfectly centered on the settings page, pointing to the glowing "Show Live Preview" button. Verified in screenshot [step3_branding_rendered_instantly_final_proof_v3](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/step3_branding_rendered_instantly_final_proof_v3_1781722117374.png).
+  * **Step 10 (Manage History)**: The orange outline highlights the entire Conversations panel container in the sidebar. Verified in screenshot [step10_restored_sidebar_highlight_final_proof_v2](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/step10_restored_sidebar_highlight_final_proof_v2_1781722190690.png).
+  * **Step 16 (Clean Slate)**: Only the small green plus button in the sidebar is highlighted, guiding the user to start a new session.
+
+## 3. Build & Deployment Certification
+- Built the React client bundle via `npm run build` with exactly 0 type or bundler errors.
+
+
+

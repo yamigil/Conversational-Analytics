@@ -1,29 +1,29 @@
 {
   "activeBrand": "tractor_supply_company_official_logo",
   "brands": {
-    "default": {
-      "primaryColor": "217, 89%, 61%",
-      "logoUrl": "",
-      "logoSvg": "<img src='/google_cloud_logo.svg' class='w-full h-full object-contain' />",
-      "logoText": "Google Cloud",
-      "welcomeMessage": "Welcome to your data assistant. How can I help you analyze your databases today?",
-      "backgroundColorEnd": "#1a2333",
-      "name": "Google Cloud",
-      "backgroundColorStart": "#0b0f19",
-      "secondaryColor": "142, 70%, 45%"
-    },
     "tractor_supply_company_official_logo": {
+      "logoText": "Tractor Supply",
+      "welcomeMessage": "Welcome to Tractor Supply Analytics. Let's analyze crop yields, equipment status, and parts distribution.",
       "gcpProjectId": "gilbertos-project-340619",
       "primaryColor": "120, 100%, 25%",
       "gcpLocation": "us",
-      "logoUrl": "",
       "logoSvg": "<img src=\"https://upload.wikimedia.org/wikipedia/commons/8/86/TractorSupplyCompanylogo.svg\" alt=\"Tractor Supply Company Official Logo\" class=\"w-full h-full object-contain\" />",
-      "logoText": "Tractor Supply",
       "name": "Tractor Supply",
       "backgroundColorEnd": "#020802",
-      "welcomeMessage": "Welcome to Tractor Supply Analytics. Let's analyze crop yields, equipment status, and parts distribution.",
-      "backgroundColorStart": "#051205",
-      "secondaryColor": "48, 100%, 50%"
+      "logoUrl": "",
+      "secondaryColor": "48, 100%, 50%",
+      "backgroundColorStart": "#051205"
+    },
+    "default": {
+      "logoText": "Google Cloud",
+      "welcomeMessage": "Welcome to your data assistant. How can I help you analyze your databases today?",
+      "primaryColor": "217, 89%, 61%",
+      "logoSvg": "<img src='/google_cloud_logo.svg' class='w-full h-full object-contain' />",
+      "name": "Google Cloud",
+      "backgroundColorEnd": "#1a2333",
+      "logoUrl": "",
+      "secondaryColor": "142, 70%, 45%",
+      "backgroundColorStart": "#0b0f19"
     }
   }
 }

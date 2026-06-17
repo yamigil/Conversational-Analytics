@@ -54,7 +54,7 @@ The project supports automated, multi-site continuous deployment configured via 
 ### 🚀 B. Recruiter Showcase Portal (https://showcase.cedemoportal.com/)
 * **Branch**: `showcase`
 * **Workflow**: `.github/workflows/firebase-deploy-showcase.yml`
-* **Behavior**: Deploys a public showcase portal tailored for external recruiters, allowing **any Gmail account** to log in and query the demo workspace.
+* **Behavior**: Deploys a public showcase portal tailored for external recruiters. It enforces a **strict Gmail-Only access restriction** (blocking corporate Altostrat and Google accounts) using a dual-layer check: backend container environment `ALLOWED_DOMAINS=gmail.com` and frontend compile-time `VITE_ALLOWED_DOMAINS="gmail.com"` to intercept and sign out non-Gmail users instantly at the gate.
 * **Hosting Target**: `showcase` (mapping to the site `gilbertos-showcase-portal` in Firebase).
 * **First-Party Authentication**: To bypass browser cross-site tracking protections and prevent automatic session logouts on macOS/Safari, the showcase build hardcodes `VITE_FIREBASE_AUTH_DOMAIN` to `"showcase.cedemoportal.com"`.
   * *Note: The redirect URI `https://showcase.cedemoportal.com/__/auth/handler` must be whitelisted in your GCP project's OAuth 2.0 Client ID settings!*
@@ -123,7 +123,11 @@ Deploy the React static assets to Firebase's global edge CDN and automatically r
 6. **Layout-Aligned Insights**: Contextual takeaways and summaries positioned below data grids and charts.
 7. **Wikipedia/Wikidata Logo Search & SVG Branding**: Instantly search and retrieve official corporate logos directly from Wikipedia/Wikidata using an automated image-scoring fallback system. Default Google Cloud presets use a high-fidelity, transparent vector SVG to ensure premium dark-mode presentation.
 8. **Consolidated Dashboard Layout**: Unified dashboard workspace featuring a clean, centralized "Launch Conversational Analytics" CTA embedded directly inside the Executive Insights card's empty state.
-9. **Fixed-Position Onboarding Tour & Interactive Demo Walkthrough**: A viewport-immune 12-step guided tour with fixed tooltips and automatic alignment offsets pointing to portal controls, branding search selectors, and live previews, with an integrated 4-step interactive Demo Walkthrough to guide users on selecting agents, toggling modes, submitting queries, and inspecting responses.
+9. **Viewport-Immune Onboarding Tour & Interactive Walkthrough**: A viewport-immune 13-step guided tour and 5-step interactive Demo Walkthrough featuring:
+   * **Fluid Scroll-Tracking**: Tooltips stick in real-time to highlighted elements as the user scrolls the page or nested scrollable panels (using capture-phase event interceptors).
+   * **Adaptive Boundary-Clipping Fading**: Tooltips smoothly fade out (`opacity: 0`) when target elements enter a 30px boundary zone near viewport or scroll edges, preventing screen crowding and input overlap. They instantly fade back in and align perfectly when scrolled back into view.
+   * **Late-Render Catcher**: Automatically catches late-rendered DOM elements after page transitions or modal actions, using calibrated vertical offsets (`64px` header height) to display tooltips instantly without requiring manual scrolling.
+   * **Targeted Highlight Isolation**: Distinguishes between full-panel sidebar highlights (Step 10, Manage History) and precise button highlights (Step 16, Clean Slate) for a highly polished, professional onboarding experience.
 10. **State-Persistent Navigation**: The active page and settings tab state are automatically persisted in the browser session, preventing redirects back to the home page upon manual browser refresh.
 11. **Automated Multi-Service CD Pipeline**: GitHub Actions automatically deploys React static assets to Firebase Hosting and FastAPI backend containers to Google Cloud Run on every push to main.
 12. **Multi-Source Telemetry & Audit Logs**: Integrates Google Analytics (GA4) for frontend clickstream logs, Firestore for portal administrative audit trails (logins, branding selections), and BigQuery for conversational API chat logs.

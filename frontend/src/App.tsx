@@ -282,11 +282,11 @@ const MessageThinkingBlock: React.FC<{
             id="show-thinking-btn"
             onClick={() => {
               setIsOpen(!isOpen);
-              if (tourStep === 17 && setTourStep) {
-                setTourStep(18);
+              if (tourStep === 18 && setTourStep) {
+                setTourStep(19);
               }
             }}
-            className={`text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition cursor-pointer flex items-center gap-1 select-none border-none bg-transparent p-0 ${tourStep === 17 ? 'tour-highlight px-1.5 py-0.5 rounded bg-sky-400/10' : ''}`}
+            className={`text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition cursor-pointer flex items-center gap-1 select-none border-none bg-transparent p-0 ${tourStep === 18 ? 'tour-highlight px-1.5 py-0.5 rounded bg-sky-400/10' : ''}`}
           >
             {isOpen ? "Hide thinking" : "Show thinking"}
             <ChevronDown size={11} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
@@ -1025,16 +1025,35 @@ const App: React.FC = () => {
     await fetchAgents();
   };
   const getDisplayStepInfo = (actualStep: number) => {
-    if (actualStep >= 14 && actualStep <= 18) {
-      return {
-        num: actualStep - 13,
-        text: actualStep === 14 ? "Demo: Select AI Agent"
-            : actualStep === 15 ? "Demo: Choose Thinking Mode"
-            : actualStep === 16 ? "Demo: Ask a Question"
-            : actualStep === 17 ? "Demo: Show Thinking Process"
-            : "Demo: Multi-turn & Follow-ups",
-        total: 5
-      };
+    if (actualStep >= 14 && actualStep <= 19) {
+      const hasConvos = conversations.length > 0;
+      if (hasConvos) {
+        return {
+          num: actualStep - 13,
+          text: actualStep === 14 ? "Demo: Select AI Agent"
+              : actualStep === 15 ? "Demo: Choose Thinking Mode"
+              : actualStep === 16 ? "Demo: Clean Slate"
+              : actualStep === 17 ? "Demo: Ask a Question"
+              : actualStep === 18 ? "Demo: Show Thinking Process"
+              : "Demo: Multi-turn & Follow-ups",
+          total: 6
+        };
+      } else {
+        const num = actualStep === 14 ? 1
+                  : actualStep === 15 ? 2
+                  : actualStep === 17 ? 3
+                  : actualStep === 18 ? 4
+                  : 5;
+        return {
+          num,
+          text: actualStep === 14 ? "Demo: Select AI Agent"
+              : actualStep === 15 ? "Demo: Choose Thinking Mode"
+              : actualStep === 17 ? "Demo: Ask a Question"
+              : actualStep === 18 ? "Demo: Show Thinking Process"
+              : "Demo: Multi-turn & Follow-ups",
+          total: 5
+        };
+      }
     }
     const isGmailUser = !isCorporateUser(user?.email || auth.currentUser?.email || null);
     if (isGmailUser) {
@@ -1131,9 +1150,9 @@ const App: React.FC = () => {
   // Responsive Tour Sidebar Auto-Toggle Effect
   useEffect(() => {
     if (window.innerWidth < 768) {
-      if (tourStep === 9 || tourStep === 10 || tourStep === 14) {
+      if (tourStep === 9 || tourStep === 10 || tourStep === 14 || tourStep === 16) {
         setIsSidebarOpen(true);
-      } else if (tourStep === 11 || tourStep === 15 || tourStep === 16 || tourStep === 18) {
+      } else if (tourStep === 11 || tourStep === 15 || tourStep === 17 || tourStep === 19) {
         setIsSidebarOpen(false);
       }
     }
@@ -1448,17 +1467,63 @@ const App: React.FC = () => {
     else if (tourStep === 7) targetId = "dashboard-executive-insights";
     else if (tourStep === 8) targetId = "dashboard-launch-chat-btn";
     else if (tourStep === 9) targetId = "agent-select-container";
-    else if (tourStep === 10) targetId = "new-convo-btn";
+    else if (tourStep === 10) targetId = "conversations-panel-container";
     else if (tourStep === 11) targetId = "chat-mode-btn";
     else if (tourStep === 12) targetId = "project-override-container";
     else if (tourStep === 13) targetId = "arch-diagram-btn";
     else if (tourStep === 14) targetId = "agent-select-container";
     else if (tourStep === 15) targetId = "chat-mode-btn";
-    else if (tourStep === 16) targetId = "chat-input-container";
-    else if (tourStep === 17) targetId = "show-thinking-btn";
-    else if (tourStep === 18) targetId = "chat-suggestions-container";
+    else if (tourStep === 16) targetId = "new-convo-btn";
+    else if (tourStep === 17) targetId = "chat-input-container";
+    else if (tourStep === 18) targetId = "show-thinking-btn";
+    else if (tourStep === 19) targetId = "chat-suggestions-container";
 
-    const updatePosition = () => {
+    const isElementVisible = (element: HTMLElement, checkTop = false): boolean => {
+      const rect = element.getBoundingClientRect();
+      
+      // Identify if the element resides inside the top fixed header
+      const isHeaderElement = !!element.closest('header');
+      
+      // 1. Viewport check (completely offscreen or too close to the edges)
+      // For header elements, the minimum visible Y is 0.
+      // For body elements, the minimum Y is 64px (to prevent clipping under the header).
+      const minVisibleY = isHeaderElement ? 0 : 64;
+      const bottomBuffer = isHeaderElement ? 0 : 30;
+      
+      if (rect.bottom < minVisibleY || rect.top > window.innerHeight - bottomBuffer) {
+        return false;
+      }
+      
+      // If we specifically care about the top of the element (only applicable to body elements)
+      if (!isHeaderElement && checkTop && rect.top < minVisibleY) {
+        return false;
+      }
+      
+      // 2. Scroll parent clipping check
+      let parent = element.parentElement;
+      while (parent && parent !== document.body) {
+        const style = window.getComputedStyle(parent);
+        const isScrollable = style.overflowY === 'auto' || style.overflowY === 'scroll';
+        
+        if (isScrollable) {
+          const parentRect = parent.getBoundingClientRect();
+          // Hide if the bottom of the element is above the parent's top boundary
+          // or the top of the element is below the parent's bottom boundary
+          if (rect.top >= parentRect.bottom - 30 || rect.bottom <= parentRect.top + 30) {
+            return false;
+          }
+          // If checking top clipping, also hide if the top of the element is above the parent's top boundary
+          if (checkTop && rect.top <= parentRect.top + 30) {
+            return false;
+          }
+        }
+        parent = parent.parentElement;
+      }
+      
+      return true;
+    };
+
+    const updatePosition = (shouldScroll = false) => {
       if (window.innerWidth < 768) {
         setTooltipStyle({
           position: 'fixed',
@@ -1467,72 +1532,110 @@ const App: React.FC = () => {
           transform: 'translateX(-50%)',
           width: 'calc(100% - 32px)',
           maxWidth: '400px',
-          zIndex: 2200
+          zIndex: 2200,
+          opacity: 1,
+          transition: 'opacity 0.15s ease'
         });
         return;
       }
 
       const el = document.getElementById(targetId);
       if (!el) {
-        setTimeout(updatePosition, 100);
+        setTimeout(() => updatePosition(shouldScroll), 100);
         return;
       }
       
-      // Auto-scroll target element into view if it's partially hidden
-      el.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+      // Auto-scroll target element into view only on initial step change
+      if (shouldScroll) {
+        el.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+      }
+      
+      // Check if the target element has been scrolled out of its parent's visible bounds
+      const checkTop = (tourStep === 3 || tourStep === 12);
+      if (!isElementVisible(el, checkTop)) {
+        setTooltipStyle({
+          position: 'fixed',
+          opacity: 0,
+          pointerEvents: 'none',
+          zIndex: -1,
+          transition: 'opacity 0.15s ease'
+        });
+        return;
+      }
       
       const rect = el.getBoundingClientRect();
       if (rect.width === 0 && rect.height === 0) {
-        setTimeout(updatePosition, 100);
+        setTimeout(() => updatePosition(shouldScroll), 100);
         return;
       }
       
-      if (tourStep === 1 || tourStep === 6 || tourStep === 13 || tourStep === 17) {
+      if (tourStep === 1 || tourStep === 6 || tourStep === 13 || tourStep === 18) {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.bottom + 12}px`,
           right: (tourStep === 1 || tourStep === 13) ? `${window.innerWidth - rect.right}px` : undefined,
-          left: (tourStep === 6 || tourStep === 17) ? `${rect.left}px` : undefined,
-          zIndex: 9999
+          left: (tourStep === 6 || tourStep === 18) ? `${rect.left}px` : undefined,
+          zIndex: 9999,
+          opacity: 1,
+          transition: 'opacity 0.15s ease, transform 0.15s ease'
         });
-      } else if (tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14) {
+      } else if (tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14 || tourStep === 16) {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.top - 10}px`,
           left: `${rect.right + 16}px`,
-          zIndex: 9999
+          zIndex: 9999,
+          opacity: 1,
+          transition: 'opacity 0.15s ease, transform 0.15s ease'
         });
       } else if (tourStep === 11 || tourStep === 15) {
         setTooltipStyle({
           position: 'fixed',
           bottom: `${window.innerHeight - rect.bottom - 10}px`,
           left: `${rect.right + 16}px`,
-          zIndex: 9999
+          zIndex: 9999,
+          opacity: 1,
+          transition: 'opacity 0.15s ease, transform 0.15s ease'
         });
       } else if (tourStep === 3 || tourStep === 12) {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.top - 10}px`,
           left: `${rect.left - 356}px`,
-          zIndex: 9999
+          zIndex: 9999,
+          opacity: 1,
+          transition: 'opacity 0.15s ease, transform 0.15s ease'
         });
-      } else if (tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 16 || tourStep === 18) {
+      } else if (tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 17 || tourStep === 19) {
         const useRightAlign = (tourStep === 4 || tourStep === 5);
         setTooltipStyle({
           position: 'fixed',
           bottom: `${window.innerHeight - rect.top + 12}px`,
           left: useRightAlign ? undefined : `${rect.left}px`,
           right: useRightAlign ? `${window.innerWidth - rect.right}px` : undefined,
-          zIndex: 9999
+          zIndex: 9999,
+          opacity: 1,
+          transition: 'opacity 0.15s ease, transform 0.15s ease'
         });
       }
     };
 
-    const t = setTimeout(updatePosition, 50);
-    window.addEventListener("resize", updatePosition);
+    // Trigger initial snap-scroll and positioning
+    const t = setTimeout(() => updatePosition(true), 50);
+    const t2 = setTimeout(() => updatePosition(false), 250); // Capture late-rendering elements after tab/modal transitions
+    
+    // Position updates (without snapping back scroll)
+    const handleResize = () => updatePosition(false);
+    const handleScroll = () => updatePosition(false);
+
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("scroll", handleScroll, { capture: true });
+
     return () => {
       clearTimeout(t);
-      window.removeEventListener("resize", updatePosition);
+      clearTimeout(t2);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("scroll", handleScroll, { capture: true });
     };
   }, [tourStep, currentPage, settingsActiveTab]);
 
@@ -1587,9 +1690,15 @@ const App: React.FC = () => {
       setIsArchModalOpen(false);
       setTourStep(0);
       sessionStorage.setItem("ca_visited_tour", "true");
-    } else if (tourStep >= 14 && tourStep <= 17) {
+    } else if (tourStep === 15) {
+      if (conversations.length === 0) {
+        setTourStep(17);
+      } else {
+        setTourStep(16);
+      }
+    } else if (tourStep >= 14 && tourStep <= 18) {
       setTourStep(tourStep + 1);
-    } else if (tourStep === 18) {
+    } else if (tourStep === 19) {
       setTourStep(0);
       sessionStorage.setItem("ca_visited_tour", "true");
     }
@@ -1641,7 +1750,13 @@ const App: React.FC = () => {
     } else if (tourStep === 14) {
       setCurrentPage("chat");
       setTourStep(13);
-    } else if (tourStep >= 15 && tourStep <= 18) {
+    } else if (tourStep === 17) {
+      if (conversations.length === 0) {
+        setTourStep(15);
+      } else {
+        setTourStep(16);
+      }
+    } else if (tourStep >= 15 && tourStep <= 19) {
       setTourStep(tourStep - 1);
     }
   };
@@ -1721,6 +1836,9 @@ const App: React.FC = () => {
         setSelectedConvo(newConvo.name);
         setMessages([]);
         await fetchConversations(selectedAgent, newConvo.name, true);
+        if (tourStep === 16) {
+          setTourStep(17);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -1735,8 +1853,8 @@ const App: React.FC = () => {
     const text = (typeof overrideText === "string" ? overrideText : inputText).trim();
     if (!text || !selectedAgent) return;
 
-    if (tourStep === 16) {
-      setTourStep(17);
+    if (tourStep === 17) {
+      setTourStep(18);
     }
 
     setInputText("");
@@ -2629,13 +2747,17 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div id="new-convo-btn" className={`flex flex-col flex-1 min-h-0 ${tourStep === 10 ? 'tour-highlight p-2 rounded-xl border border-white/6 bg-white/1' : ''}`}>
+          <div 
+            id="conversations-panel-container"
+            className={`flex flex-col flex-1 min-h-0 ${tourStep === 10 ? 'tour-highlight p-2 rounded-xl border border-white/6 bg-white/1' : ''}`}
+          >
             <div className="flex justify-between items-center mb-3">
               <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Conversations</span>
               <button 
+                id="new-convo-btn"
                 onClick={handleStartNewConvo}
                 disabled={!selectedAgent || isCreatingConvo}
-                className="bg-white/5 border border-white/6 hover:bg-brand-primary hover:border-brand-primary text-white w-6 h-6 rounded-md cursor-pointer flex items-center justify-center text-md transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`bg-white/5 border border-white/6 hover:bg-brand-primary hover:border-brand-primary text-white w-6 h-6 rounded-md cursor-pointer flex items-center justify-center text-md transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${tourStep === 16 ? 'tour-highlight scale-110 shadow-lg border-brand-primary/50' : ''}`}
                 title="Start new conversation"
               >
                 {isCreatingConvo ? (
@@ -2856,7 +2978,7 @@ const App: React.FC = () => {
                 return (
                   <div 
                     id="chat-suggestions-container"
-                    className={`flex flex-col gap-2 mt-2 ml-13 animate-fadeIn ${tourStep === 18 ? 'tour-highlight p-2 rounded-2xl bg-white/2 border border-white/6' : ''}`}
+                    className={`flex flex-col gap-2 mt-2 ml-13 animate-fadeIn ${tourStep === 19 ? 'tour-highlight p-2 rounded-2xl bg-white/2 border border-white/6' : ''}`}
                   >
                     <div className="flex flex-wrap gap-2">
                       {suggestionsToRender.map((suggestion: string, sIdx: number) => (
@@ -2950,7 +3072,7 @@ const App: React.FC = () => {
             <div className="px-4 md:px-10 pb-4 md:pb-8 pt-2 mt-auto">
               <div 
                 id="chat-input-container"
-                className={`glass-panel flex flex-col gap-2 px-4 md:px-6 py-3 md:py-4 rounded-2xl shadow-xl ${(tourStep === 15) ? 'tour-highlight' : ''}`}
+                className={`glass-panel flex flex-col gap-2 px-4 md:px-6 py-3 md:py-4 rounded-2xl shadow-xl ${(tourStep === 17) ? 'tour-highlight' : ''}`}
               >
                 <textarea 
                   ref={textareaRef}
@@ -2988,7 +3110,7 @@ const App: React.FC = () => {
                           onClick={() => {
                             setChatMode("fast");
                             setShowChatModeDropdown(false);
-                            if (tourStep === 15) setTourStep(16);
+                            if (tourStep === 15) setTourStep(conversations.length === 0 ? 17 : 16);
                           }}
                           className={`w-full px-4 py-3 text-left hover:bg-white/4 transition flex flex-col gap-0.5 cursor-pointer border-none bg-transparent ${chatMode === "fast" ? "bg-white/2" : ""}`}
                         >
@@ -3002,7 +3124,7 @@ const App: React.FC = () => {
                           onClick={() => {
                             setChatMode("thinking");
                             setShowChatModeDropdown(false);
-                            if (tourStep === 15) setTourStep(16);
+                            if (tourStep === 15) setTourStep(conversations.length === 0 ? 17 : 16);
                           }}
                           className={`w-full px-4 py-3 text-left hover:bg-white/4 transition flex flex-col gap-0.5 cursor-pointer border-none bg-transparent ${chatMode === "thinking" ? "bg-white/2" : ""}`}
                         >
@@ -3522,16 +3644,16 @@ const App: React.FC = () => {
       {/* Onboarding Tour Tooltip Overlay */}
       {tourStep > 0 && (
         <div 
-          className="absolute bg-slate-900/98 border border-amber-500/55 p-5 rounded-2xl shadow-[0_0_30px_rgba(245,158,11,0.18)] z-[9999] w-[340px] animate-fadeIn flex flex-col gap-3.5 select-none"
+          className="absolute bg-slate-900/98 border border-amber-500/55 p-5 rounded-2xl shadow-[0_0_30px_rgba(245,158,11,0.18)] z-[9999] w-[340px] flex flex-col gap-3.5 select-none"
           style={tooltipStyle}
         >
           {/* Arrow indicator */}
           {window.innerWidth >= 768 && (
             <>
-              {(tourStep === 1 || tourStep === 6 || tourStep === 13 || tourStep === 17) && (
+              {(tourStep === 1 || tourStep === 6 || tourStep === 13 || tourStep === 18) && (
                 <div className={`absolute -top-2 ${tourStep === 1 || tourStep === 13 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-t border-l border-amber-500/55 rotate-45`} />
               )}
-              {(tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14) && (
+              {(tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14 || tourStep === 16) && (
                 <div className="absolute -left-2 top-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
               )}
               {(tourStep === 11 || tourStep === 15) && (
@@ -3540,7 +3662,7 @@ const App: React.FC = () => {
               {(tourStep === 3 || tourStep === 12) && (
                 <div className="absolute -right-2 top-6 w-4 h-4 bg-slate-900 border-t border-r border-amber-500/55 rotate-45" />
               )}
-              {(tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 16 || tourStep === 18) && (
+              {(tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 17 || tourStep === 19) && (
                 <div className={`absolute -bottom-2 ${tourStep === 4 || tourStep === 5 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-b border-r border-amber-500/55 rotate-45`} />
               )}
             </>
@@ -3582,9 +3704,10 @@ const App: React.FC = () => {
               : "To begin the demo, select a specialized AI agent from this dropdown menu to load its analytical capabilities.")
             }
             {tourStep === 15 && "Select a thinking mode: Toggle 'Fast Answer' for quick responses, or 'In-Depth Analysis' to activate advanced reasoning models for complex queries."}
-            {tourStep === 16 && "Ask a question about your database! Type in the chat input or click one of the suggested query starter pills below (e.g., 'What can you do for me?')."}
-            {tourStep === 17 && "Once the agent begins responding, click 'Show thinking' to inspect the step-by-step reasoning, plan logic, and generated BigQuery SQL queries."}
-            {tourStep === 18 && "Great query! You can follow-up on your conversation by typing in the input box, or simply click any of the dynamic follow-up suggestions generated by Gemini at the bottom."}
+            {tourStep === 16 && "You already have active conversations for this agent. Click the '+' button to start a new, clean conversation and get a clean slate for the tutorial!"}
+            {tourStep === 17 && "Ask a question about your database! Type in the chat input or click one of the suggested query starter pills below (e.g., 'What can you do for me?')."}
+            {tourStep === 18 && "Once the agent begins responding, click 'Show thinking' to inspect the step-by-step reasoning, plan logic, and generated BigQuery SQL queries."}
+            {tourStep === 19 && "Great query! You can follow-up on your conversation by typing in the input box, or simply click any of the dynamic follow-up suggestions generated by Gemini at the bottom."}
           </p>
 
           {/* Buttons */}
@@ -3619,12 +3742,12 @@ const App: React.FC = () => {
                     Back
                   </button>
                 )}
-                {tourStep !== 1 && tourStep !== 8 && tourStep !== 14 && tourStep !== 15 && tourStep !== 16 && tourStep !== 17 ? (
+                {tourStep !== 1 && tourStep !== 8 && tourStep !== 14 && tourStep !== 15 && tourStep !== 17 && tourStep !== 18 ? (
                   <button 
                     onClick={handleNextTour}
                     className="py-1.5 px-3.5 bg-brand-primary hover:opacity-90 text-white rounded-lg text-xs font-semibold cursor-pointer transition shadow-md border-none"
                   >
-                    {tourStep === 18 ? "Finish Walkthrough" : (getDisplayStepInfo(tourStep).num === getDisplayStepInfo(tourStep).total ? "Finish" : "Next")}
+                    {tourStep === 19 ? "Finish Walkthrough" : (getDisplayStepInfo(tourStep).num === getDisplayStepInfo(tourStep).total ? "Finish" : "Next")}
                   </button>
                 ) : (
                   <span className="text-[10px] text-amber-400 font-bold animate-pulse mr-1 whitespace-nowrap">
@@ -3632,7 +3755,7 @@ const App: React.FC = () => {
                      tourStep === 8 ? "Click card to proceed" : 
                      tourStep === 14 ? "Select an agent" : 
                      tourStep === 15 ? "Choose thinking mode" : 
-                     tourStep === 16 ? "Submit query or pill" : 
+                     tourStep === 17 ? "Submit query or pill" : 
                      "Click 'Show thinking'"}
                   </span>
                 )}

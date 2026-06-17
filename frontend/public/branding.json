@@ -1,29 +1,29 @@
 {
-  "activeBrand": "tractor_supply_company_official_logo",
   "brands": {
-    "tractor_supply_company_official_logo": {
-      "logoText": "Tractor Supply",
-      "welcomeMessage": "Welcome to Tractor Supply Analytics. Let's analyze crop yields, equipment status, and parts distribution.",
-      "gcpProjectId": "gilbertos-project-340619",
-      "primaryColor": "120, 100%, 25%",
-      "gcpLocation": "us",
-      "logoSvg": "<img src=\"https://upload.wikimedia.org/wikipedia/commons/8/86/TractorSupplyCompanylogo.svg\" alt=\"Tractor Supply Company Official Logo\" class=\"w-full h-full object-contain\" />",
-      "name": "Tractor Supply",
-      "backgroundColorEnd": "#020802",
-      "logoUrl": "",
-      "secondaryColor": "48, 100%, 50%",
-      "backgroundColorStart": "#051205"
-    },
     "default": {
-      "logoText": "Google Cloud",
-      "welcomeMessage": "Welcome to your data assistant. How can I help you analyze your databases today?",
-      "primaryColor": "217, 89%, 61%",
-      "logoSvg": "<img src='/google_cloud_logo.svg' class='w-full h-full object-contain' />",
-      "name": "Google Cloud",
-      "backgroundColorEnd": "#1a2333",
       "logoUrl": "",
-      "secondaryColor": "142, 70%, 45%",
-      "backgroundColorStart": "#0b0f19"
+      "name": "Google Cloud",
+      "backgroundColorStart": "#0b0f19",
+      "logoSvg": "<img src='/google_cloud_logo.svg' class='w-full h-full object-contain' />",
+      "welcomeMessage": "Welcome to your data assistant. How can I help you analyze your databases today?",
+      "backgroundColorEnd": "#1a2333",
+      "primaryColor": "217, 89%, 61%",
+      "logoText": "Google Cloud",
+      "secondaryColor": "142, 70%, 45%"
+    },
+    "tractor_supply_company_official_logo": {
+      "logoUrl": "",
+      "name": "Tractor Supply",
+      "backgroundColorStart": "#051205",
+      "logoSvg": "<img src=\"https://upload.wikimedia.org/wikipedia/commons/8/86/TractorSupplyCompanylogo.svg\" alt=\"Tractor Supply Company Official Logo\" class=\"w-full h-full object-contain\" />",
+      "welcomeMessage": "Welcome to Tractor Supply Analytics. Let's analyze crop yields, equipment status, and parts distribution.",
+      "backgroundColorEnd": "#020802",
+      "primaryColor": "120, 100%, 25%",
+      "logoText": "Tractor Supply",
+      "secondaryColor": "48, 100%, 50%",
+      "gcpProjectId": "gilbertos-project-340619",
+      "gcpLocation": "us"
     }
-  }
+  },
+  "activeBrand": "tractor_supply_company_official_logo"
 }

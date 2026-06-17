@@ -1494,8 +1494,11 @@ const App: React.FC = () => {
         return false;
       }
       
-      // If we specifically care about the top of the element (only applicable to body elements)
-      if (!isHeaderElement && checkTop && rect.top < minVisibleY) {
+      // If we specifically care about the top of the element (only applicable to body elements).
+      // For very tall elements like the branding card, we allow the top to sit under the header
+      // (down to Y = 0px) when centered on shorter viewports to prevent hiding the tooltip.
+      const minTopY = 0;
+      if (!isHeaderElement && checkTop && rect.top < minTopY) {
         return false;
       }
       
@@ -1513,7 +1516,7 @@ const App: React.FC = () => {
             return false;
           }
           // If checking top clipping, also hide if the top of the element is above the parent's top boundary
-          if (checkTop && rect.top <= parentRect.top + 30) {
+          if (checkTop && rect.top < parentRect.top) {
             return false;
           }
         }
@@ -1545,13 +1548,13 @@ const App: React.FC = () => {
         return;
       }
       
+      const checkTop = (tourStep === 3 || tourStep === 12);
+      
       // Auto-scroll target element into view only on initial step change
       if (shouldScroll) {
-        el.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+        const alignBlock = checkTop ? 'start' : 'nearest';
+        el.scrollIntoView({ behavior: 'auto', block: alignBlock });
       }
-      
-      // Check if the target element has been scrolled out of its parent's visible bounds
-      const checkTop = (tourStep === 3 || tourStep === 12);
       if (!isElementVisible(el, checkTop)) {
         setTooltipStyle({
           position: 'fixed',

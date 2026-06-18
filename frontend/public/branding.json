@@ -21,7 +21,7 @@
       "primaryColor": "120, 100%, 25%",
       "logoText": "Tractor Supply",
       "secondaryColor": "48, 100%, 50%",
-      "gcpProjectId": "gilbertos-project-340619",
+      "gcpProjectId": "your-gcp-project-id",
       "gcpLocation": "us"
     }
   },

@@ -808,7 +808,7 @@ def search_logo(query: str, user: dict = Depends(get_current_user)):
     try:
         import hashlib
         headers = {
-            "User-Agent": "ConversationalAnalyticsPortal/1.0 (https://retail.cedemoportal.com; contact: support@cedemoportal.com)"
+            "User-Agent": "ConversationalAnalyticsPortal/1.0 (https://your-custom-domain.com; contact: support@your-custom-domain.com)"
         }
         # Strip TLD if it's a domain query to improve Wikipedia search matching (e.g. wonder.com -> wonder)
         wiki_query = clean_query

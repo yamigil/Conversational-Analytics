@@ -45,22 +45,22 @@ To run and test changes locally without requiring external cloud authentication 
 
 The project supports automated, multi-site continuous deployment configured via two separate GitHub Action workflows:
 
-### 💼 A. Corporate Portal (https://retail.cedemoportal.com/)
+### 💼 A. Corporate Portal (https://your-corporate-domain.com/)
 * **Branch**: `main`
 * **Workflow**: `.github/workflows/firebase-deploy.yml`
 * **Behavior**: Deploys the corporate portal with standard enterprise domain authentication restrictions (@google.com and @altostrat.com).
-* **Hosting Target**: `corporate` (mapping to the production site `gilbertos-project-340619` in Firebase).
+* **Hosting Target**: `corporate` (mapping to your production site `your-gcp-project-id` in Firebase).
 
-### 🚀 B. Public Showcase Portal (https://showcase.cedemoportal.com/)
+### 🚀 B. Public Showcase Portal (https://your-showcase-domain.com/)
 * **Branch**: `showcase`
 * **Workflow**: `.github/workflows/firebase-deploy-showcase.yml`
 * **Behavior**: Deploys a public showcase portal tailored for external demonstrational access. It enforces a **domain-based access filter** (restricting access to specific email domains like `gmail.com` to demonstrate external sandbox capabilities) using a dual-layer check: backend container environment `ALLOWED_DOMAINS=gmail.com` and frontend compile-time `VITE_ALLOWED_DOMAINS="gmail.com"` to automatically validate incoming identities.
-* **Hosting Target**: `showcase` (mapping to the site `gilbertos-showcase-portal` in Firebase).
-* **First-Party Authentication**: To ensure seamless authentication flow under browser privacy protections (preventing cross-site cookie blocks and automatic session drops on macOS/Safari), the showcase build maps `VITE_FIREBASE_AUTH_DOMAIN` directly to `"showcase.cedemoportal.com"`.
-  * *Note: The redirect URI `https://showcase.cedemoportal.com/__/auth/handler` must be whitelisted in your GCP project's OAuth 2.0 Client ID settings!*
+* **Hosting Target**: `showcase` (mapping to your public showcase hosting site `your-showcase-site-id` in Firebase).
+* **First-Party Authentication**: To ensure seamless authentication flow under browser privacy protections (preventing cross-site cookie blocks and automatic session drops on macOS/Safari), the showcase build maps `VITE_FIREBASE_AUTH_DOMAIN` directly to `"your-showcase-domain.com"`.
+  * *Note: The redirect URI `https://your-showcase-domain.com/__/auth/handler` must be whitelisted in your GCP project's OAuth 2.0 Client ID settings!*
 
 ### Required Deployment Service Account Roles
-To support automated builds, your deployment service account (`demoportal@...`) requires the following IAM permissions:
+To support automated builds, your deployment service account (`your-service-account@your-project-id.iam.gserviceaccount.com`) requires the following IAM permissions:
 * **Cloud Run Developer** (`roles/run.developer`): Deploy revisions to Cloud Run.
 * **Cloud Build Editor** (`roles/cloudbuild.builds.editor`): Build Docker container images.
 * **Storage Admin** (`roles/storage.admin`): Upload source bundles to Cloud Storage.

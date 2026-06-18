@@ -3255,7 +3255,7 @@ const App: React.FC = () => {
                             type="text" 
                             value={settingsProjectId} 
                             onChange={(e) => setSettingsProjectId(e.target.value)}
-                            placeholder="Enter your target GCP Project ID (e.g. gilbertos-project-340619)"
+                            placeholder="Enter your target GCP Project ID (e.g. your-gcp-project-id)"
                             className="py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 outline-none focus:border-brand-primary/50"
                           />
                         ) : (

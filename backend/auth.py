@@ -14,7 +14,7 @@ logger = logging.getLogger("ca-web-app-auth")
 load_dotenv()
 
 # Initialize Firebase Admin SDK
-fb_project_id = os.getenv("FB_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT") or "gilbertos-project-340619"
+fb_project_id = os.getenv("FB_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT") or "your-gcp-project-id"
 fb_client_email = os.getenv("FB_CLIENT_EMAIL")
 fb_private_key = os.getenv("FB_PRIVATE_KEY")
 

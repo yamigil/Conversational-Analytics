@@ -995,12 +995,18 @@ const App: React.FC = () => {
     return lowerEmail.endsWith("altostrat.com") || lowerEmail.endsWith("google.com");
   };
 
+  const isArgolisUser = (email: string | null): boolean => {
+    if (!email) return false;
+    const lowerEmail = email.toLowerCase();
+    return lowerEmail.endsWith("altostrat.com");
+  };
+
   const handleCredentialsModeChange = async (mode: "service_account" | "user_sso") => {
     // If they switched to SSO, verify corporate membership and request GCP scope incrementally
     if (mode === "user_sso") {
       const email = user?.email || auth.currentUser?.email || null;
-      if (!isCorporateUser(email)) {
-        alert("SSO credentials mode is restricted to corporate (Argolis) accounts only.");
+      if (!isArgolisUser(email)) {
+        alert("SSO credentials mode is restricted to Argolis accounts only.");
         return;
       }
       
@@ -1342,8 +1348,8 @@ const App: React.FC = () => {
         // If credentialsMode is user_sso, check if we have the Google OAuth token!
         if (credentialsMode === "user_sso") {
           const email = user?.email || auth.currentUser?.email || null;
-          if (!isCorporateUser(email)) {
-            // Revert back to service account for non-corporate users
+          if (!isArgolisUser(email)) {
+            // Revert back to service account for non-Argolis users
             setCredentialsMode("service_account");
             localStorage.setItem("gcp_credentials_mode", "service_account");
           } else {
@@ -2561,7 +2567,7 @@ const App: React.FC = () => {
                         <span>💼 Service Account (ADC)</span>
                         {credentialsMode === "service_account" && <span className="text-brand-primary text-[10px]">✓</span>}
                       </button>
-                      {isCorporateUser(user?.email || auth.currentUser?.email || null) && (
+                      {isArgolisUser(user?.email || auth.currentUser?.email || null) && (
                         <button
                           onClick={() => {
                             handleCredentialsModeChange("user_sso");
@@ -3230,7 +3236,7 @@ const App: React.FC = () => {
                           className="w-full py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 outline-none focus:border-brand-primary/50 cursor-pointer appearance-none"
                         >
                           <option value="service_account">Service Account (ADC)</option>
-                          {isCorporateUser(user?.email || auth.currentUser?.email || null) && (
+                          {isArgolisUser(user?.email || auth.currentUser?.email || null) && (
                             <option value="user_sso">SSO User Session (Google Login)</option>
                           )}
                         </select>

@@ -612,22 +612,23 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}): Promi
           };
         }
 
-        // Inject the dynamically selected GCP Project ID if present
-        const selectedProject = localStorage.getItem("gcp_selected_project");
-        if (selectedProject) {
-          options.headers = {
-            "X-GCP-Project-Id": selectedProject,
-            ...options.headers,
-          };
-        }
+        // Inject the dynamically selected GCP Project ID and Location only if user SSO credentials mode is active
+        if (ssoMode) {
+          const selectedProject = localStorage.getItem("gcp_selected_project");
+          if (selectedProject) {
+            options.headers = {
+              "X-GCP-Project-Id": selectedProject,
+              ...options.headers,
+            };
+          }
 
-        // Inject the dynamically selected GCP Location if present
-        const selectedLocation = localStorage.getItem("gcp_selected_location");
-        if (selectedLocation) {
-          options.headers = {
-            "X-GCP-Location": selectedLocation,
-            ...options.headers,
-          };
+          const selectedLocation = localStorage.getItem("gcp_selected_location");
+          if (selectedLocation) {
+            options.headers = {
+              "X-GCP-Location": selectedLocation,
+              ...options.headers,
+            };
+          }
         }
       } catch (error) {
         console.error("Failed to fetch Firebase ID Token for request:", error);

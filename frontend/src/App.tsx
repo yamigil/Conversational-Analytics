@@ -717,7 +717,7 @@ const App: React.FC = () => {
         } else {
           const email = isGmailMock 
             ? "sandbox-user@gmail.com" 
-            : (import.meta.env.VITE_RESTRICT_TO_GOOGLE !== "false" ? "admin@google.com" : "admin@your-corporate-domain.com");
+            : (import.meta.env.VITE_RESTRICT_TO_GOOGLE !== "false" ? "admin@google.com" : "admin@corporate.altostrat.com");
           setUser({
             email: email,
             displayName: isGmailMock ? "Gmail Test User" : "Argolis Test User",
@@ -760,7 +760,7 @@ const App: React.FC = () => {
         
         const email = isGmailMock 
           ? "sandbox-user@gmail.com" 
-          : (restrictToGoogle ? "admin@google.com" : "admin@your-corporate-domain.com");
+          : (restrictToGoogle ? "admin@google.com" : "admin@corporate.altostrat.com");
         setUser({
           email: email,
           displayName: isGmailMock ? "Gmail Test User" : "Argolis Test User",

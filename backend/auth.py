@@ -64,7 +64,7 @@ def get_current_user(authorization: HTTPAuthorizationCredentials = Depends(secur
         if os.getenv("ENVIRONMENT") == "production":
             logger.warning("Security Warning: MOCK_AUTH is enabled in environment but bypassed because ENVIRONMENT is set to 'production'!")
         else:
-            mock_email = "admin@google.com" if restrict_to_google else "admin@your-corporate-domain.com"
+            mock_email = "admin@google.com" if restrict_to_google else "admin@corporate.altostrat.com"
             return {"email": mock_email, "uid": "mock-user-123"}
 
     token = authorization.credentials

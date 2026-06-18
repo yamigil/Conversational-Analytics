@@ -245,14 +245,32 @@ const MessageThinkingBlock: React.FC<{
 }> = ({ statuses, thoughts, isStreaming, tourStep, setTourStep }) => {
   const [isOpen, setIsOpen] = useState(false);
 
+  // Inject mock thoughts/statuses during Step 18 & 19 of the walkthrough to guarantee the collapsible panel is visible and interactive!
+  const isTourThinkingStep = tourStep === 18 || tourStep === 19;
+  const displayStatuses = (statuses.length === 0 && thoughts.length === 0 && isTourThinkingStep)
+    ? ["Analyzing user greeting", "Checking database schemas", "Preparing capabilities response"]
+    : statuses;
+  const displayThoughts = (statuses.length === 0 && thoughts.length === 0 && isTourThinkingStep)
+    ? [
+        {
+          title: "Bypassing SQL compilation",
+          body: "The user submitted a conversational capabilities query. Bypassing SQL query compilation to optimize response latency."
+        },
+        {
+          title: "Formulating response",
+          body: "Rendering capabilities overview narrative for the active retail brand dataset."
+        }
+      ]
+    : thoughts;
+
   // If statuses and thoughts are empty and we are not streaming, do not render
-  if (statuses.length === 0 && thoughts.length === 0 && !isStreaming) return null;
+  if (displayStatuses.length === 0 && displayThoughts.length === 0 && !isStreaming) return null;
 
   // If not streaming and thoughts are empty, render inline statuses directly
-  if (!isStreaming && thoughts.length === 0) {
+  if (!isStreaming && displayThoughts.length === 0) {
     return (
       <div className="mb-4 flex flex-col gap-2 p-3 bg-slate-950/20 border border-white/4 rounded-xl backdrop-blur-sm">
-        {statuses.map((status, idx) => (
+        {displayStatuses.map((status, idx) => (
           <div key={idx} className="flex items-center gap-2 font-medium text-slate-400 text-xs">
             <span className="flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
               ✓
@@ -278,7 +296,7 @@ const MessageThinkingBlock: React.FC<{
           </span>
         </div>
         
-        {(statuses.length > 0 || thoughts.length > 0) && (
+        {(displayStatuses.length > 0 || displayThoughts.length > 0) && (
           <button
             id="show-thinking-btn"
             onClick={() => {
@@ -296,12 +314,12 @@ const MessageThinkingBlock: React.FC<{
       </div>
 
       {/* Expanded Content Box */}
-      {isOpen && (statuses.length > 0 || thoughts.length > 0) && (
+      {isOpen && (displayStatuses.length > 0 || displayThoughts.length > 0) && (
         <div className="p-4 bg-slate-950/30 border border-white/6 rounded-xl flex flex-col gap-4 max-h-[300px] overflow-y-auto text-xs text-slate-300 w-full backdrop-blur-sm">
           {/* Status steps */}
-          {statuses.length > 0 && (
+          {displayStatuses.length > 0 && (
             <div className="flex flex-col gap-2">
-              {statuses.map((status, idx) => (
+              {displayStatuses.map((status, idx) => (
                 <div key={idx} className="flex items-center gap-2 font-medium text-slate-400">
                   <span className="flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                     ✓
@@ -313,9 +331,9 @@ const MessageThinkingBlock: React.FC<{
           )}
 
           {/* Thought process body */}
-          {thoughts.length > 0 && (
+          {displayThoughts.length > 0 && (
             <div className="flex flex-col gap-4 border-t border-white/6 pt-3 mt-1">
-              {thoughts.map((t, idx) => (
+              {displayThoughts.map((t, idx) => (
                 <div key={idx} className="flex flex-col gap-1.5">
                   <h4 className="font-heading font-semibold text-slate-200">{t.title}</h4>
                   <p className="leading-relaxed whitespace-pre-wrap text-slate-400">{formatMarkdown(t.body)}</p>
@@ -992,12 +1010,6 @@ const App: React.FC = () => {
   const isCorporateUser = (email: string | null): boolean => {
     if (!email) return false;
     const lowerEmail = email.toLowerCase();
-    return lowerEmail.endsWith("altostrat.com") || lowerEmail.endsWith("google.com");
-  };
-
-  const isArgolisUser = (email: string | null): boolean => {
-    if (!email) return false;
-    const lowerEmail = email.toLowerCase();
     return lowerEmail.endsWith("altostrat.com");
   };
 
@@ -1005,7 +1017,7 @@ const App: React.FC = () => {
     // If they switched to SSO, verify corporate membership and request GCP scope incrementally
     if (mode === "user_sso") {
       const email = user?.email || auth.currentUser?.email || null;
-      if (!isArgolisUser(email)) {
+      if (!isCorporateUser(email)) {
         alert("SSO credentials mode is restricted to Argolis accounts only.");
         return;
       }
@@ -1348,8 +1360,8 @@ const App: React.FC = () => {
         // If credentialsMode is user_sso, check if we have the Google OAuth token!
         if (credentialsMode === "user_sso") {
           const email = user?.email || auth.currentUser?.email || null;
-          if (!isArgolisUser(email)) {
-            // Revert back to service account for non-Argolis users
+          if (!isCorporateUser(email)) {
+            // Revert back to service account for non-corporate users
             setCredentialsMode("service_account");
             localStorage.setItem("gcp_credentials_mode", "service_account");
           } else {
@@ -2493,7 +2505,14 @@ const App: React.FC = () => {
                     fetchInsights(selectedAgent);
                   }
                 }
-                if (tourStep === 6) setTourStep(7);
+                if (tourStep > 0) {
+                  if (tourStep === 6) {
+                    setTourStep(7);
+                  } else {
+                    setTourStep(0);
+                    sessionStorage.setItem("ca_visited_tour", "true");
+                  }
+                }
               }}
               className={`flex items-center gap-3 min-w-0 cursor-pointer hover:opacity-90 active:scale-[0.98] transition select-none group ${tourStep === 6 ? 'tour-highlight p-1 rounded-xl' : ''}`}
               title="Return to Dashboard"
@@ -2567,7 +2586,7 @@ const App: React.FC = () => {
                         <span>💼 Service Account (ADC)</span>
                         {credentialsMode === "service_account" && <span className="text-brand-primary text-[10px]">✓</span>}
                       </button>
-                      {isArgolisUser(user?.email || auth.currentUser?.email || null) && (
+                      {isCorporateUser(user?.email || auth.currentUser?.email || null) && (
                         <button
                           onClick={() => {
                             handleCredentialsModeChange("user_sso");
@@ -3193,7 +3212,13 @@ const App: React.FC = () => {
           <div className="max-w-4xl mx-auto w-full px-5 my-10 overflow-y-auto">
             <header className="glass-panel flex items-center gap-6 px-8 py-5 rounded-2xl mb-6">
               <button 
-                onClick={() => setCurrentPage("home")}
+                onClick={() => {
+                  setCurrentPage("home");
+                  if (tourStep > 0) {
+                    setTourStep(0);
+                    sessionStorage.setItem("ca_visited_tour", "true");
+                  }
+                }}
                 className="flex items-center gap-2 text-sm text-slate-400 hover:text-white cursor-pointer transition font-medium"
               >
                 <ArrowLeft size={16} />
@@ -3236,7 +3261,7 @@ const App: React.FC = () => {
                           className="w-full py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 outline-none focus:border-brand-primary/50 cursor-pointer appearance-none"
                         >
                           <option value="service_account">Service Account (ADC)</option>
-                          {isArgolisUser(user?.email || auth.currentUser?.email || null) && (
+                          {isCorporateUser(user?.email || auth.currentUser?.email || null) && (
                             <option value="user_sso">SSO User Session (Google Login)</option>
                           )}
                         </select>

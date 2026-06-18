@@ -14,7 +14,21 @@ logger = logging.getLogger("ca-web-app-auth")
 load_dotenv()
 
 # Initialize Firebase Admin SDK
-fb_project_id = os.getenv("FB_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT") or "your-gcp-project-id"
+fb_project_id = os.getenv("FB_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
+
+if not fb_project_id:
+    try:
+        import google.auth
+        _, auth_project = google.auth.default()
+        if auth_project:
+            fb_project_id = auth_project
+            logger.info(f"Dynamically resolved Firebase Project ID via ADC: {fb_project_id}")
+    except Exception as e:
+        logger.warning(f"Failed to resolve project ID via ADC: {e}")
+
+if not fb_project_id:
+    fb_project_id = "your-gcp-project-id"
+
 fb_client_email = os.getenv("FB_CLIENT_EMAIL")
 fb_private_key = os.getenv("FB_PRIVATE_KEY")
 

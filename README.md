@@ -48,12 +48,12 @@ To run and test changes locally without requiring external cloud authentication 
 
 ## Continuous Deployment (CI/CD) & Multi-Site Architecture
 
-The project supports automated, multi-site continuous deployment configured via two separate GitHub Action workflows:
+The project is equipped with a robust, **unconditional (zero-skip) multi-site deployment pipeline** configured via two separate GitHub Action workflows. To eliminate synchronization gaps and deployment blocking (a common failure mode in multi-branch configurations where filters skip steps when branches are synced), the workflows are designed to unconditionally compile, build, and deploy all frontend and backend services on every push:
 
 ### 💼 A. Corporate Portal (https://your-corporate-domain.com/)
 * **Branch**: `main`
 * **Workflow**: `.github/workflows/firebase-deploy.yml`
-* **Behavior**: Deploys the corporate portal with standard enterprise domain authentication restrictions (@google.com and @your-corporate-domain.com).
+* **Behavior**: Deploys the corporate portal with standard enterprise domain authentication restrictions (`@google.com` and `@your-corporate-domain.com`).
 * **Hosting Target**: `corporate` (mapping to your production site `your-gcp-project-id` in Firebase).
 
 ### 🚀 B. Public Showcase Portal (https://your-showcase-domain.com/)
@@ -139,6 +139,10 @@ Deploy the React static assets to Firebase's global edge CDN and automatically r
 13. **Simplified System Architecture Diagram**: A re-designed 4-node flow (BigQuery Storage, Knowledge Catalog, Reasoning Engine, and Custom UI) with interactive pulsing tags directing users to click nodes for detailed component breakdowns.
 14. **Dynamic Connection & Region Override Selector**: A live top-right connection dropdown allowing corporate (Altostrat) users to override active credential modes (Service Account vs. SSO User Session), switch target GCP projects, and dynamically select GCP locations (regions) on-the-fly, instantly hot-reloading data agents and session catalogs.
 15. **Premium Query Starters Landing Page**: A sleek, dynamic chat landing screen featuring a personalized greeting and a grid of brand-specific query starter cards that instantly populate the chat and trigger database queries to ensure a seamless "cold-start" experience.
+16. **SSO-Isolated Connection Overrides**: Under Service Account (ADC) credentials mode, the frontend strictly isolates and bypasses local-storage project and location header overrides, ensuring corporate sandbox users (`@altostrat.com`) and public facade users enjoy seamless, unified connectivity out-of-the-box.
+17. **Container-Native Firebase Auth Resolution**: The backend utilizes GCP default credential chains to dynamically query the container's active Google Cloud metadata server at runtime, automatically resolving the Firebase project ID to prevent 401 token authentication errors in serverless hosting (like Cloud Run) while maintaining 100% white-label security compliance.
+18. **Decoupled Walkthrough Fail-Safe & Streaming Diagnostics**: The onboarding Demo Tour features a decoupled, robust fail-safe mechanism that guarantees the gold-glowing "Show thinking" button and step-by-step reasoning logs are always visible and interactive, even if the backend returns custom stream statuses or empty thought arrays.
+19. **White-Label Clean Slate**: Complete repository purification, removing obsolete legacy static files (such as `UserGuide.html` and developer-facing guide fragments) to ensure 100% clean, professional white-label presentations.
 
 ---
 *Active Telemetry Stream: `G-C0VB9XKP7E`*

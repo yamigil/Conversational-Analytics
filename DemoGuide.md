@@ -5,7 +5,7 @@
 </p>
 
 > [!NOTE]
-> This demo guide contains the information Googlers need to reuse the demo. Be sure to review all contents in this doc, before reaching out to the Demo Lead.
+> This guide contains the instructions needed to deploy and run the demo. Be sure to review all contents before conducting a demo.
 
 > [!IMPORTANT]
 > **Please be advised: this is a product in preview; users may occasionally encounter bugs and instability!**
@@ -16,7 +16,7 @@
 
 | Field | Value |
 | :--- | :--- |
-| **Demo Lead** | Gilberto Gutierrez (`gilgtz@google.com`) |
+| **Demo Lead** | Gilberto Gutierrez |
 | **Duration** | ~3-5 mins |
 
 ---
@@ -33,7 +33,7 @@
 
 | Steps <br>*(Attendees see on screen)* | Say <br>*(Demo conductor says)* | Notes/Visual Aids |
 | :--- | :--- | :--- |
-| **1. Access the Portal & Sign In** | "Welcome to the Conversational Analytics Showcase. We'll start by logging in. Depending on our deployment configuration, we can enable a strict Googler-only login facade or leave it public-facing to showcase external capabilities." | Login screen containing the 'Sign in with Google' button. |
+| **1. Access the Portal & Sign In** | "Welcome to the Conversational Analytics Showcase. We'll start by logging in. Depending on our deployment configuration, we can enable domain-based login restrictions or leave it public-facing to showcase external capabilities." | Login screen containing the 'Sign in with Google' button. |
 | **2. Interactive Onboarding Tour** | "As a first-time user, we are greeted by an automated 13-step guided tour. This highlights the layout, brand controls, settings gear, and navigation paths so any stakeholder can find their way." | Tooltip overlay pointing to the Brand Selector. |
 | **3. Brand Customization** | "To personalize the experience, we can toggle our retail brand workspace (e.g., Home Depot, Target, or Tractor Supply). The dashboard fluidly shifts colors, logos, and presets to fit the brand." | UI colors and logos changing dynamically upon brand selection. |
 | **4. Explain System Architecture** | "Let's click 'Show Architecture' in the header. Pointing this out reveals our simplified 4-node flow: BigQuery (Data Storage), Dataplex (Knowledge Catalog), FastAPI/Gemini (Reasoning Engine), and React (Custom UI). Click any node to drill down into the technical orchestration details." | Interactive architecture modal with animated pulsing nodes. |
@@ -46,23 +46,12 @@
 
 ---
 
-## Access Control & Internal Publishing Guidelines
+## Access Control & Sandbox Configuration
 
-### 🔒 Restricting Access to Googlers & Argolis Users
+### 🔒 Restricting Access to Authorized Domains
 This application supports both a public-facing configuration and an internal-only facade using environment variables:
 - **Backend Enforcements (`backend/auth.py` & `backend/.env`):**
-  - Set `RESTRICT_TO_GOOGLE=true` to restrict API verification to `@google.com` and Argolis (`altostrat.com`) accounts. When active, other domain SSO logins are blocked with a `403 Forbidden` error.
+  - Set `RESTRICT_TO_GOOGLE=true` to restrict API verification to authorized corporate domains. When active, other domain SSO logins are blocked with a `403 Forbidden` error.
   - Set `RESTRICT_TO_GOOGLE=false` to allow public-facing domain access.
 - **Frontend Controls (`frontend/src/App.tsx` & `frontend/.env`):**
-  - Set `VITE_RESTRICT_TO_GOOGLE=true` to validate email domains client-side, trigger sign-outs on non-matching users, and render a clear access-denied message: `Access restricted to @google.com and Argolis accounts only.`
-
-### 👥 Sharing Demo Artifacts (Viewer Access)
-To share this demo with Cloud GTM teams (including FTEs, TVCs, and Interns), you must grant **Viewer** permissions on all related internal artifacts (App, Video, Demo Guide, and Slide Deck) to:
-* **Alphabet FTEs**: Alphabet "Viewer" group
-* **Alphabet TVCs**: `alphabet-extendedworkforce@google.com` (Viewer)
-* **Google Interns**: `googlers-intern@google.com` (Viewer)
-
-### 🚀 Live Hosting & Project Exploration
-- **Host Live Application / Shared Project:** File hosting requests via **go/demo-hosting-request**.
-- **Automate Deployment:** To link your infrastructure click-to-deploy automated setups, see the guidelines on **go/demo-automation-guide**.
-- **Code Migration:** All demo repositories must be migrated from CE Gitlab to the shared internal Cloud GTM GitHub organization. Details can be found at **go/use-gtm-github** and **go/releasing**.
+  - Set `VITE_RESTRICT_TO_GOOGLE=true` to validate email domains client-side, trigger sign-outs on non-matching users, and render a clear access-denied message: `Access restricted to authorized domains only.`

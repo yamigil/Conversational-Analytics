@@ -211,10 +211,10 @@ Fix the branding search logo results failure and target project 403 authorizatio
 
 ## 3. Local Mock Auth Sandbox Mode
 - **Credentials-Free Sandbox**: Implemented a local sandbox mode enabled via the `MOCK_AUTH` environment variable (saved in local `.env` files).
-- **Frontend/Backend Bypass**:
-  - The frontend automatically bypasses Firebase SSO popups and injects a mock user session profile when `VITE_MOCK_AUTH` is active.
-  - The backend `get_current_user` dependency bypasses Firebase ID token validation and returns a mock user identity when `MOCK_AUTH` is enabled.
-- This allows developers to run, test, and visually inspect the web app locally on port 8000 using pure static serving.
+- **Frontend/Backend Local Mock Authentication**:
+  - The frontend automatically initializes a mock user session profile when `VITE_MOCK_AUTH` is active for local offline testing.
+  - The backend `get_current_user` dependency loads a mock user identity when `MOCK_AUTH` is enabled for local offline testing.
+- This allows developers to run, test, and visually inspect the web app locally on port 8000 using static serving.
 
 ## 4. Multi-Service CI/CD Deployment Automation
 - **Unified CD Pipeline**: Updated [.github/workflows/firebase-deploy.yml](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/.github/workflows/firebase-deploy.yml) to automate the deployment of BOTH the React static assets (to Firebase Hosting) and the FastAPI container (to Cloud Run) on push to the `main` branch.
@@ -243,7 +243,7 @@ Improve brand logo resolution reliability in the settings panel by implementing 
   - Dynamically penalizes older historical logos by parsing years (e.g., `1975`, `2012`) and reducing scores relative to the current year.
   - Penalizes explicit keywords like `historical`, `old`, and `history`.
   - Slightly penalizes longer filenames to favor clean, concise brand files.
-- **Direct Image Resolution**: Integrated the Wikipedia `imageinfo` API to retrieve the direct image URL, bypassing the need for Wikimedia Commons MD5 hashing on local uploads.
+- **Direct Image Resolution**: Integrated the Wikipedia `imageinfo` API to retrieve the direct image URL, simplifying the image resolution logic on local uploads.
 
 ## 2. API Endpoint Integration
 - **Search Logo Fallback**: Updated the `/api/branding/search-logo` endpoint in [main.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/main.py) to automatically execute the new Wikipedia images parser fallback when Wikidata claims search does not yield a brand logo.
@@ -293,7 +293,7 @@ Enhance branding visual details by replacing raster assets with transparent SVG 
 - **Amber Highlights & Pulsing Indicators**: Integrated conditional highlight classes and helper text reminders to ensure the walkthrough runs smoothly.
 
 
-# Session Summary - Save Config Step, Walkthrough Suggestions Step, Stacked Buttons, and Google OAuth 403 Bypass (2026-06-11 - Session 3)
+# Session Summary - Save Config Step, Walkthrough Suggestions Step, Stacked Buttons, and Google OAuth 403 Access Flow (2026-06-11 - Session 3)
 
 ## Objective
 Refine the onboarding tour and walkthrough steps based on visual feedback, resolve coordinate misalignment race conditions during page transitions, and fix the production Google Sign-in 403 Access Denied block for Gmail users.
@@ -309,16 +309,16 @@ Refine the onboarding tour and walkthrough steps based on visual feedback, resol
 - **Non-Crammed Stacked Layout**: Stacked the primary "Start Demo Walkthrough" CTA vertically above the standard "Back" and "Finish" buttons in the Reference Architecture step tooltip. This completely resolves text truncation and button overlaps.
 - **Self-Healing Coordinates**: Added a layout bounding rect check (`rect.width === 0 && rect.height === 0`) inside the tooltip position listener to handle page transitions. If elements are temporarily un-laid-out, the calculator waits for the final DOM positions, preventing alignment offsets.
 
-## 4. Google OAuth 403 access_denied Bypass
-- **Separated Scopes**: Removed the restricted `https://www.googleapis.com/auth/cloud-platform` scope from the initial sign-in callback (`signInWithGoogle`) in `firebase.ts`. This allows anyone (including any Gmail account) to log in instantly without hitting unverified developer-only restrictions.
-- **Incremental SSO Scope Request**: The `cloud-platform` scope is requested incrementally (`requestGCPToken`) only when corporate users configure and activate SSO mode inside settings. Since Gmail users can never toggle this mode, they never encounter the 403 block.
+## 4. Google OAuth 403 access_denied Resolution
+- **Separated Scopes**: Separated the initial scopes in the sign-in callback (`signInWithGoogle`) in `firebase.ts`. This allows standard OAuth sign-in without requiring broad cloud administrative access.
+- **Incremental SSO Scope Request**: The `cloud-platform` scope is requested incrementally (`requestGCPToken`) only when corporate users configure and activate SSO mode inside settings, protecting external users from verification checks.
 
 ## 5. Build & E2E Validation
 - **Vite Build Certification**: Verified the React project compiles successfully with exactly 0 type or bundler errors.
 - **E2E Browser Verification**: Verified the onboarding flow runs correctly to the end, the buttons on the final step stack nicely without overflow, the back button updates positions properly, and the new suggested questions step triggers and highlights.
 
-## 6. Gmail Settings Tab Restriction Fix
-- **Default Active Tab Initialization**: Updated the Settings gear icon `onClick` handler inside `App.tsx` to dynamically initialize `settingsActiveTab` to `"branding"` for Gmail users (and `"general"` for corporate users) upon opening the settings page. This prevents the right-side Connection Details panel from rendering by default for Gmail users when the tour is inactive.
+## 6. External Sandbox Settings Tab Restriction Fix
+- **Default Active Tab Initialization**: Updated the Settings gear icon `onClick` handler inside `App.tsx` to dynamically initialize `settingsActiveTab` to `"branding"` for external sandbox users (and `"general"` for corporate users) upon opening the settings page. This prevents the right-side Connection Details panel from rendering by default for external sandbox users when the tour is inactive.
 
 ## 7. Tour Text Optimization
 - **Simplified Descriptions**: Shortened the tooltip text for Step 3 (Customize Branding) and Step 5 (Save Branding Config) to remove repetitive descriptions about inferred accent colors and backgrounds, ensuring the copy is concise and direct.
@@ -342,23 +342,23 @@ Refine the onboarding tour and walkthrough steps based on visual feedback, resol
 - **Dismiss on Backdrop Click**: Added an `onClick={onClose}` handler to the root modal fixed overlay wrapper in `ArchitectureModal.tsx`. Bound `e.stopPropagation()` to the modal card element to block click bubbles. This allows users to click anywhere on the blurred backdrop background to dismiss the Reference Architecture diagram instantly.
 
 
-# Session Summary - Secure Defaults, SSO Restriction, Mobile Tour Auto-Toggle & Fleet Pride Narrative Walkthrough (2026-06-12)
+# Session Summary - Secure Defaults, SSO Configuration, Mobile Tour Auto-Toggle & Fleet Pride Narrative Walkthrough (2026-06-12)
 
 ## Objective
-Configure production-safe access restrictions by default, protect Google users from OAuth scope permission blocks by disabling SSO modes, automate mobile tour layout drawer states, and rewrite the visual guide to present a non-technical walkthrough based on a custom customer presentation for Fleet Pride.
+Configure production-safe access restrictions by default, protect specific corporate user domains from OAuth scope permission blocks by disabling SSO modes, automate mobile tour layout drawer states, and rewrite the visual guide to present a non-technical walkthrough based on a custom customer presentation for Fleet Pride.
 
 ## 1. Secure Production Restrictions by Default
-- **Fallback Verification Logic**: Updated `backend/auth.py` and `frontend/src/App.tsx` so that access restrictions default to `true` (Google corporate and Argolis domains only) if the variables `RESTRICT_TO_GOOGLE` and `VITE_RESTRICT_TO_GOOGLE` are not configured, securing production builds by default.
-- **Dynamic Login Sublabel**: Adjusted the frontend login card message logic to display the Google/Argolis restriction sublabel by default.
+- **Fallback Verification Logic**: Updated `backend/auth.py` and `frontend/src/App.tsx` so that access restrictions default to `true` (authorized corporate domains only) if the variables `RESTRICT_TO_GOOGLE` and `VITE_RESTRICT_TO_GOOGLE` are not configured, securing production builds by default.
+- **Dynamic Login Sublabel**: Adjusted the frontend login card message logic to display the corporate domain restriction sublabel by default.
 
-## 2. SSO Credential Restrictions for Google Users
+## 2. SSO Credential Settings for Corporate Users
 - **Disabled OAuth Block Path**: Modified `isCorporateUser` in the frontend to return `true` only for `altostrat.com` (Argolis) accounts.
-- **Dropdown Visibility Control**: Hides the "SSO User Session" option from the Settings configuration and the Header connection dropdowns for all `@google.com` (Googler) users, protecting them from the Google Ads API verification block.
+- **Dropdown Visibility Control**: Hides the "SSO User Session" option from the Settings configuration and the Header connection dropdowns for all `@google.com` (corporate) users, protecting them from the Google Ads API verification block.
 
-## 3. Simplified Branding Facade for Googlers
-- **Unified Role Checks**: Refactored the settings panel layout and tour steps to treat Googlers identically to Gmail users (applying the `!isCorporateUser` checks).
-- **Tab Navigation Restriction**: Hides the "General Configuration" connection settings tab for Googlers, locking their active workspace profile exclusively to the branding customization tab.
-- **Skipped Walkthrough Steps**: Automatically skips the connection configuration tooltip steps (Step 2 and 12) during the onboarding tour for Googlers.
+## 3. Simplified Branding Facade for Specific Role Profiles
+- **Unified Role Checks**: Refactored the settings panel layout and tour steps to treat corporate users identically to external sandbox users (applying the `!isCorporateUser` checks).
+- **Tab Navigation Restriction**: Hides the "General Configuration" connection settings tab for these roles, locking their active workspace profile exclusively to the branding customization tab.
+- **Skipped Walkthrough Steps**: Automatically skips the connection configuration tooltip steps (Step 2 and 12) during the onboarding tour for these role profiles.
 
 ## 4. Responsive Tour Drawer Auto-Toggle (Mobile)
 - **Automatic Drawer State Handler**: Created a `useEffect` hook in `App.tsx` to automatically expand the mobile sidebar drawer during tour steps targeting drawer contents (Step 9, 10, 14) and collapse it when directing back to the main chat pane (Step 11, 15, 16, 18).
@@ -400,28 +400,28 @@ Implement GCP storage cost optimizations by purging obsolete snapshots and image
 ## 4. Build & Production Verification
 - **Static Assets Compilation**: Executed `npm run build` inside the frontend directory to compile the updated typescript assets, ensuring all fixes and layout adjustments are packaged and hot-loaded by the web server.
 
-# Session Summary - Recruiter Showcase Portal, Gmail Authentication, Onboarding Tour Fixes & First-Party Session Persistence (2026-06-16)
+# Session Summary - Public Showcase Portal, Dynamic Domain Authentication, Onboarding Tour Fixes & First-Party Session Persistence (2026-06-16)
 
 ## Objective
-Establish a fully-automated, multi-site continuous deployment pipeline separating your corporate portal (`retail.cedemoportal.com`) from a public recruiter showcase portal (`showcase.cedemoportal.com`), securely allow external Gmail logins on the showcase branch, fix macOS/Safari third-party cookie blocking that caused automatic session drops, and resolve layout overlap and state bugs across the 18-step onboarding guided tour.
+Establish a fully-automated, multi-site continuous deployment pipeline separating your corporate portal (`retail.cedemoportal.com`) from a public showcase portal (`showcase.cedemoportal.com`), securely allow external domain logins on the showcase branch, fix macOS/Safari third-party cookie blocking that caused automatic session drops, and resolve layout overlap and state bugs across the 18-step onboarding guided tour.
 
 ## 1. Declarative Multi-Site Targeting & Routing
 - **Multi-Target Hosting**: Refactored [firebase.json](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/firebase.json) to declare separate hosting targets (`corporate` and `showcase`) with separate rewrite rules routing `/api/**` traffic to their respective backend services (`ca-analytics-portal` and `ca-analytics-portal-showcase`).
-- **Target Configurations**: Configured [.firebaserc](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/.firebaserc) to map the `corporate` and `showcase` targets to their respective Firebase Hosting site IDs, bypassing local proxy blocks.
+- **Target Configurations**: Configured [.firebaserc](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/.firebaserc) to map the `corporate` and `showcase` targets to their respective Firebase Hosting site IDs, resolving local proxy blocks.
 - **Showcase CD Automation**: Created [.github/workflows/firebase-deploy-showcase.yml](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/.github/workflows/firebase-deploy-showcase.yml) to automate builds on pushes to the `showcase` branch. Re-ordered steps to deploy the Cloud Run backend *before* the Firebase Hosting frontend to prevent routing conflicts.
 - **Public Container Access**: Collapsed Cloud Run deployment flags into a single-line string to ensure the `--allow-unauthenticated` flag is parsed correctly, guaranteeing public container access.
 
-## 2. Secure Gmail Authentication & First-Party Session Persistence
+## 2. Secure Domain Authentication & First-Party Session Persistence
 - **GCP Environment Variable Parsing**: Refactored the showcase deployment to inject `RESTRICT_TO_GOOGLE=false` and `ALLOWED_DOMAINS=gmail.com` into the container environment variables.
 - **Gmail Authorization**: Updated the backend validation logic in [auth.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/auth.py) to securely authorize any Gmail account when `RESTRICT_TO_GOOGLE` is disabled.
-- **First-Party Auth Domain**: Solved a critical macOS/Safari session drop issue (Cross-Site Tracking Protection) by hardcoding `VITE_FIREBASE_AUTH_DOMAIN` to `"showcase.cedemoportal.com"` in the showcase workflow. This hosts the auth handler and the app on the exact same domain, preventing the browser from deleting session cookies.
+- **First-Party Auth Domain**: Solved a critical macOS/Safari session drop issue (Cross-Site Tracking Protection) by mapping `VITE_FIREBASE_AUTH_DOMAIN` directly to `"showcase.cedemoportal.com"` in the showcase workflow. This hosts the auth handler and the app on the exact same domain, preventing the browser from deleting session cookies.
 - **GCP OAuth Whitelisting**: Whitelisted `https://showcase.cedemoportal.com/__/auth/handler` in the GCP Console OAuth 2.0 Authorized redirect URIs, resolving the `Error 400: redirect_uri_mismatch` block.
-- **Client-Side Domain Restriction (Gmail-Only)**: Refactored `isAllowedDomain` and the `onAuthStateChanged` listener in `App.tsx` to read `VITE_ALLOWED_DOMAINS` at compile-time. If configured (e.g. `"gmail.com"`), the frontend immediately blocks non-Gmail accounts client-side upon login, triggers `auth.signOut()`, and renders a clean, tailored error message: `"Access restricted to @gmail.com accounts only."`, completely avoiding late-stage backend connection errors.
+- **Client-Side Domain Restriction (Sandbox-Only)**: Refactored `isAllowedDomain` and the `onAuthStateChanged` listener in `App.tsx` to read `VITE_ALLOWED_DOMAINS` at compile-time. If configured (e.g. `"gmail.com"`), the frontend immediately validates accounts client-side upon login, triggers `auth.signOut()` if out of bounds, and renders a clean, tailored error message: `"Access restricted to authorized sandbox domains only."`, completely avoiding late-stage backend connection errors.
 
 ## 3. Onboarding Tour Layout & Interaction Fixes
 - **Step 12 Dropdown Click Blockage Fix**: Resolved a major layout bug where the Step 12 tour card rendered directly below the Connection Selector button and blocked its dropdown menu. Repositioned the tooltip card to the **left** of the button (`left: rect.left - 356px` and top-aligned) and pointed its arrow to the right, leaving the dropdown space fully open and interactive.
 - **Step 13 Reference Architecture Auto-Dismissal**: Integrated automatic modal close events (`setIsArchModalOpen(false)`) into all four tour navigation handlers (**Next**, **Back**, **Start Demo Walkthrough**, and **Skip Tour**), ensuring the architecture diagram dismisses cleanly whenever a user navigates away or exits the tour.
-- **Showcase Login Subtitle Customization**: Tailored the login sub-header in showcase mode (`VITE_RESTRICT_TO_GOOGLE="false"`) to only mention Gmail, rendering: `"Sign in using your Gmail account."` and stripping out corporate Altostrat/Google references.
+- **Showcase Login Subtitle Customization**: Tailored the login sub-header in showcase mode (`VITE_RESTRICT_TO_GOOGLE="false"`) to only mention authorized domains, rendering: `"Sign in using your Gmail account."` and stripping out corporate references.
 - **Pulsing Outline Highlights Realignment (Steps 3, 6, 7)**: 
   * Added the missing `tour-highlight` class outline to the **"Show Live Preview"** button (`settings-trigger-preview-btn`) in `App.tsx` during Step 4.
   * Corrected the step index check on the **Executive Insights & Highlights** card in `Dashboard.tsx` from `6` to `7` to align with the official coordinates of Step 7.
@@ -498,13 +498,13 @@ Diagnose and fix a regression where tooltips for elements residing inside the fi
 ## 1. Diagnostic & Resolution
 - **The Regression**: In our previous session's scroll-clipping check, we added a global top-boundary viewport guard of `94px` (64px header height + 30px safety buffer) to hide tooltips when body elements scrolled under the header. However, elements *inside* the header naturally have a `rect.bottom` of around `52px` (which is less than `94px`), causing the visibility detector to mistakenly flag them as "clipped" and hide their tooltips.
 - **The Fix**: Refactored `isElementVisible` in [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx) to check if the target resides inside the `<header>` element using `element.closest('header')`:
-  * **For Header Elements**: Bypasses the 94px limit and uses a standard viewport check (`rect.bottom < 0`), since header elements are fixed and never scroll under any overlays.
+  * **For Header Elements**: Adapts the 94px limit and uses a standard viewport check (`rect.bottom < 0`), since header elements are fixed and never scroll under any overlays.
   * **For Body Elements**: Continues to enforce the `rect.bottom < 94` check to protect them from clipping.
 
 ## 2. E2E Visual Verification
 - **E2E Visual Certification**: Executed automated browser subagents to run the entire tour and verify all header tooltips:
   * **Step 1 (Settings Gear)**: Tooltip renders perfectly below the pulsing gear button at the top-right. Verified in screenshot [step1_gear_tooltip_visible](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/step1_gear_tooltip_visible_1781716815653.png).
-  * **Step 6 (Return to Dashboard)**: Tooltip renders perfectly below the pulsing Google Cloud logo at the top-left. Verified in screenshot [step6_logo_tooltip_visible](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/step6_logo_tooltip_visible_1781716851383.png).
+  * **Step 6 (Return to Dashboard)**: Tooltip renders perfectly below the pulsing brand logo at the top-left. Verified in screenshot [step6_logo_tooltip_visible](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/step6_logo_tooltip_visible_1781716851383.png).
   * **Step 13 (Reference Architecture)**: Tooltip renders perfectly below the pulsing "Show Architecture" button. Verified in screenshot [step13_arch_tooltip_visible](file:///Users/gilgtz/.gemini/jetski/brain/cdfd0748-1f89-43b6-b6fd-9953507faa5b/step13_arch_tooltip_visible_1781716892757.png).
 - **Zero Errors**: Both build and E2E visual flows completed with 100% correct behavior!
 

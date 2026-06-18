@@ -33,11 +33,11 @@ To spin up both the backend API and the frontend dashboard development servers c
 The application will be available locally at `http://localhost:8000/`.
 
 ### Local Sandbox Mode (Mock Authentication)
-To run and test changes locally without hitting Firebase authentication screens, you can enable Mock Auth:
+To run and test changes locally without requiring external cloud authentication services during offline development, you can enable the Local Sandbox Mode:
 1. Set `MOCK_AUTH=true` inside `backend/.env`.
 2. Set `VITE_MOCK_AUTH=true` inside `frontend/.env`.
-3. Restart the dev servers. The portal will automatically load a mock user profile (`admin@gilgtz.altostrat.com`) and bypass all SSO login overlays.
-   * **Simulate Gmail User**: Append `?mock=gmail` to the URL (e.g. `http://localhost:8000/?mock=gmail`) to test restricted settings views and modified tour boundaries.
+3. Restart the dev servers. The portal will automatically load a mock local user profile (`admin@gilgtz.altostrat.com`) and initialize the offline development environment.
+   * **Simulate External User Profile**: Append `?mock=gmail` to the URL (e.g. `http://localhost:8000/?mock=gmail`) to test domain-restricted settings views and custom onboarding tour flows.
 
 ---
 
@@ -48,15 +48,15 @@ The project supports automated, multi-site continuous deployment configured via 
 ### 💼 A. Corporate Portal (https://retail.cedemoportal.com/)
 * **Branch**: `main`
 * **Workflow**: `.github/workflows/firebase-deploy.yml`
-* **Behavior**: Deploys the corporate portal with strict `@google.com` and Altostrat (Argolis) authentication restrictions.
+* **Behavior**: Deploys the corporate portal with standard enterprise domain authentication restrictions (@google.com and @altostrat.com).
 * **Hosting Target**: `corporate` (mapping to the production site `gilbertos-project-340619` in Firebase).
 
-### 🚀 B. Recruiter Showcase Portal (https://showcase.cedemoportal.com/)
+### 🚀 B. Public Showcase Portal (https://showcase.cedemoportal.com/)
 * **Branch**: `showcase`
 * **Workflow**: `.github/workflows/firebase-deploy-showcase.yml`
-* **Behavior**: Deploys a public showcase portal tailored for external recruiters. It enforces a **strict Gmail-Only access restriction** (blocking corporate Altostrat and Google accounts) using a dual-layer check: backend container environment `ALLOWED_DOMAINS=gmail.com` and frontend compile-time `VITE_ALLOWED_DOMAINS="gmail.com"` to intercept and sign out non-Gmail users instantly at the gate.
+* **Behavior**: Deploys a public showcase portal tailored for external demonstrational access. It enforces a **domain-based access filter** (restricting access to specific email domains like `gmail.com` to demonstrate external sandbox capabilities) using a dual-layer check: backend container environment `ALLOWED_DOMAINS=gmail.com` and frontend compile-time `VITE_ALLOWED_DOMAINS="gmail.com"` to automatically validate incoming identities.
 * **Hosting Target**: `showcase` (mapping to the site `gilbertos-showcase-portal` in Firebase).
-* **First-Party Authentication**: To bypass browser cross-site tracking protections and prevent automatic session logouts on macOS/Safari, the showcase build hardcodes `VITE_FIREBASE_AUTH_DOMAIN` to `"showcase.cedemoportal.com"`.
+* **First-Party Authentication**: To ensure seamless authentication flow under browser privacy protections (preventing cross-site cookie blocks and automatic session drops on macOS/Safari), the showcase build maps `VITE_FIREBASE_AUTH_DOMAIN` directly to `"showcase.cedemoportal.com"`.
   * *Note: The redirect URI `https://showcase.cedemoportal.com/__/auth/handler` must be whitelisted in your GCP project's OAuth 2.0 Client ID settings!*
 
 ### Required Deployment Service Account Roles

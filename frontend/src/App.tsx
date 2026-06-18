@@ -247,10 +247,10 @@ const MessageThinkingBlock: React.FC<{
 
   // Inject mock thoughts/statuses during Step 18 & 19 of the walkthrough to guarantee the collapsible panel is visible and interactive!
   const isTourThinkingStep = tourStep === 18 || tourStep === 19;
-  const displayStatuses = (statuses.length === 0 && thoughts.length === 0 && isTourThinkingStep)
+  const displayStatuses = (statuses.length === 0 && isTourThinkingStep)
     ? ["Analyzing user greeting", "Checking database schemas", "Preparing capabilities response"]
     : statuses;
-  const displayThoughts = (statuses.length === 0 && thoughts.length === 0 && isTourThinkingStep)
+  const displayThoughts = (thoughts.length === 0 && isTourThinkingStep)
     ? [
         {
           title: "Bypassing SQL compilation",

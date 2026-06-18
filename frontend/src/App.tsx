@@ -992,7 +992,7 @@ const App: React.FC = () => {
   const isCorporateUser = (email: string | null): boolean => {
     if (!email) return false;
     const lowerEmail = email.toLowerCase();
-    return lowerEmail.endsWith("altostrat.com");
+    return lowerEmail.endsWith("altostrat.com") || lowerEmail.endsWith("google.com");
   };
 
   const handleCredentialsModeChange = async (mode: "service_account" | "user_sso") => {

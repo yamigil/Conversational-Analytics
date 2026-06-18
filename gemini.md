@@ -612,4 +612,19 @@ Diagnose and resolve the issue where the collapsible "Show thinking" button disa
 - Re-built the React client bundle via `npm run build` with exactly 0 type or bundler errors, confirming the project is 100% green and certified for production deployment!
 
 
+# Session Summary - Google Domain Corporate User Classification Fix (2026-06-18 - Part IX)
+
+## Objective
+Diagnose and resolve the issue where corporate users logging in with first-party `@google.com` accounts were shown the 11-step public/showcase tour instead of the 13-step corporate tour, causing misaligned highlights and incorrect tooltip text on the settings page.
+
+## 1. Diagnostics & Resolution
+- **Frontend/Backend Alignment**:
+  * *Root Cause*: The backend auth middleware correctly whitelisted both `@altostrat.com` and `@google.com` as corporate domains. However, the frontend helper function `isCorporateUser` in [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx) was only checking if the email ended with `altostrat.com`.
+  * Consequently, Google employees logging in with their `@google.com` credentials were classified as public/Gmail users in the frontend, loading the simplified 11-step tour (which skips credentials and override settings) and resulting in misaligned tooltip offsets and step counts (e.g. `3 of 11` instead of `3 of 13`).
+  * *Resolution*: Updated the frontend `isCorporateUser` helper in [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx) to check for both `altostrat.com` and `google.com` domains.
+
+## 2. Build Certification
+- Re-built the React client bundle via `npm run build` with exactly 0 type or bundler errors, confirming the project is 100% green and certified for production deployment!
+
+
 

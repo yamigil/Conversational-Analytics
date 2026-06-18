@@ -16,20 +16,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Check Path Changes
-        uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            frontend:
-              - 'frontend/**'
-              - '.github/workflows/firebase-deploy-showcase.yml'
-            backend:
-              - 'backend/**'
-              - '.github/workflows/firebase-deploy-showcase.yml'
-
       - name: Set up Node.js
-        if: steps.filter.outputs.frontend == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -37,7 +24,6 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install Frontend Dependencies & Build
-        if: steps.filter.outputs.frontend == 'true'
         run: |
           cd frontend
           npm ci
@@ -55,13 +41,11 @@ jobs:
           VITE_ALLOWED_DOMAINS: "gmail.com"
 
       - name: Authenticate to Google Cloud
-        if: steps.filter.outputs.backend == 'true'
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GILBERTOS_PROJECT_340619 }}
 
       - name: Deploy Backend to Cloud Run (Showcase)
-        if: steps.filter.outputs.backend == 'true'
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ca-analytics-portal-showcase
@@ -70,7 +54,6 @@ jobs:
           flags: '--allow-unauthenticated --port 8000 --set-env-vars RESTRICT_TO_GOOGLE=false,ALLOWED_EMAILS=${{ secrets.ALLOWED_EMAILS }},ALLOWED_DOMAINS=${{ secrets.ALLOWED_DOMAINS }}'
 
       - name: Deploy to Firebase Hosting (Showcase)
-        if: steps.filter.outputs.frontend == 'true'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

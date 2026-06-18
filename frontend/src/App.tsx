@@ -710,13 +710,13 @@ const App: React.FC = () => {
         const params = new URLSearchParams(window.location.search);
         const isGmailMock = params.get("mock") === "gmail";
         
-        if (!isAllowedDomain(isGmailMock ? "yamigilgtz@gmail.com" : "admin@google.com")) {
+        if (!isAllowedDomain(isGmailMock ? "sandbox-user@gmail.com" : "admin@google.com")) {
           setUser(null);
           setAuthError(getAuthErrorMessage());
         } else {
           const email = isGmailMock 
-            ? "yamigilgtz@gmail.com" 
-            : (import.meta.env.VITE_RESTRICT_TO_GOOGLE !== "false" ? "admin@google.com" : "admin@gilgtz.altostrat.com");
+            ? "sandbox-user@gmail.com" 
+            : (import.meta.env.VITE_RESTRICT_TO_GOOGLE !== "false" ? "admin@google.com" : "admin@your-corporate-domain.com");
           setUser({
             email: email,
             displayName: isGmailMock ? "Gmail Test User" : "Argolis Test User",
@@ -758,8 +758,8 @@ const App: React.FC = () => {
         }
         
         const email = isGmailMock 
-          ? "yamigilgtz@gmail.com" 
-          : (restrictToGoogle ? "admin@google.com" : "admin@gilgtz.altostrat.com");
+          ? "sandbox-user@gmail.com" 
+          : (restrictToGoogle ? "admin@google.com" : "admin@your-corporate-domain.com");
         setUser({
           email: email,
           displayName: isGmailMock ? "Gmail Test User" : "Argolis Test User",

@@ -6,6 +6,12 @@ A customizable, white-label frontend template that allows Customer Engineers to 
 
 This demo highlights Conversational Analytics (CA) on BigQuery data warehouses, powered by Gemini for Google Cloud. Its purpose is to show how non-technical users can move beyond static dashboards to engage directly with raw enterprise data using natural language. Run forecasting out-of-the-box using built-in database machine learning models (like TimesFM and Contribution Analysis), and verify results instantly with step-by-step thinking logs.
 
+## Dual-Purpose Architecture
+
+This codebase is engineered to support a dual-purpose deployment strategy:
+1. **💼 Internal Enterprise Portal**: Designed for secure internal corporate deployments. It leverages corporate Single Sign-On (SSO) and Google Service Accounts (ADC) to enable Customer Engineers and internal teams to securely query and manage high-fidelity data warehouses.
+2. **🚀 External Public Showcase Portal**: Designed for public demonstrational access. It utilizes a secure, domain-filtered sandbox mode that automatically isolates external public traffic (e.g. restricting access to specific sandbox domains like `@gmail.com` to demonstrate multi-tenant sandbox capabilities) while presenting a simplified, branding-only layout to showcase features to external stakeholders.
+
 ## Directory Structure
 
 ```
@@ -18,8 +24,7 @@ ca-agent-web-app/
 ├── .dockerignore     # Docker build context exclusion rules
 ├── .gcloudignore     # gcloud deployment upload exclusion rules
 ├── run.sh            # Root shell script to start both services concurrently for local dev
-├── README.md         # Project documentation (this file)
-└── gemini.md         # Session histories and feature rollouts summary
+└── README.md         # Project documentation (this file)
 ```
 
 ## Getting Started (Local Development)
@@ -36,7 +41,7 @@ The application will be available locally at `http://localhost:8000/`.
 To run and test changes locally without requiring external cloud authentication services during offline development, you can enable the Local Sandbox Mode:
 1. Set `MOCK_AUTH=true` inside `backend/.env`.
 2. Set `VITE_MOCK_AUTH=true` inside `frontend/.env`.
-3. Restart the dev servers. The portal will automatically load a mock local user profile (`admin@gilgtz.altostrat.com`) and initialize the offline development environment.
+3. Restart the dev servers. The portal will automatically load a mock local user profile (`admin@your-corporate-domain.com`) and initialize the offline development environment.
    * **Simulate External User Profile**: Append `?mock=gmail` to the URL (e.g. `http://localhost:8000/?mock=gmail`) to test domain-restricted settings views and custom onboarding tour flows.
 
 ---
@@ -48,7 +53,7 @@ The project supports automated, multi-site continuous deployment configured via 
 ### 💼 A. Corporate Portal (https://your-corporate-domain.com/)
 * **Branch**: `main`
 * **Workflow**: `.github/workflows/firebase-deploy.yml`
-* **Behavior**: Deploys the corporate portal with standard enterprise domain authentication restrictions (@google.com and @altostrat.com).
+* **Behavior**: Deploys the corporate portal with standard enterprise domain authentication restrictions (@google.com and @your-corporate-domain.com).
 * **Hosting Target**: `corporate` (mapping to your production site `your-gcp-project-id` in Firebase).
 
 ### 🚀 B. Public Showcase Portal (https://your-showcase-domain.com/)

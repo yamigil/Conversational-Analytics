@@ -189,7 +189,7 @@ def get_project_id() -> str:
         logger.warning(f"Could not resolve project ID via google.auth.default: {e}")
 
     # 4. Try loading from Streamlit secrets file of quickstarts if present
-    quickstart_secrets = "/Users/gilgtz/Documents/Google/Conversational_Analytics/ca-api-quickstarts/.streamlit/secrets.toml"
+    quickstart_secrets = os.path.expanduser("~/Documents/Google/Conversational_Analytics/ca-api-quickstarts/.streamlit/secrets.toml")
     if os.path.exists(quickstart_secrets):
         try:
             import toml

@@ -1,15 +1,26 @@
 {
   "brands": {
     "default": {
-      "logoText": "Google Cloud",
-      "backgroundColorStart": "#0b0f19",
       "name": "Google Cloud",
-      "logoSvg": "<img src='/google_cloud_logo.svg' class='w-full h-full object-contain' />",
-      "backgroundColorEnd": "#1a2333",
+      "secondaryColor": "142, 70%, 45%",
       "logoUrl": "",
       "primaryColor": "217, 89%, 61%",
-      "secondaryColor": "142, 70%, 45%",
-      "welcomeMessage": "Welcome to your data assistant. How can I help you analyze your databases today?"
+      "logoText": "Google Cloud",
+      "backgroundColorStart": "#0b0f19",
+      "welcomeMessage": "Welcome to your data assistant. How can I help you analyze your databases today?",
+      "backgroundColorEnd": "#1a2333",
+      "logoSvg": "<img src='/google_cloud_logo.svg' class='w-full h-full object-contain' />"
+    },
+    "tractor_supply_company_official_logo": {
+      "name": "Tractor Supply",
+      "secondaryColor": "48, 100%, 50%",
+      "logoUrl": "",
+      "primaryColor": "120, 100%, 25%",
+      "logoText": "Tractor Supply",
+      "backgroundColorStart": "#051205",
+      "welcomeMessage": "Welcome to Tractor Supply Analytics. Let's analyze crop yields, equipment status, and parts distribution.",
+      "backgroundColorEnd": "#020802",
+      "logoSvg": "<img src=\"https://upload.wikimedia.org/wikipedia/commons/8/86/TractorSupplyCompanylogo.svg\" alt=\"Tractor Supply Company Official Logo\" class=\"w-full h-full object-contain\" />"
     }
   },
   "activeBrand": "default"

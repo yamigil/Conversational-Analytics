@@ -15,27 +15,53 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
   if (!isOpen) return null;
 
   const FlowConnector = ({ colorClass = "bg-blue-400" }: { colorClass?: string }) => (
-    <div className="flex items-center justify-center shrink-0 mx-1 relative w-10 md:w-16 h-6 select-none">
-      {/* Background track line */}
-      <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-slate-800/80 -translate-y-1/2 rounded-full overflow-hidden">
-        {/* Animated flow background gradient */}
-        <div className="absolute top-0 bottom-0 left-0 w-full bg-gradient-to-r from-transparent via-slate-500/10 to-transparent animate-flowLine" />
+    <>
+      {/* Desktop Flow Connector (Horizontal) */}
+      <div className="hidden md:flex items-center justify-center shrink-0 mx-1 relative w-16 h-6 select-none">
+        {/* Background track line */}
+        <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-slate-800/80 -translate-y-1/2 rounded-full overflow-hidden">
+          {/* Animated flow background gradient */}
+          <div className="absolute top-0 bottom-0 left-0 w-full bg-gradient-to-r from-transparent via-slate-500/10 to-transparent animate-flowLine" />
+        </div>
+        
+        {/* Moving Particles */}
+        <div 
+          className={`absolute top-1/2 w-1 h-1 rounded-full ${colorClass} shadow-[0_0_6px_currentColor] -translate-y-1/2 animate-flowParticle`} 
+          style={{ animationDelay: "0s" }}
+        />
+        <div 
+          className={`absolute top-1/2 w-1 h-1 rounded-full ${colorClass} shadow-[0_0_6px_currentColor] -translate-y-1/2 animate-flowParticle`} 
+          style={{ animationDelay: "0.6s" }}
+        />
+        <div 
+          className={`absolute top-1/2 w-1 h-1 rounded-full ${colorClass} shadow-[0_0_6px_currentColor] -translate-y-1/2 animate-flowParticle`} 
+          style={{ animationDelay: "1.2s" }}
+        />
       </div>
-      
-      {/* Moving Particles */}
-      <div 
-        className={`absolute top-1/2 w-1 h-1 rounded-full ${colorClass} shadow-[0_0_6px_currentColor] -translate-y-1/2 animate-flowParticle`} 
-        style={{ animationDelay: "0s" }}
-      />
-      <div 
-        className={`absolute top-1/2 w-1 h-1 rounded-full ${colorClass} shadow-[0_0_6px_currentColor] -translate-y-1/2 animate-flowParticle`} 
-        style={{ animationDelay: "0.6s" }}
-      />
-      <div 
-        className={`absolute top-1/2 w-1 h-1 rounded-full ${colorClass} shadow-[0_0_6px_currentColor] -translate-y-1/2 animate-flowParticle`} 
-        style={{ animationDelay: "1.2s" }}
-      />
-    </div>
+
+      {/* Mobile Flow Connector (Vertical) */}
+      <div className="flex md:hidden items-center justify-center shrink-0 my-1 relative w-6 h-10 select-none">
+        {/* Background track line */}
+        <div className="absolute left-1/2 top-0 bottom-0 w-[2px] bg-slate-800/80 -translate-x-1/2 rounded-full overflow-hidden">
+          {/* Animated flow background gradient */}
+          <div className="absolute left-0 right-0 top-0 h-full bg-gradient-to-b from-transparent via-slate-500/10 to-transparent animate-flowLineVert" />
+        </div>
+        
+        {/* Moving Particles */}
+        <div 
+          className={`absolute left-1/2 w-1 h-1 rounded-full ${colorClass} shadow-[0_0_6px_currentColor] -translate-x-1/2 animate-flowParticleVert`} 
+          style={{ animationDelay: "0s" }}
+        />
+        <div 
+          className={`absolute left-1/2 w-1 h-1 rounded-full ${colorClass} shadow-[0_0_6px_currentColor] -translate-x-1/2 animate-flowParticleVert`} 
+          style={{ animationDelay: "0.6s" }}
+        />
+        <div 
+          className={`absolute left-1/2 w-1 h-1 rounded-full ${colorClass} shadow-[0_0_6px_currentColor] -translate-x-1/2 animate-flowParticleVert`} 
+          style={{ animationDelay: "1.2s" }}
+        />
+      </div>
+    </>
   );
 
   const componentDetails: Record<"chat", Record<string, { title: string; subtitle: string; whatItDoes: string; whyNeeded: string }>> = {
@@ -83,11 +109,27 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
           90% { opacity: 1; }
           100% { left: 100%; opacity: 0; }
         }
+        @keyframes flowLineVert {
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(100%); }
+        }
+        @keyframes flowParticleVert {
+          0% { top: 0%; opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { top: 100%; opacity: 0; }
+        }
         .animate-flowLine {
           animation: flowLine 3s linear infinite;
         }
         .animate-flowParticle {
           animation: flowParticle 1.8s linear infinite;
+        }
+        .animate-flowLineVert {
+          animation: flowLineVert 3s linear infinite;
+        }
+        .animate-flowParticleVert {
+          animation: flowParticleVert 1.8s linear infinite;
         }
       `}</style>
       {/* Modal Card Box */}

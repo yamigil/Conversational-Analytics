@@ -81,29 +81,45 @@ const formatMarkdown = (text: string): string => {
   }).join("\n");
 };
 
-// Follow-up suggestions resolver
-const getFollowUpSuggestions = (brandKey: string): string[] => {
-  const normalized = brandKey.toLowerCase().replace(/[^a-z0-9]/g, "");
-  switch (normalized) {
-    case "homedepot":
-      return [
-        "What is the average ROAS for each month in the available data?",
-        "Predict the revenue for the next 3 months based on this historical trend.",
-        "Compare the performance of Google AdWords vs Bing Ads for the peak month of July 2023."
-      ];
-    case "target":
-      return [
-        "What is the total revenue for each product category this year?",
-        "How many unique visitors did we have each day last week?",
-        "Predict the daily revenue for the next 30 days based on the last year of data."
-      ];
-    default:
-      return [
-        "Show me the monthly trend of cost and revenue.",
-        "What are the top 5 brands by number of items sold?",
-        "What was the total revenue per category for the last year?"
-      ];
+// Follow-up suggestions resolver based on agent context and branding
+const getAgentSuggestions = (displayName: string, agentId: string, brandKey: string): string[] => {
+  const nameLower = (displayName || "").toLowerCase();
+  const idLower = (agentId || "").toLowerCase();
+  const brandNormalized = brandKey.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  // 1. If it is a Marketing or GA4 agent
+  if (nameLower.includes("marketing") || idLower.includes("marketing") || nameLower.includes("ga4") || idLower.includes("ga4")) {
+    return [
+      "What are the top 10 best-selling product categories by total sales revenue?",
+      "How does our monthly order volume compare across different countries?",
+      "Can we see the distribution of users by traffic source and country?"
+    ];
   }
+
+  // 2. If it is a Home Depot custom brand agent
+  if (brandNormalized === "homedepot") {
+    return [
+      "What is the average ROAS for each month in the available data?",
+      "Predict the revenue for the next 3 months based on this historical trend.",
+      "Compare the performance of Google AdWords vs Bing Ads for the peak month of July 2023."
+    ];
+  }
+
+  // 3. If it is a Target custom brand agent
+  if (brandNormalized === "target") {
+    return [
+      "What is the total revenue for each product category this year?",
+      "How many unique visitors did we have each day last week?",
+      "Predict the daily revenue for the next 30 days based on the last year of data."
+    ];
+  }
+
+  // 4. Default Retail / Ecommerce (The Look) suggestions
+  return [
+    "Show me the monthly trend of cost and revenue for this year.",
+    "What are the top 5 brands by number of items sold?",
+    "What is the average order value (AOV) for each month?"
+  ];
 };
 
 // Helper to identify status texts
@@ -938,8 +954,7 @@ const App: React.FC = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConvo, setSelectedConvo] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [insightsData, setInsightsData] = useState<{ summary: string; insights: string[] } | null>(null);
-  const [isLoadingInsights, setIsLoadingInsights] = useState<boolean>(false);
+
 
   // Connection and Reasoning Modes
   const [credentialsMode, setCredentialsMode] = useState<"service_account" | "user_sso">(
@@ -1075,6 +1090,13 @@ const App: React.FC = () => {
         };
       }
     }
+    if (window.innerWidth < 768 && actualStep === 1) {
+      return {
+        num: 1,
+        text: "Guided Tour: Available on Desktop",
+        total: 1
+      };
+    }
     const isGmailUser = !isCorporateUser(user?.email || auth.currentUser?.email || null);
     if (isGmailUser) {
       if (actualStep === 1) return { num: 1, text: "1. Configure Portal", total: 11 };
@@ -1082,7 +1104,7 @@ const App: React.FC = () => {
       if (actualStep === 4) return { num: 3, text: "3. Live Portal Preview", total: 11 };
       if (actualStep === 5) return { num: 4, text: "4. Save Branding Config", total: 11 };
       if (actualStep === 6) return { num: 5, text: "5. Return to Dashboard", total: 11 };
-      if (actualStep === 7) return { num: 6, text: "6. Executive Insights", total: 11 };
+      if (actualStep === 7) return { num: 6, text: "6. Recent Chat History", total: 11 };
       if (actualStep === 8) return { num: 7, text: "7. Launch Chat Workspace", total: 11 };
       if (actualStep === 9) return { num: 8, text: "8. Select AI Agent", total: 11 };
       if (actualStep === 10) return { num: 9, text: "9. Manage History", total: 11 };
@@ -1097,7 +1119,7 @@ const App: React.FC = () => {
           : actualStep === 4 ? "4. Live Portal Preview"
           : actualStep === 5 ? "5. Save Branding Config"
           : actualStep === 6 ? "6. Return to Dashboard"
-          : actualStep === 7 ? "7. Executive Insights"
+          : actualStep === 7 ? "7. Recent Chat History"
           : actualStep === 8 ? "8. Launch Chat Workspace"
           : actualStep === 9 ? "9. Select AI Agent"
           : actualStep === 10 ? "10. Manage History"
@@ -1214,8 +1236,8 @@ const App: React.FC = () => {
         const data: BrandingData = await res.json();
         setBranding(data);
         
-        // Retrieve the last active brand key from localStorage, or fall back to the saved active brand from backend, or "default"
-        const sessionActiveKey = localStorage.getItem("ca_active_brand") || data.activeBrand || "default";
+        // Always default to the standard GCP theme ("default") upon fresh page load or login
+        const sessionActiveKey = "default";
         setActiveBrandKey(sessionActiveKey);
         setAppActiveBrandKey(sessionActiveKey);
         
@@ -1337,21 +1359,7 @@ const App: React.FC = () => {
     }
   };
 
-  const fetchInsights = async (agentName: string) => {
-    if (!agentName) return;
-    setIsLoadingInsights(true);
-    try {
-      const res = await authenticatedFetch(`/api/insights/${encodeURIComponent(agentName)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setInsightsData(data);
-      }
-    } catch (e) {
-      console.error("Error loading insights:", e);
-    } finally {
-      setIsLoadingInsights(false);
-    }
-  };
+
 
   // Fetch branding and agents only after the user session is authenticated and active
   useEffect(() => {
@@ -1387,13 +1395,7 @@ const App: React.FC = () => {
     }
   }, [user]);
 
-  useEffect(() => {
-    if (selectedAgent) {
-      fetchInsights(selectedAgent);
-    } else {
-      setInsightsData(null);
-    }
-  }, [selectedAgent]);
+
 
   // Scroll to bottom when messages list updates or during streaming
   useEffect(() => {
@@ -1484,13 +1486,13 @@ const App: React.FC = () => {
     else if (tourStep === 4) targetId = "settings-trigger-preview-btn";
     else if (tourStep === 5) targetId = "settings-save-branding-btn";
     else if (tourStep === 6) targetId = "settings-back-home";
-    else if (tourStep === 7) targetId = "dashboard-executive-insights";
+    else if (tourStep === 7) targetId = "dashboard-recent-chats";
     else if (tourStep === 8) targetId = "dashboard-launch-chat-btn";
     else if (tourStep === 9) targetId = "agent-select-container";
     else if (tourStep === 10) targetId = "conversations-panel-container";
     else if (tourStep === 11) targetId = "chat-mode-btn";
     else if (tourStep === 12) targetId = "project-override-container";
-    else if (tourStep === 13) targetId = "arch-diagram-btn";
+    else if (tourStep === 13) targetId = window.innerWidth < 768 ? "sidebar-arch-diagram-btn" : "arch-diagram-btn";
     else if (tourStep === 14) targetId = "agent-select-container";
     else if (tourStep === 15) targetId = "chat-mode-btn";
     else if (tourStep === 16) targetId = "new-convo-btn";
@@ -1974,7 +1976,6 @@ const App: React.FC = () => {
         setMessages(prev => [...prev, ...groupedStreaming]);
       }
       setStreamingMessages([]);
-      fetchInsights(selectedAgent);
 
     } catch (err) {
       console.error(err);
@@ -2486,7 +2487,7 @@ const App: React.FC = () => {
       {user && (
         <header className={`h-16 bg-slate-950/80 backdrop-blur-md border-b border-white/6 px-4 md:px-8 flex items-center justify-between shrink-0 select-none animate-fadeIn ${tourStep > 0 ? 'z-[1010]' : 'z-40'}`}>
           {/* Left: Hamburger Button (mobile chat only) & Logo/Title (Click to go Home) */}
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
             {currentPage === "chat" && (
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -2502,9 +2503,7 @@ const App: React.FC = () => {
                 trackClick("logo_home_link");
                 if (currentPage !== "home") {
                   setCurrentPage("home");
-                  if (currentPage === "chat" && selectedAgent) {
-                    fetchInsights(selectedAgent);
-                  }
+
                 }
                 if (tourStep > 0) {
                   if (tourStep === 6) {
@@ -2530,12 +2529,12 @@ const App: React.FC = () => {
           {/* Right: Contextual Tools, GCP Connection Selector, Session User, Settings, Sign Out */}
           <div className="flex items-center gap-4 shrink-0">
             
-            {/* Show Architecture Button (Context-Aware) */}
+            {/* Show Architecture Button (Desktop Only) */}
             {currentPage === "chat" && (
               <button 
                 id="arch-diagram-btn"
                 onClick={handleOpenArchitecture}
-                className={`flex items-center gap-2 text-xs font-semibold text-brand-primary bg-brand-primary/10 border border-brand-primary/20 px-3 py-2 rounded-xl hover:bg-brand-primary hover:text-white transition duration-200 cursor-pointer shrink-0 animate-slideIn ${tourStep === 13 ? 'tour-highlight' : ''}`}
+                className={`hidden md:flex items-center gap-2 text-xs font-semibold text-brand-primary bg-brand-primary/10 border border-brand-primary/20 px-3 py-2 rounded-xl hover:bg-brand-primary hover:text-white transition duration-200 cursor-pointer shrink-0 animate-slideIn ${tourStep === 13 ? 'tour-highlight' : ''}`}
               >
                 <Network size={12} />
                 <span className="hidden md:inline">Show Architecture</span>
@@ -2679,6 +2678,23 @@ const App: React.FC = () => {
               </>
             )}
 
+            {/* Mobile-only New Chat Button (visible only in chat workspace on mobile) */}
+            {currentPage === "chat" && (
+              <button 
+                id="mobile-new-chat-btn"
+                onClick={() => {
+                  setSelectedConvo("");
+                  setMessages([]);
+                  setIsSidebarOpen(false);
+                }}
+                className="py-1.5 px-3 bg-brand-primary/10 border border-brand-primary/20 hover:bg-brand-primary/20 rounded-lg text-brand-primary transition duration-150 cursor-pointer flex md:hidden items-center justify-center gap-1 font-semibold text-xs mr-1"
+                title="Start New Chat"
+              >
+                <Plus size={13} />
+                <span>New Chat</span>
+              </button>
+            )}
+
             {/* Settings Gear Button */}
             <button 
               id="settings-gear-btn"
@@ -2705,10 +2721,10 @@ const App: React.FC = () => {
               <Settings size={15} className="group-hover:rotate-45 transition-transform duration-300" />
             </button>
 
-            {/* Sign Out Button */}
+            {/* Sign Out Button (Desktop Only) */}
             <button 
               onClick={handleSignOut}
-              className="p-2 bg-white/4 border border-white/6 hover:bg-rose-500/10 hover:border-rose-500/25 rounded-lg text-slate-400 hover:text-rose-400 transition duration-150 cursor-pointer flex items-center justify-center"
+              className="p-2 bg-white/4 border border-white/6 hover:bg-rose-500/10 hover:border-rose-500/25 rounded-lg text-slate-400 hover:text-rose-400 transition duration-150 cursor-pointer hidden md:flex items-center justify-center"
               title="Sign Out"
             >
               <LogOut size={15} />
@@ -2736,7 +2752,6 @@ const App: React.FC = () => {
             onClick={() => {
               setIsSidebarOpen(false);
               setCurrentPage("home");
-              if (selectedAgent) fetchInsights(selectedAgent);
             }}
             className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-brand-primary mb-6 transition cursor-pointer self-start border-none bg-transparent"
             title="Return to main dashboard"
@@ -2835,6 +2850,32 @@ const App: React.FC = () => {
             </div>
           </div>
 
+          {/* Mobile-only Sidebar Action Buttons */}
+          <div className="mt-auto pt-4 border-t border-white/6 flex flex-col gap-2 md:hidden shrink-0">
+            <button 
+              id="sidebar-arch-diagram-btn"
+              onClick={() => {
+                setIsSidebarOpen(false);
+                handleOpenArchitecture();
+              }}
+              className={`w-full flex items-center justify-center gap-2 text-xs font-semibold text-brand-primary bg-brand-primary/10 border border-brand-primary/20 py-2.5 rounded-xl hover:bg-brand-primary hover:text-white transition duration-200 cursor-pointer ${tourStep === 13 ? 'tour-highlight' : ''}`}
+            >
+              <Network size={13} />
+              <span>Show Architecture</span>
+            </button>
+            
+            <button 
+              onClick={() => {
+                setIsSidebarOpen(false);
+                handleSignOut();
+              }}
+              className="w-full flex items-center justify-center gap-2 text-xs font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/20 py-2.5 rounded-xl hover:bg-rose-500 hover:text-white transition duration-200 cursor-pointer"
+            >
+              <LogOut size={13} />
+              <span>Sign Out</span>
+            </button>
+          </div>
+
         </aside>
       )}
 
@@ -2846,12 +2887,22 @@ const App: React.FC = () => {
             renderLogoSvg={() => renderLogoSvg(appActiveBrandKey)} 
             onNavigate={(page) => {
               setCurrentPage(page);
-              if (page === "chat" && tourStep === 8) {
-                setTourStep(9);
+              if (page === "chat") {
+                setSelectedConvo("");
+                setMessages([]);
+                if (tourStep === 8) {
+                  setTourStep(9);
+                }
               }
             }} 
-            insightsData={insightsData}
-            isLoadingInsights={isLoadingInsights}
+            conversations={conversations}
+            onSelectConversation={(convoName) => {
+              handleConvoClick(convoName);
+              setCurrentPage("chat");
+              if (tourStep === 7) {
+                setTourStep(9); // Skip Step 8 (Launch Chat) and go directly to Step 9!
+              }
+            }}
             tourStep={tourStep}
           />
         )}
@@ -2929,12 +2980,49 @@ const App: React.FC = () => {
                   <h2 className="font-heading text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 mb-3 tracking-tight leading-none">
                     What would you like to analyze today?
                   </h2>
-                  <p className="text-xs md:text-sm text-slate-400 mb-8 max-w-md leading-relaxed">
+                  <p className="text-xs md:text-sm text-slate-400 mb-5 md:mb-8 max-w-md leading-relaxed">
                     Ask any analytical question about your business data, cost trends, or marketing performance.
                   </p>
                   
+                  {/* Mobile-only Centered Agent Selector */}
+                  {window.innerWidth < 768 && agents.length > 0 && (
+                    <div className="w-full max-w-sm p-4 bg-white/3 border border-white/6 rounded-2xl mb-6 flex flex-col items-center gap-3 animate-slideIn">
+                      <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                        <svg className="w-3.5 h-3.5 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        Select AI Specialist
+                      </div>
+                      
+                      <div className="relative w-full">
+                        <select
+                          value={selectedAgent}
+                          onChange={handleAgentChange}
+                          className="w-full py-2.5 pl-4 pr-10 bg-slate-950/60 border border-white/10 rounded-xl text-xs font-semibold text-slate-200 focus:border-brand-primary outline-none cursor-pointer appearance-none text-center"
+                        >
+                          {agents.map((agent, idx) => (
+                            <option key={idx} value={agent.name}>
+                              {agent.displayName || agent.name.split("/").pop()}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
+                          <ChevronDown size={14} />
+                        </div>
+                      </div>
+                      
+                      <p className="text-[10px] text-slate-500 font-medium text-center">
+                        Active agent handles your queries and provides custom data insights.
+                      </p>
+                    </div>
+                  )}
+                  
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
-                    {getFollowUpSuggestions(appActiveBrandKey).map((suggestion, idx) => (
+                    {(() => {
+                      const activeAgentObj = agents.find(a => a.name === selectedAgent);
+                      const agentId = selectedAgent.split("/").pop() || "";
+                      return getAgentSuggestions(activeAgentObj?.displayName || "", agentId, appActiveBrandKey);
+                    })().map((suggestion, idx) => (
                       <button
                         key={idx}
                         onClick={() => {
@@ -3029,7 +3117,11 @@ const App: React.FC = () => {
                 };
                 const suggestionsToRender = lastParsed.suggestions.length > 0 
                   ? lastParsed.suggestions 
-                  : getFollowUpSuggestions(appActiveBrandKey);
+                  : (() => {
+                      const activeAgentObj = agents.find(a => a.name === selectedAgent);
+                      const agentId = selectedAgent.split("/").pop() || "";
+                      return getAgentSuggestions(activeAgentObj?.displayName || "", agentId, appActiveBrandKey);
+                    })();
 
                 if (suggestionsToRender.length === 0) return null;
 
@@ -3670,37 +3762,61 @@ const App: React.FC = () => {
             <div className="w-16 h-16 rounded-full bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary">
               <Sparkles size={32} className="text-amber-400 animate-pulse" />
             </div>
-            <div className="flex flex-col gap-2">
-              <h3 className="font-heading font-bold text-white text-lg">
-                New here?
-              </h3>
-              <p className="text-slate-300 text-xs leading-relaxed font-medium">
-                {!isCorporateUser(user?.email || auth.currentUser?.email || null)
-                  ? "See how to navigate this site, customize branding, and use AI agents."
-                  : "See how to navigate this site, configure credentials, customize branding, and use AI agents."
-                }
-              </p>
-            </div>
-            <div className="flex gap-3 w-full mt-2">
-              <button
-                onClick={() => {
-                  setTourStep(0);
-                  sessionStorage.setItem("ca_visited_tour", "true");
-                }}
-                className="flex-1 py-2.5 px-4 bg-white/5 border border-white/6 hover:bg-white/10 text-white rounded-xl text-xs font-semibold cursor-pointer transition border-none"
-              >
-                No, thanks
-              </button>
-              <button
-                onClick={() => {
-                  setTourStep(1);
-                  setCurrentPage("home");
-                }}
-                className="flex-1 py-2.5 px-4 bg-brand-primary hover:opacity-90 text-white rounded-xl text-xs font-semibold cursor-pointer transition shadow-md border-none"
-              >
-                Yes, start tour
-              </button>
-            </div>
+            {window.innerWidth < 768 ? (
+              <>
+                <div className="flex flex-col gap-2">
+                  <h3 className="font-heading font-bold text-white text-lg">
+                    Guided Tour Available
+                  </h3>
+                  <p className="text-slate-300 text-xs leading-relaxed font-medium">
+                    Welcome to the portal! The full interactive guided tour and walkthrough are best experienced on a desktop browser. Please open this portal on a larger screen to explore the full capabilities of our AI agents and customization options!
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setTourStep(0);
+                    sessionStorage.setItem("ca_visited_tour", "true");
+                  }}
+                  className="w-full py-2.5 px-4 bg-brand-primary hover:opacity-90 text-white rounded-xl text-xs font-semibold cursor-pointer transition shadow-md border-none mt-2"
+                >
+                  Got it
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="flex flex-col gap-2">
+                  <h3 className="font-heading font-bold text-white text-lg">
+                    New here?
+                  </h3>
+                  <p className="text-slate-300 text-xs leading-relaxed font-medium">
+                    {!isCorporateUser(user?.email || auth.currentUser?.email || null)
+                      ? "See how to navigate this site, customize branding, and use AI agents."
+                      : "See how to navigate this site, configure credentials, customize branding, and use AI agents."
+                    }
+                  </p>
+                </div>
+                <div className="flex gap-3 w-full mt-2">
+                  <button
+                    onClick={() => {
+                      setTourStep(0);
+                      sessionStorage.setItem("ca_visited_tour", "true");
+                    }}
+                    className="flex-1 py-2.5 px-4 bg-white/5 border border-white/6 hover:bg-white/10 text-white rounded-xl text-xs font-semibold cursor-pointer transition border-none"
+                  >
+                    No, thanks
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTourStep(1);
+                      setCurrentPage("home");
+                    }}
+                    className="flex-1 py-2.5 px-4 bg-brand-primary hover:opacity-90 text-white rounded-xl text-xs font-semibold cursor-pointer transition shadow-md border-none"
+                  >
+                    Yes, start tour
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -3741,16 +3857,18 @@ const App: React.FC = () => {
           </div>
 
           <p className="text-xs text-slate-300 leading-relaxed font-medium">
-            {tourStep === 1 && (!isCorporateUser(user?.email || auth.currentUser?.email || null) 
-              ? "Click the settings gear icon in the top right to update your portal branding profile." 
-              : "Click the settings gear icon in the top right to manage your portal branding profile or modify how the website communicates with the Conversational Analytics API.")
+            {tourStep === 1 && (window.innerWidth < 768 
+              ? "Welcome to the portal! The full interactive guided tour and walkthrough are best experienced on a desktop browser. Please open this portal on a larger screen to explore the full capabilities of our AI agents and customization options!"
+              : (!isCorporateUser(user?.email || auth.currentUser?.email || null) 
+                ? "Click the settings gear icon in the top right to update your portal branding profile." 
+                : "Click the settings gear icon in the top right to manage your portal branding profile or modify how the website communicates with the Conversational Analytics API."))
             }
             {tourStep === 2 && "Select 'SSO User Session' in case you want to access and query custom data agents defined inside your own Google Cloud projects."}
             {tourStep === 3 && "Set your logo banner titles, search the web, or upload your own custom brand logo to personalize your analytics portal."}
             {tourStep === 4 && "Once you have finished customizing the branding settings, click here to see a live preview of how the conversational analytics workspace looks."}
             {tourStep === 5 && "Save your branding settings to apply them across your workspace, updating your layout theme and greeting cards instantly."}
             {tourStep === 6 && "Great job configuring! Click the brand logo or application title in the top-left header to navigate back to the main dashboard."}
-            {tourStep === 7 && "Review high-level executive summaries and trends auto-generated by AI based on your recent or past conversations."}
+            {tourStep === 7 && "View a list of your most recent chat sessions. Click on any chat history card to instantly jump back into that conversation!"}
             {tourStep === 8 && "Select this action to enter the interactive chat workspace, where you can ask questions and query your data directly using natural conversation."}
             {tourStep === 9 && (window.innerWidth < 768
               ? "We have automatically opened the top-left menu (☰) for you. Choose the retail analytics agent from the dropdown."
@@ -3787,41 +3905,59 @@ const App: React.FC = () => {
             )}
 
             <div className="flex items-center justify-between w-full">
-              <button 
-                onClick={handleSkipTour}
-                className="text-[11px] font-bold text-slate-400 hover:text-amber-400 hover:underline transition cursor-pointer border-none bg-transparent whitespace-nowrap"
-              >
-                Skip Tour
-              </button>
+              {window.innerWidth >= 768 ? (
+                <button 
+                  onClick={handleSkipTour}
+                  className="text-[11px] font-bold text-slate-400 hover:text-amber-400 hover:underline transition cursor-pointer border-none bg-transparent whitespace-nowrap"
+                >
+                  Skip Tour
+                </button>
+              ) : (
+                <div />
+              )}
 
               <div className="flex gap-2 items-center">
-                <span className="text-[10px] text-slate-500 font-bold mr-1 whitespace-nowrap">
-                  {getDisplayStepInfo(tourStep).num} of {getDisplayStepInfo(tourStep).total}
-                </span>
-                {tourStep > 1 && (
-                  <button 
-                    onClick={handleBackTour}
-                    className="py-1.5 px-3 bg-white/5 border border-white/6 hover:bg-white/10 text-white rounded-lg text-xs font-semibold cursor-pointer transition border-none"
-                  >
-                    Back
-                  </button>
+                {window.innerWidth >= 768 && (
+                  <span className="text-[10px] text-slate-500 font-bold mr-1 whitespace-nowrap">
+                    {getDisplayStepInfo(tourStep).num} of {getDisplayStepInfo(tourStep).total}
+                  </span>
                 )}
-                {tourStep !== 1 && tourStep !== 8 && tourStep !== 14 && tourStep !== 15 && tourStep !== 17 && tourStep !== 18 ? (
+                
+                {window.innerWidth < 768 ? (
                   <button 
-                    onClick={handleNextTour}
+                    onClick={handleSkipTour}
                     className="py-1.5 px-3.5 bg-brand-primary hover:opacity-90 text-white rounded-lg text-xs font-semibold cursor-pointer transition shadow-md border-none"
                   >
-                    {tourStep === 19 ? "Finish Walkthrough" : (getDisplayStepInfo(tourStep).num === getDisplayStepInfo(tourStep).total ? "Finish" : "Next")}
+                    Got it
                   </button>
                 ) : (
-                  <span className="text-[10px] text-amber-400 font-bold animate-pulse mr-1 whitespace-nowrap">
-                    {tourStep === 1 ? "Click gear icon" : 
-                     tourStep === 8 ? "Click card to proceed" : 
-                     tourStep === 14 ? "Select an agent" : 
-                     tourStep === 15 ? "Choose thinking mode" : 
-                     tourStep === 17 ? "Submit query or pill" : 
-                     "Click 'Show thinking'"}
-                  </span>
+                  <>
+                    {tourStep > 1 && (
+                      <button 
+                        onClick={handleBackTour}
+                        className="py-1.5 px-3 bg-white/5 border border-white/6 hover:bg-white/10 text-white rounded-lg text-xs font-semibold cursor-pointer transition border-none"
+                      >
+                        Back
+                      </button>
+                    )}
+                    {tourStep !== 1 && tourStep !== 8 && tourStep !== 14 && tourStep !== 15 && tourStep !== 17 && tourStep !== 18 ? (
+                      <button 
+                        onClick={handleNextTour}
+                        className="py-1.5 px-3.5 bg-brand-primary hover:opacity-90 text-white rounded-lg text-xs font-semibold cursor-pointer transition shadow-md border-none"
+                      >
+                        {tourStep === 19 ? "Finish Walkthrough" : (getDisplayStepInfo(tourStep).num === getDisplayStepInfo(tourStep).total ? "Finish" : "Next")}
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-amber-400 font-bold animate-pulse mr-1 whitespace-nowrap">
+                        {tourStep === 1 ? "Click gear icon" : 
+                         tourStep === 8 ? "Click card to proceed" : 
+                         tourStep === 14 ? "Select an agent" : 
+                         tourStep === 15 ? "Choose thinking mode" : 
+                         tourStep === 17 ? "Submit query or pill" : 
+                         "Click 'Show thinking'"}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
             </div>

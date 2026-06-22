@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import requests
+import re
 from fastapi import FastAPI, HTTPException, Body, Depends, Header, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -305,6 +306,97 @@ def add_deleted_conversation(convo_name: str):
     except Exception as e:
         logger.error(f"Error writing deleted conversations file: {e}")
 
+def enrich_agent_metadata(agent: dict) -> dict:
+    """Enriches a data agent with dynamically generated suggested questions and welcome subtitles."""
+    display_name = agent.get("displayName", "Data Agent")
+    description = agent.get("description", "")
+    
+    # 1. Safely locate system instructions and table references
+    system_instruction = ""
+    tables = []
+    da_agent = agent.get("dataAnalyticsAgent", {})
+    
+    # Scan through staging, published, or lastPublished contexts to extract information
+    for context_key in ["publishedContext", "lastPublishedContext", "stagingContext"]:
+        context = da_agent.get(context_key, {})
+        if not system_instruction and context.get("systemInstruction"):
+            system_instruction = context["systemInstruction"]
+        
+        # Discover connected tables
+        ds_refs = context.get("datasourceReferences", {})
+        bq_ref = ds_refs.get("bq", {})
+        table_refs = bq_ref.get("tableReferences", [])
+        for t in table_refs:
+            dataset = t.get("datasetId", "")
+            table = t.get("tableId", "")
+            if dataset and table:
+                table_str = f"{dataset}.{table}"
+                if table_str not in tables:
+                    tables.append(table_str)
+                    
+    # 2. Extract suggested queries directly from the agent's system prompt (instructions)
+    suggestions = []
+    if system_instruction:
+        # Match questions ending in ? inside quotes (single or double)
+        matches = re.findall(r'["\']([^"\']+\?)["\']', system_instruction)
+        for m in matches:
+            m_clean = m.strip()
+            # Basic validation: reasonable length, not SQL fragments, ends with ?
+            if 15 < len(m_clean) < 120 and "?" in m_clean:
+                if not any(k in m_clean.upper() for k in ["SELECT", "FROM", "WHERE", "WITH", "LIMIT"]):
+                    # Clean up markdown formatting if any
+                    m_clean = re.sub(r'[\*\`\_]', '', m_clean)
+                    suggestions.append(m_clean)
+                    
+    # Remove duplicates while preserving order
+    unique_suggestions = []
+    for s in suggestions:
+        if s not in unique_suggestions:
+            unique_suggestions.append(s)
+    suggestions = unique_suggestions[:3]
+    
+    # 3. Fallback: Generate custom queries based on discovered BigQuery tables
+    if len(suggestions) < 3 and tables:
+        primary_table = tables[0]
+        table_suggestions = [
+            f"Can you give me a summary of the data in the {primary_table} table?",
+            f"What are the key metrics and columns available in {primary_table}?",
+            f"Show me the top 10 most recent records from {primary_table}."
+        ]
+        for ts in table_suggestions:
+            if ts not in suggestions:
+                suggestions.append(ts)
+        suggestions = suggestions[:3]
+        
+    # 4. Double Fallback: Brand-based default presets
+    if not suggestions:
+        name_lower = display_name.lower()
+        if "marketing" in name_lower or "ga4" in name_lower:
+            suggestions = [
+                "What are the top 10 best-selling product categories by total sales revenue?",
+                "How does our monthly order volume compare across different countries?",
+                "Can we see the distribution of users by traffic source and country?"
+            ]
+        else:
+            suggestions = [
+                "Show me the monthly trend of cost and revenue for this year.",
+                "What are the top 5 brands by number of items sold?",
+                "What is the average order value (AOV) for each month?"
+            ]
+            
+    # 5. Generate a beautiful, custom welcome subtitle based on the agent's tables or description
+    welcome_subtitle = description
+    if not welcome_subtitle:
+        if tables:
+            welcome_subtitle = f"Ask any analytical question about your connected data tables (including {', '.join(tables[:2])})."
+        else:
+            welcome_subtitle = "Ask any analytical question about your business data, cost trends, or performance."
+            
+    # Inject metadata properties into the agent dict returned to the UI
+    agent["suggestions"] = suggestions
+    agent["welcomeSubtitle"] = welcome_subtitle
+    return agent
+
 # API Routes
 @app.get("/api/gcp/projects")
 def list_gcp_projects(x_gcp_user_token: Optional[str] = Header(None)):
@@ -351,7 +443,8 @@ def list_gcp_projects(x_gcp_user_token: Optional[str] = Header(None)):
 @app.get("/api/agents")
 def get_agents(user: dict = Depends(get_current_user), client: ConversationalAnalyticsClient = Depends(get_analytics_client)):
     try:
-        return client.list_agents()
+        agents = client.list_agents()
+        return [enrich_agent_metadata(agent) for agent in agents]
     except google_exceptions.Unauthenticated as e:
         logger.error(f"GCP Unauthenticated: {e}")
         raise HTTPException(status_code=401, detail="Google Cloud session expired. Please re-authenticate.")

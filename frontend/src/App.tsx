@@ -50,6 +50,8 @@ interface Agent {
   displayName?: string;
   description?: string;
   createTime?: string;
+  welcomeSubtitle?: string;
+  suggestions?: string[];
 }
 
 interface Conversation {
@@ -2983,7 +2985,7 @@ const App: React.FC = () => {
                   <p className="text-xs md:text-sm text-slate-400 mb-5 md:mb-8 max-w-md leading-relaxed">
                     {(() => {
                       const activeAgentObj = agents.find(a => a.name === selectedAgent);
-                      return activeAgentObj?.description || "Ask any analytical question about your business data, cost trends, or marketing performance.";
+                      return activeAgentObj?.welcomeSubtitle || activeAgentObj?.description || "Ask any analytical question about your business data, cost trends, or marketing performance.";
                     })()}
                   </p>
                   
@@ -3021,11 +3023,14 @@ const App: React.FC = () => {
                   )}
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
-                    {(() => {
+                    {( (() => {
                       const activeAgentObj = agents.find(a => a.name === selectedAgent);
+                      if (activeAgentObj && Array.isArray(activeAgentObj.suggestions) && activeAgentObj.suggestions.length > 0) {
+                        return activeAgentObj.suggestions;
+                      }
                       const agentId = selectedAgent.split("/").pop() || "";
                       return getAgentSuggestions(activeAgentObj?.displayName || "", agentId, appActiveBrandKey);
-                    })().map((suggestion, idx) => (
+                    })() as string[] ).map((suggestion, idx) => (
                       <button
                         key={idx}
                         onClick={() => {
@@ -3122,9 +3127,12 @@ const App: React.FC = () => {
                   ? lastParsed.suggestions 
                   : (() => {
                       const activeAgentObj = agents.find(a => a.name === selectedAgent);
+                      if (activeAgentObj && Array.isArray(activeAgentObj.suggestions) && activeAgentObj.suggestions.length > 0) {
+                        return activeAgentObj.suggestions;
+                      }
                       const agentId = selectedAgent.split("/").pop() || "";
                       return getAgentSuggestions(activeAgentObj?.displayName || "", agentId, appActiveBrandKey);
-                    })();
+                    })() as string[];
 
                 if (suggestionsToRender.length === 0) return null;
 

@@ -38,7 +38,6 @@ To run and test changes locally without requiring external cloud authentication 
 1. Set `MOCK_AUTH=true` inside `backend/.env`.
 2. Set `VITE_MOCK_AUTH=true` inside `frontend/.env`.
 3. Restart the dev servers. The portal will automatically load a mock local user profile (`admin@your-corporate-domain.com`) and initialize the offline development environment.
-   * **Simulate External User Profile**: Append `?mock=gmail` to the URL (e.g. `http://localhost:8000/?mock=gmail`) to test domain-restricted settings views and custom onboarding tour flows.
 
 ---
 

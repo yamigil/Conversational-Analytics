@@ -2979,15 +2979,28 @@ const App: React.FC = () => {
                   <div className="w-14 h-14 rounded-2xl bg-brand-primary/10 border border-brand-primary/25 flex items-center justify-center mb-6 shadow-sm shadow-brand-primary/5">
                     <Sparkles size={26} className="text-brand-primary animate-pulse" />
                   </div>
-                  <h2 className="font-heading text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 mb-3 tracking-tight leading-none">
-                    What would you like to analyze today?
-                  </h2>
-                  <p className="text-xs md:text-sm text-slate-400 mb-5 md:mb-8 max-w-md leading-relaxed">
-                    {(() => {
-                      const activeAgentObj = agents.find(a => a.name === selectedAgent);
-                      return activeAgentObj?.welcomeSubtitle || activeAgentObj?.description || "Ask any analytical question about your business data, cost trends, or marketing performance.";
-                    })()}
-                  </p>
+                  {selectedAgent ? (
+                    <>
+                      <h2 className="font-heading text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 mb-3 tracking-tight leading-none">
+                        What would you like to analyze today?
+                      </h2>
+                      <p className="text-xs md:text-sm text-slate-400 mb-5 md:mb-8 max-w-md leading-relaxed">
+                        {(() => {
+                          const activeAgentObj = agents.find(a => a.name === selectedAgent);
+                          return activeAgentObj?.welcomeSubtitle || activeAgentObj?.description || "Ask any analytical question about your business data, cost trends, or marketing performance.";
+                        })()}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="font-heading text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 mb-3 tracking-tight leading-none">
+                        Conversational Analytics Hub
+                      </h2>
+                      <p className="text-xs md:text-sm text-slate-400 mb-5 md:mb-8 max-w-md leading-relaxed">
+                        Unlock the power of your BigQuery data warehouses using natural language. Select an AI Data Specialist from the sidebar or dropdown to start asking questions, generating forecasts, and analyzing trends instantly.
+                      </p>
+                    </>
+                  )}
                   
                   {/* Mobile-only Centered Agent Selector */}
                   {window.innerWidth < 768 && agents.length > 0 && (
@@ -3005,6 +3018,7 @@ const App: React.FC = () => {
                           onChange={handleAgentChange}
                           className="w-full py-2.5 pl-4 pr-10 bg-slate-950/60 border border-white/10 rounded-xl text-xs font-semibold text-slate-200 focus:border-brand-primary outline-none cursor-pointer appearance-none text-center"
                         >
+                          <option value="">Select a data agent</option>
                           {agents.map((agent, idx) => (
                             <option key={idx} value={agent.name}>
                               {agent.displayName || agent.name.split("/").pop()}
@@ -3022,30 +3036,47 @@ const App: React.FC = () => {
                     </div>
                   )}
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
-                    {( (() => {
-                      const activeAgentObj = agents.find(a => a.name === selectedAgent);
-                      if (activeAgentObj && Array.isArray(activeAgentObj.suggestions) && activeAgentObj.suggestions.length > 0) {
-                        return activeAgentObj.suggestions;
-                      }
-                      const agentId = selectedAgent.split("/").pop() || "";
-                      return getAgentSuggestions(activeAgentObj?.displayName || "", agentId, appActiveBrandKey);
-                    })() as string[] ).map((suggestion, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => {
-                          setInputText(suggestion);
-                          handleSendMessage(suggestion);
-                        }}
-                        className="p-4 bg-white/3 border border-white/6 hover:border-brand-primary/30 hover:bg-brand-primary/5 rounded-2xl text-left text-xs text-slate-300 font-medium transition cursor-pointer flex flex-col gap-1.5 shadow-sm group hover:-translate-y-0.5 duration-200"
-                      >
-                        <span className="group-hover:text-white transition duration-150 leading-relaxed">{suggestion}</span>
-                        <span className="text-[10px] font-bold text-brand-primary shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 mt-auto">
-                          Ask agent <ChevronRight size={10} />
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+                  {selectedAgent ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
+                      {( (() => {
+                        const activeAgentObj = agents.find(a => a.name === selectedAgent);
+                        if (activeAgentObj && Array.isArray(activeAgentObj.suggestions) && activeAgentObj.suggestions.length > 0) {
+                          return activeAgentObj.suggestions;
+                        }
+                        const agentId = selectedAgent.split("/").pop() || "";
+                        return getAgentSuggestions(activeAgentObj?.displayName || "", agentId, appActiveBrandKey);
+                      })() as string[] ).map((suggestion, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setInputText(suggestion);
+                            handleSendMessage(suggestion);
+                          }}
+                          className="p-4 bg-white/3 border border-white/6 hover:border-brand-primary/30 hover:bg-brand-primary/5 rounded-2xl text-left text-xs text-slate-300 font-medium transition cursor-pointer flex flex-col gap-1.5 shadow-sm group hover:-translate-y-0.5 duration-200"
+                        >
+                          <span className="group-hover:text-white transition duration-150 leading-relaxed">{suggestion}</span>
+                          <span className="text-[10px] font-bold text-brand-primary shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 mt-auto">
+                            Ask agent <ChevronRight size={10} />
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-6 bg-white/3 border border-white/6 rounded-2xl max-w-sm w-full mx-auto flex flex-col gap-4 text-center backdrop-blur-md shadow-lg animate-fadeIn">
+                      <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-brand-primary/10 text-brand-primary mx-auto">
+                        <Sparkles size={18} className="text-brand-primary animate-pulse" />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <h3 className="text-xs font-semibold text-white">To get started:</h3>
+                        <p className="text-[10px] text-slate-500">Follow these simple steps to start analyzing your data</p>
+                      </div>
+                      <ol className="text-[10px] text-slate-400 text-left list-decimal list-inside flex flex-col gap-2.5 leading-relaxed">
+                        <li>Select an <strong>AI Data Specialist</strong> from the sidebar dropdown.</li>
+                        <li>Choose a pre-configured query starter card or type your own question.</li>
+                        <li>Review the generated SQL, step-by-step thinking logs, and interactive charts.</li>
+                      </ol>
+                    </div>
+                  )}
                 </div>
               ) : (
                 messages.map((msg, idx) => {

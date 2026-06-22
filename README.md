@@ -6,11 +6,7 @@ A customizable, white-label frontend template that allows Customer Engineers to 
 
 This demo highlights Conversational Analytics (CA) on BigQuery data warehouses, powered by Gemini for Google Cloud. Its purpose is to show how non-technical users can move beyond static dashboards to engage directly with raw enterprise data using natural language. Run forecasting out-of-the-box using built-in database machine learning models (like TimesFM and Contribution Analysis), and verify results instantly with step-by-step thinking logs.
 
-## Dual-Purpose Architecture
 
-This codebase is engineered to support a dual-purpose deployment strategy:
-1. **💼 Internal Enterprise Portal**: Designed for secure internal corporate deployments. It leverages corporate Single Sign-On (SSO) and Google Service Accounts (ADC) to enable Customer Engineers and internal teams to securely query and manage high-fidelity data warehouses.
-2. **🚀 External Public Showcase Portal**: Designed for public demonstrational access. It utilizes a secure, domain-filtered sandbox mode that automatically isolates external public traffic (e.g. restricting access to specific sandbox domains like `@gmail.com` to demonstrate multi-tenant sandbox capabilities) while presenting a simplified, branding-only layout to showcase features to external stakeholders.
 
 ## Directory Structure
 
@@ -46,34 +42,7 @@ To run and test changes locally without requiring external cloud authentication 
 
 ---
 
-## Continuous Deployment (CI/CD) & Multi-Site Architecture
 
-The project is equipped with a robust, **unconditional (zero-skip) multi-site deployment pipeline** configured via two separate GitHub Action workflows. To eliminate synchronization gaps and deployment blocking (a common failure mode in multi-branch configurations where filters skip steps when branches are synced), the workflows are designed to unconditionally compile, build, and deploy all frontend and backend services on every push:
-
-### 💼 A. Corporate Portal (https://your-corporate-domain.com/)
-* **Branch**: `main`
-* **Workflow**: `.github/workflows/firebase-deploy.yml`
-* **Behavior**: Deploys the corporate portal with standard enterprise domain authentication restrictions (`@google.com` and `@your-corporate-domain.com`).
-* **Hosting Target**: `corporate` (mapping to your production site `your-gcp-project-id` in Firebase).
-
-### 🚀 B. Public Showcase Portal (https://your-showcase-domain.com/)
-* **Branch**: `showcase`
-* **Workflow**: `.github/workflows/firebase-deploy-showcase.yml`
-* **Behavior**: Deploys a public showcase portal tailored for external demonstrational access. It enforces a **domain-based access filter** (restricting access to specific email domains like `gmail.com` to demonstrate external sandbox capabilities) using a dual-layer check: backend container environment `ALLOWED_DOMAINS=gmail.com` and frontend compile-time `VITE_ALLOWED_DOMAINS="gmail.com"` to automatically validate incoming identities.
-* **Hosting Target**: `showcase` (mapping to your public showcase hosting site `your-showcase-site-id` in Firebase).
-* **First-Party Authentication**: To ensure seamless authentication flow under browser privacy protections (preventing cross-site cookie blocks and automatic session drops on macOS/Safari), the showcase build maps `VITE_FIREBASE_AUTH_DOMAIN` directly to `"your-showcase-domain.com"`.
-  * *Note: The redirect URI `https://your-showcase-domain.com/__/auth/handler` must be whitelisted in your GCP project's OAuth 2.0 Client ID settings!*
-
-### Required Deployment Service Account Roles
-To support automated builds, your deployment service account (`your-service-account@your-project-id.iam.gserviceaccount.com`) requires the following IAM permissions:
-* **Cloud Run Developer** (`roles/run.developer`): Deploy revisions to Cloud Run.
-* **Cloud Build Editor** (`roles/cloudbuild.builds.editor`): Build Docker container images.
-* **Storage Admin** (`roles/storage.admin`): Upload source bundles to Cloud Storage.
-* **Artifact Registry Writer** (`roles/artifactregistry.writer`): Push container artifacts.
-* **Service Account User** (`roles/iam.serviceAccountUser`): Bind runtime identity to the service.
-* **Firebase Hosting Admin** (`roles/firebasehosting.admin`): Upload assets to CDN.
-
----
 
 ## Manual Production Deployment (Alternative)
 

@@ -2981,7 +2981,10 @@ const App: React.FC = () => {
                     What would you like to analyze today?
                   </h2>
                   <p className="text-xs md:text-sm text-slate-400 mb-5 md:mb-8 max-w-md leading-relaxed">
-                    Ask any analytical question about your business data, cost trends, or marketing performance.
+                    {(() => {
+                      const activeAgentObj = agents.find(a => a.name === selectedAgent);
+                      return activeAgentObj?.description || "Ask any analytical question about your business data, cost trends, or marketing performance.";
+                    })()}
                   </p>
                   
                   {/* Mobile-only Centered Agent Selector */}

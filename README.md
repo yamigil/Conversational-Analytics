@@ -92,8 +92,7 @@ Deploy the React static assets to Firebase's global edge CDN and automatically r
 2. **💬 Conversational Data Analytics (CA)**: Translates natural language business questions into optimized BigQuery SQL queries securely, presenting answers, interactive data grids, and beautiful Vega charts instantly.
 3. **🗺️ Interactive System Architecture Modal**: A responsive, animated 4-node data pipeline diagram (BigQuery Storage, Knowledge Catalog, Reasoning Engine, and User Interface) mapping out the entire system's structure.
 4. **🧭 Viewport-Immune Onboarding Walkthrough**: A fluid, scroll-tracking interactive tour that smoothly guides first-time users through settings, custom branding, query starters, and conversation history.
-5. **📲 Decluttered Mobile-First Experience**: A spacious, mobile-optimized header and sidebar that integrates a centered Agent Selector, a quick-action "New Chat" button, and vertical, downward-flowing architecture connectors.
-6. **🔒 Decoupled Auth Recovery & Enterprise Security**: A self-healing authentication loop that transparently catches session expiration and triggers seamless OAuth re-authentication to prevent interruptions.
+5. **📲 Mobile Experience Enabled**: The workspace is fully responsive and optimized for mobile viewports, enabling seamless chat interactions, settings configuration, and dashboard navigation on-the-go.
 
 ---
 *Active Telemetry Stream: `G-C0VB9XKP7E`*

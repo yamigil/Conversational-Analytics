@@ -44,13 +44,13 @@ interface GraphVisualizerProps {
   brandPrimaryColor?: string;
 }
 
-// Preset coordinates for the flagship The Look Ecommerce showcase agent
+// Wider preset coordinates to spread nodes further towards the boundaries, reclaiming canvas space
 const PRESET_COORDINATES: Record<string, { x: number; y: number }> = {
-  users: { x: 110, y: 100 },
-  orders: { x: 110, y: 300 },
+  users: { x: 75, y: 70 },
+  orders: { x: 75, y: 330 },
   products: { x: 300, y: 200 },
-  brands: { x: 490, y: 100 },
-  stores: { x: 490, y: 300 }
+  brands: { x: 525, y: 70 },
+  stores: { x: 525, y: 330 }
 };
 
 // Vibrant color presets for flagship nodes
@@ -83,7 +83,6 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
   // Check if we should use the preset showcase layout
-  // We only use presets if ALL incoming nodes are registered in our preset list
   const usePresetLayout = graphData.nodes.every(n => PRESET_COORDINATES[n.id]);
 
   // Dynamic Layout Engine: maps coordinates on the fly
@@ -96,9 +95,9 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
       };
     }
     
-    // Circular Layout distribution for custom/unknown graphs
+    // Circular Layout distribution for custom graphs (expanded radius from 125 to 145)
     const center = { x: 300, y: 200 };
-    const radius = 125;
+    const radius = 145;
     const angle = (2 * Math.PI * idx) / graphData.nodes.length - Math.PI / 2; // Start at top
     
     return {
@@ -110,8 +109,8 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
 
   const edges = graphData.edges;
 
-  // Semantic Icon Resolver: scans node IDs/icons for keywords to match representative Lucide icons
-  const renderNodeIcon = (iconName: string, size: number = 20, color: string = "#fff") => {
+  // Semantic Icon Resolver
+  const renderNodeIcon = (iconName: string, size: number = 22, color: string = "#fff") => {
     const name = (iconName || "").toLowerCase();
     
     if (name.includes("user") || name.includes("customer") || name.includes("visitor") || name.includes("client")) {
@@ -175,9 +174,9 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   const activeNodeColor = selectedNode ? getNodeColor(selectedNode, activeNodeIdx) : brandPrimaryColor;
 
   return (
-    <div className="w-full flex flex-col lg:flex-row gap-6 items-center justify-center py-4 select-none max-w-4xl mx-auto animate-fadeIn">
+    <div className="w-full flex flex-col lg:flex-row gap-6 items-center justify-center py-2 select-none max-w-full mx-auto animate-fadeIn">
       {/* 1. Interactive Animated SVG Graph Canvas */}
-      <div className="relative w-full lg:w-3/5 bg-slate-950/60 border border-white/10 rounded-3xl p-4 backdrop-blur-md shadow-2xl flex items-center justify-center overflow-hidden aspect-[3/2] max-w-lg lg:max-w-none">
+      <div className="relative w-full lg:w-3/5 bg-slate-950/60 border border-white/10 rounded-3xl p-4 backdrop-blur-md shadow-2xl flex items-center justify-center overflow-hidden aspect-[3/2] w-full max-w-2xl lg:max-w-none">
         {/* Grid background */}
         <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.025)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
         
@@ -220,14 +219,14 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     x2={tgt.x}
                     y2={tgt.y}
                     stroke={highlighted ? edgeColor : "rgba(255,255,255,0.15)"}
-                    strokeWidth={highlighted ? "3" : "1.5"}
+                    strokeWidth={highlighted ? "3.5" : "1.75"}
                     strokeDasharray={highlighted ? "none" : "6, 6"}
                     className={`transition-all duration-300 ${dimmed ? "opacity-20" : "opacity-100"}`}
                   />
                   
                   {/* Native SVG flowing particle animations */}
                   {highlighted && (
-                    <circle r="4.5" fill={edgeColor} className="filter drop-shadow-[0_0_8px_var(--tw-shadow-color)]" style={{ shadowColor: edgeColor } as any}>
+                    <circle r="5" fill={edgeColor} className="filter drop-shadow-[0_0_8px_var(--tw-shadow-color)]" style={{ shadowColor: edgeColor } as any}>
                       <animateMotion
                         dur="2s"
                         repeatCount="indefinite"
@@ -261,13 +260,13 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                   key={`label-${idx}`} 
                   className={`transition-all duration-300 ${dimmed ? "opacity-15" : "opacity-100"}`}
                 >
-                  {/* Micro-glassmorphic background pill */}
+                  {/* Micro-glassmorphic background pill - wider width for padded layout */}
                   <rect
-                    x={xMid - 30}
-                    y={yMid - 8}
-                    width="60"
-                    height="16"
-                    rx="8"
+                    x={xMid - 33}
+                    y={yMid - 9}
+                    width="66"
+                    height="18"
+                    rx="9"
                     fill="rgba(15, 23, 42, 0.9)"
                     stroke={highlighted ? edgeColor : "rgba(255,255,255,0.12)"}
                     strokeWidth={highlighted ? "1.5" : "1"}
@@ -278,7 +277,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     x={xMid}
                     y={yMid + 3}
                     textAnchor="middle"
-                    className={`text-[8px] font-bold tracking-widest uppercase transition-all duration-300 select-none ${highlighted ? "fill-white font-extrabold" : "fill-slate-400"}`}
+                    className={`text-[8.5px] font-bold tracking-widest uppercase transition-all duration-300 select-none ${highlighted ? "fill-white font-extrabold" : "fill-slate-400"}`}
                   >
                     {edge.label}
                   </text>
@@ -287,7 +286,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
             })}
           </g>
 
-          {/* C. Symmetrical Glowing Multi-Color Nodes */}
+          {/* C. Symmetrical Glowing Multi-Color Nodes (SCALED UP FOR VISIBILITY) */}
           <g>
             {nodes.map((node, idx) => {
               const isSelected = selectedNode === node.id;
@@ -305,51 +304,51 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                   onMouseLeave={() => setHoveredNode(null)}
                   onClick={() => setSelectedNode(isSelected ? null : node.id)}
                 >
-                  {/* Glowing aura behind active node */}
+                  {/* Larger glowing aura behind active node */}
                   {(isSelected || isHovered) && (
                     <circle
-                      r="34"
+                      r="38"
                       fill={nodeColor}
                       className="opacity-25 blur-md transition-all duration-300 scale-110"
                     />
                   )}
                   
-                  {/* Outer pulsing ring */}
+                  {/* Outer pulsing ring - scaled up from 28 to 32 */}
                   <circle
-                    r="28"
+                    r="32"
                     fill="none"
                     stroke={isSelected ? nodeColor : isHovered ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.12)"}
                     strokeWidth={isSelected ? "3" : "1.5"}
                     className={`transition-all duration-300 ${isSelected ? "animate-ping opacity-20" : ""}`}
                   />
                   
-                  {/* Core Node Circle */}
+                  {/* Core Node Circle - scaled up from 24 to 28 */}
                   <circle
-                    r="24"
-                    fill={isSelected ? "rgba(15, 23, 42, 0.95)" : "rgba(17, 24, 39, 0.8)"}
+                    r="28"
+                    fill={isSelected ? "rgba(15, 23, 42, 0.95)" : "rgba(17, 24, 39, 0.85)"}
                     stroke={isSelected || isHovered ? nodeColor : "rgba(255,255,255,0.2)"}
                     strokeWidth={isSelected || isHovered ? "2.5" : "1.5"}
                     className={`transition-all duration-300 ${isDimmed ? "opacity-30" : "opacity-100"}`}
                   />
 
-                  {/* Semantic Icon */}
+                  {/* Semantic Icon - scaled up from 20 to 22, aligned using translate(-11, -11) */}
                   <g 
                     className={`transition-all duration-300 ${isDimmed ? "opacity-30" : "opacity-100"}`}
-                    transform="translate(-10, -10)"
+                    transform="translate(-11, -11)"
                   >
                     {renderNodeIcon(
                       node.icon, 
-                      20, 
+                      22, 
                       isSelected || isHovered ? "#ffffff" : nodeColor
                     )}
                   </g>
 
-                  {/* Node Label */}
+                  {/* Node Label - offset adjusted to 45 for larger circle */}
                   <text
-                    y="42"
+                    y="45"
                     textAnchor="middle"
-                    className={`text-[10px] font-bold tracking-widest uppercase transition-all duration-300 select-none ${isSelected ? "fill-white font-extrabold" : isHovered ? "fill-white" : "fill-slate-200"} ${isDimmed ? "opacity-20" : "opacity-100"}`}
-                    style={{ textShadow: !isDimmed ? "0 2px 4px rgba(0,0,0,0.8)" : "none" }}
+                    className={`text-[10.5px] font-bold tracking-widest uppercase transition-all duration-300 select-none ${isSelected ? "fill-white font-extrabold" : isHovered ? "fill-white" : "fill-slate-200"} ${isDimmed ? "opacity-20" : "opacity-100"}`}
+                    style={{ textShadow: !isDimmed ? "0 2px 4px rgba(0,0,0,0.85)" : "none" }}
                   >
                     {node.label}
                   </text>
@@ -377,7 +376,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
       </div>
 
       {/* 2. Dynamic Glassmorphic Entity Inspector Card */}
-      <div className="w-full lg:w-2/5 flex flex-col h-full min-h-[260px] justify-center">
+      <div className="w-full lg:w-2/5 flex flex-col h-full min-h-[260px] justify-center w-full max-w-md lg:max-w-none">
         {selectedNode && activeNodeObj ? (
           <div 
             className="p-5 bg-slate-950/50 border rounded-3xl backdrop-blur-md shadow-2xl flex flex-col gap-4.5 animate-slideIn w-full transition-all duration-300"
@@ -435,7 +434,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
             </div>
           </div>
         ) : (
-          <div className="p-6 bg-white/3 border border-white/6 rounded-3xl backdrop-blur-sm text-center flex flex-col gap-4 w-full max-w-sm mx-auto">
+          <div className="p-6 bg-white/3 border border-white/6 rounded-3xl backdrop-blur-sm text-center flex flex-col gap-4 w-full mx-auto">
             <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 border border-brand-primary/15 text-brand-primary flex items-center justify-center mx-auto shadow-sm">
               <Network size={22} className="animate-pulse text-brand-primary" />
             </div>

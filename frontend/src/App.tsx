@@ -2978,32 +2978,55 @@ const App: React.FC = () => {
                 </div>
               ) : messages.length === 0 ? (
                 // Clean empty state with beautiful query starters
-                <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-2xl mx-auto text-center my-auto animate-fadeIn select-none">
-                  <div className="w-14 h-14 rounded-2xl bg-brand-primary/10 border border-brand-primary/25 flex items-center justify-center mb-6 shadow-sm shadow-brand-primary/5">
-                    <Sparkles size={26} className="text-brand-primary animate-pulse" />
-                  </div>
-                  {selectedAgent ? (
-                    <>
-                      <h2 className="font-heading text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 mb-3 tracking-tight leading-none">
-                        What would you like to analyze today?
-                      </h2>
-                      <p className="text-xs md:text-sm text-slate-400 mb-5 md:mb-8 max-w-md leading-relaxed">
-                        {(() => {
-                          const activeAgentObj = agents.find(a => a.name === selectedAgent);
-                          return activeAgentObj?.welcomeSubtitle || activeAgentObj?.description || "Ask any analytical question about your business data, cost trends, or marketing performance.";
-                        })()}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <h2 className="font-heading text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 mb-3 tracking-tight leading-none">
-                        Conversational Analytics Hub
-                      </h2>
-                      <p className="text-xs md:text-sm text-slate-400 mb-5 md:mb-8 max-w-md leading-relaxed">
-                        Unlock the power of your BigQuery data warehouses using natural language. Select an AI Data Specialist from the sidebar or dropdown to start asking questions, generating forecasts, and analyzing trends instantly.
-                      </p>
-                    </>
-                  )}
+                (() => {
+                  const activeAgentObj = selectedAgent ? agents.find(a => a.name === selectedAgent) : undefined;
+                  const isGraphAgent = !!activeAgentObj?.isGraphAgent;
+
+                  return (
+                    <div className={`flex-1 flex flex-col items-center justify-center p-4 md:p-8 mx-auto text-center my-auto animate-fadeIn select-none transition-all duration-300 ${isGraphAgent ? 'max-w-5xl w-full' : 'max-w-2xl'}`}>
+                      {/* Brand icon - hide or scale down for graph agents to maximize screen real estate */}
+                      {!isGraphAgent && (
+                        <div className="w-14 h-14 rounded-2xl bg-brand-primary/10 border border-brand-primary/25 flex items-center justify-center mb-6 shadow-sm shadow-brand-primary/5">
+                          <Sparkles size={26} className="text-brand-primary animate-pulse" />
+                        </div>
+                      )}
+                      
+                      {selectedAgent ? (
+                        isGraphAgent ? (
+                          // Compact, elegant header for Graph Visualizer to maximize screen real estate
+                          <div className="mb-6 flex flex-col items-center gap-1">
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[10px] font-bold tracking-wider uppercase mb-1">
+                              <Sparkles size={11} className="animate-pulse" />
+                              BigQuery Graph Schema Active
+                            </div>
+                            <h2 className="font-heading text-xl md:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 tracking-tight leading-none">
+                              Explore Database Relationships
+                            </h2>
+                            <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                              Active agent: <strong className="text-slate-200">{activeAgentObj?.displayName || activeAgentObj?.name.split("/").pop()}</strong>
+                            </p>
+                          </div>
+                        ) : (
+                          // Standard welcome header
+                          <>
+                            <h2 className="font-heading text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 mb-3 tracking-tight leading-none">
+                              What would you like to analyze today?
+                            </h2>
+                            <p className="text-xs md:text-sm text-slate-400 mb-5 md:mb-8 max-w-md leading-relaxed">
+                              {activeAgentObj?.welcomeSubtitle || activeAgentObj?.description || "Ask any analytical question about your business data, cost trends, or marketing performance."}
+                            </p>
+                          </>
+                        )
+                      ) : (
+                        <>
+                          <h2 className="font-heading text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 mb-3 tracking-tight leading-none">
+                            Conversational Analytics Hub
+                          </h2>
+                          <p className="text-xs md:text-sm text-slate-400 mb-5 md:mb-8 max-w-md leading-relaxed">
+                            Unlock the power of your BigQuery data warehouses using natural language. Select an AI Data Specialist from the sidebar or dropdown to start asking questions, generating forecasts, and analyzing trends instantly.
+                          </p>
+                        </>
+                      )}
                   
                   {/* Mobile-only Centered Agent Selector */}
                   {window.innerWidth < 768 && agents.length > 0 && (
@@ -3100,7 +3123,9 @@ const App: React.FC = () => {
                       </ol>
                     </div>
                   )}
-                </div>
+                    </div>
+                  );
+                })()
               ) : (
                 messages.map((msg, idx) => {
                   const isUser = !!msg.userMessage;

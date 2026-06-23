@@ -392,6 +392,56 @@ def enrich_agent_metadata(agent: dict) -> dict:
         else:
             welcome_subtitle = "Ask any analytical question about your business data, cost trends, or performance."
             
+    # 6. Detect and Inject Graph Database Schema if it is a Graph Agent
+    is_graph_agent = any("graph" in t.lower() for t in tables) or "graph" in display_name.lower()
+    agent["isGraphAgent"] = is_graph_agent
+    
+    if is_graph_agent:
+        agent["graphData"] = {
+            "nodes": [
+                {"id": "users", "label": "Users", "icon": "users", "type": "customer", "description": "Customer profiles, registrations, demographic locations, and traffic source channels."},
+                {"id": "orders", "label": "Orders", "icon": "shopping-bag", "type": "transaction", "description": "Purchase transactions, shipping statuses, order items, and revenue statistics."},
+                {"id": "products", "label": "Products", "icon": "package", "type": "inventory", "description": "E-commerce product catalog details, pricing history, inventory stock, and categories."},
+                {"id": "brands", "label": "Brands", "icon": "award", "type": "vendor", "description": "Brand manufacturers, manufacturer profiles, and brand-specific sales performance metrics."},
+                {"id": "stores", "label": "Stores", "icon": "store", "type": "warehouse", "description": "Physical retail store locations, warehouses, regional stock levels, and store inventory distributions."}
+            ],
+            "edges": [
+                {"source": "users", "target": "orders", "label": "PLACES"},
+                {"source": "orders", "target": "products", "label": "CONTAINS"},
+                {"source": "products", "target": "brands", "label": "BELONGS_TO"},
+                {"source": "products", "target": "stores", "label": "STOCKED_IN"}
+            ],
+            "nodeSuggestions": {
+                "users": [
+                    "How many new users registered last month by country?",
+                    "What is the distribution of users by traffic source medium and age?",
+                    "List the top 10 most loyal customers by order count."
+                ],
+                "orders": [
+                    "What is the average order value (AOV) for this year?",
+                    "Compare monthly order volumes and total sales revenue across different countries.",
+                    "Show the status distribution of orders (e.g. processing, shipped, returned)."
+                ],
+                "products": [
+                    "What are the top 5 best-selling product categories by total sales revenue?",
+                    "List all products with a retail price greater than $150 and their categories.",
+                    "Which product categories have the highest profit margins?"
+                ],
+                "brands": [
+                    "What are the top 5 brand names by number of items sold?",
+                    "Which brand has the highest average retail price in our catalog?",
+                    "Show me the sales trend for products belonging to the brand 'Nike'."
+                ],
+                "stores": [
+                    "Which store warehouse currently holds the highest inventory value?",
+                    "What is the total stock quantity of items distributed across our store locations?",
+                    "Show me products with stock levels below 25 units in the Chicago warehouse."
+                ]
+            }
+        }
+        if not description:
+            welcome_subtitle = "Explore your connected BigQuery Graph database. Hover and click nodes to discover relationships and ask questions!"
+            
     # Inject metadata properties into the agent dict returned to the UI
     agent["suggestions"] = suggestions
     agent["welcomeSubtitle"] = welcome_subtitle

@@ -8,7 +8,14 @@ import {
   Sparkles, 
   ChevronRight,
   HelpCircle,
-  Network
+  Network,
+  BookOpen,
+  Activity,
+  Target,
+  CreditCard,
+  DollarSign,
+  Globe,
+  Database
 } from "lucide-react";
 
 interface Node {
@@ -37,8 +44,8 @@ interface GraphVisualizerProps {
   brandPrimaryColor?: string;
 }
 
-// Fixed symmetrical coordinates for a perfectly balanced, responsive layout
-const NODE_COORDINATES: Record<string, { x: number; y: number }> = {
+// Preset coordinates for the flagship The Look Ecommerce showcase agent
+const PRESET_COORDINATES: Record<string, { x: number; y: number }> = {
   users: { x: 110, y: 100 },
   orders: { x: 110, y: 300 },
   products: { x: 300, y: 200 },
@@ -46,14 +53,26 @@ const NODE_COORDINATES: Record<string, { x: number; y: number }> = {
   stores: { x: 490, y: 300 }
 };
 
-// Vibrant, distinct colors for each entity node type to make them pop!
-const NODE_COLORS: Record<string, string> = {
+// Vibrant color presets for flagship nodes
+const PRESET_COLORS: Record<string, string> = {
   users: "#a78bfa",      // Bright Violet/Purple
   orders: "#38bdf8",     // Bright Cyan/Blue
   products: "#34d399",    // Bright Emerald Green
   brands: "#fbbf24",     // Bright Amber Gold
   stores: "#f472b6"      // Bright Pink/Rose
 };
+
+// Curated 8-color cyclic palette for custom/unknown graph schemas
+const DYNAMIC_PALETTE = [
+  "#a78bfa", // Purple/Violet
+  "#38bdf8", // Cyan/Blue
+  "#34d399", // Emerald Green
+  "#fbbf24", // Amber Gold
+  "#f472b6", // Rose/Pink
+  "#fb7185", // Coral/Salmon
+  "#2dd4bf", // Teal
+  "#f43f5e"  // Red/Pink
+];
 
 export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   graphData,
@@ -63,25 +82,75 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
-  // Map coordinates onto backend node descriptions
-  const nodes: Node[] = graphData.nodes.map(n => ({
-    ...n,
-    x: NODE_COORDINATES[n.id]?.x || 300,
-    y: NODE_COORDINATES[n.id]?.y || 200
-  }));
+  // Check if we should use the preset showcase layout
+  // We only use presets if ALL incoming nodes are registered in our preset list
+  const usePresetLayout = graphData.nodes.every(n => PRESET_COORDINATES[n.id]);
+
+  // Dynamic Layout Engine: maps coordinates on the fly
+  const nodes: Node[] = graphData.nodes.map((n, idx) => {
+    if (usePresetLayout && PRESET_COORDINATES[n.id]) {
+      return {
+        ...n,
+        x: PRESET_COORDINATES[n.id].x,
+        y: PRESET_COORDINATES[n.id].y
+      };
+    }
+    
+    // Circular Layout distribution for custom/unknown graphs
+    const center = { x: 300, y: 200 };
+    const radius = 125;
+    const angle = (2 * Math.PI * idx) / graphData.nodes.length - Math.PI / 2; // Start at top
+    
+    return {
+      ...n,
+      x: Math.round(center.x + radius * Math.cos(angle)),
+      y: Math.round(center.y + radius * Math.sin(angle))
+    };
+  });
 
   const edges = graphData.edges;
 
-  // Helper to render entity-specific Lucide icons
+  // Semantic Icon Resolver: scans node IDs/icons for keywords to match representative Lucide icons
   const renderNodeIcon = (iconName: string, size: number = 20, color: string = "#fff") => {
-    switch (iconName) {
-      case "users": return <Users size={size} color={color} />;
-      case "shopping-bag": return <ShoppingBag size={size} color={color} />;
-      case "package": return <Package size={size} color={color} />;
-      case "award": return <Award size={size} color={color} />;
-      case "store": return <Store size={size} color={color} />;
-      default: return <Network size={size} color={color} />;
+    const name = (iconName || "").toLowerCase();
+    
+    if (name.includes("user") || name.includes("customer") || name.includes("visitor") || name.includes("client")) {
+      return <Users size={size} color={color} />;
     }
+    if (name.includes("order") || name.includes("transaction") || name.includes("sale") || name.includes("purchase") || name.includes("deal")) {
+      return <ShoppingBag size={size} color={color} />;
+    }
+    if (name.includes("product") || name.includes("item") || name.includes("package") || name.includes("sku") || name.includes("part")) {
+      return <Package size={size} color={color} />;
+    }
+    if (name.includes("brand") || name.includes("vendor") || name.includes("award") || name.includes("manufacturer")) {
+      return <Award size={size} color={color} />;
+    }
+    if (name.includes("store") || name.includes("warehouse") || name.includes("location") || name.includes("hub") || name.includes("depot")) {
+      return <Store size={size} color={color} />;
+    }
+    if (name.includes("page") || name.includes("view") || name.includes("url") || name.includes("screen") || name.includes("article")) {
+      return <BookOpen size={size} color={color} />;
+    }
+    if (name.includes("session") || name.includes("visit") || name.includes("activity") || name.includes("click") || name.includes("event")) {
+      return <Activity size={size} color={color} />;
+    }
+    if (name.includes("conversion") || name.includes("goal") || name.includes("target") || name.includes("kpi")) {
+      return <Target size={size} color={color} />;
+    }
+    if (name.includes("card") || name.includes("credit") || name.includes("payment") || name.includes("account")) {
+      return <CreditCard size={size} color={color} />;
+    }
+    if (name.includes("money") || name.includes("dollar") || name.includes("price") || name.includes("cost") || name.includes("revenue") || name.includes("profit")) {
+      return <DollarSign size={size} color={color} />;
+    }
+    if (name.includes("globe") || name.includes("country") || name.includes("region") || name.includes("world") || name.includes("site")) {
+      return <Globe size={size} color={color} />;
+    }
+    if (name.includes("db") || name.includes("database") || name.includes("table") || name.includes("schema")) {
+      return <Database size={size} color={color} />;
+    }
+    return <Network size={size} color={color} />;
   };
 
   // Helper to check if an edge connects to a hovered/selected node
@@ -91,16 +160,25 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     return edge.source === activeNode || edge.target === activeNode;
   };
 
+  // Helper to resolve node specific color dynamically
+  const getNodeColor = (nodeId: string, nodeIdx: number) => {
+    if (usePresetLayout && PRESET_COLORS[nodeId]) {
+      return PRESET_COLORS[nodeId];
+    }
+    return DYNAMIC_PALETTE[nodeIdx % DYNAMIC_PALETTE.length];
+  };
+
   // Get active suggestions to display in the floating inspector
   const activeNodeObj = nodes.find(n => n.id === selectedNode);
+  const activeNodeIdx = nodes.findIndex(n => n.id === selectedNode);
   const suggestions = selectedNode ? graphData.nodeSuggestions[selectedNode] || [] : [];
-  const activeNodeColor = selectedNode ? NODE_COLORS[selectedNode] || brandPrimaryColor : brandPrimaryColor;
+  const activeNodeColor = selectedNode ? getNodeColor(selectedNode, activeNodeIdx) : brandPrimaryColor;
 
   return (
     <div className="w-full flex flex-col lg:flex-row gap-6 items-center justify-center py-4 select-none max-w-4xl mx-auto animate-fadeIn">
       {/* 1. Interactive Animated SVG Graph Canvas */}
       <div className="relative w-full lg:w-3/5 bg-slate-950/60 border border-white/10 rounded-3xl p-4 backdrop-blur-md shadow-2xl flex items-center justify-center overflow-hidden aspect-[3/2] max-w-lg lg:max-w-none">
-        {/* Grid background with slightly higher visibility */}
+        {/* Grid background */}
         <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.025)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
         
         <svg 
@@ -114,11 +192,11 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
               const tgt = nodes.find(n => n.id === edge.target);
               if (!src || !tgt) return null;
 
+              const srcIdx = nodes.findIndex(n => n.id === edge.source);
+              const edgeColor = getNodeColor(edge.source, srcIdx);
+
               const highlighted = isEdgeHighlighted(edge);
               const dimmed = (hoveredNode || selectedNode) && !highlighted;
-              
-              // Color relationships based on the source node's identity
-              const edgeColor = NODE_COLORS[edge.source] || brandPrimaryColor;
 
               return (
                 <g key={idx} className="transition-all duration-300">
@@ -135,7 +213,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                       className="opacity-30 blur-sm"
                     />
                   )}
-                  {/* Core relationship line - increased opacity and thickness for visibility */}
+                  {/* Core relationship line */}
                   <line
                     x1={src.x}
                     y1={src.y}
@@ -169,11 +247,12 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
               const tgt = nodes.find(n => n.id === edge.target);
               if (!src || !tgt) return null;
 
+              const srcIdx = nodes.findIndex(n => n.id === edge.source);
+              const edgeColor = getNodeColor(edge.source, srcIdx);
+
               const highlighted = isEdgeHighlighted(edge);
               const dimmed = (hoveredNode || selectedNode) && !highlighted;
-              const edgeColor = NODE_COLORS[edge.source] || brandPrimaryColor;
 
-              // Compute midpoint
               const xMid = (src.x + tgt.x) / 2;
               const yMid = (src.y + tgt.y) / 2;
 
@@ -210,13 +289,12 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
 
           {/* C. Symmetrical Glowing Multi-Color Nodes */}
           <g>
-            {nodes.map((node) => {
+            {nodes.map((node, idx) => {
               const isSelected = selectedNode === node.id;
               const isHovered = hoveredNode === node.id;
               const isDimmed = (hoveredNode || selectedNode) && !isSelected && !isHovered;
               
-              // Resolve entity-specific color
-              const nodeColor = NODE_COLORS[node.id] || brandPrimaryColor;
+              const nodeColor = getNodeColor(node.id, idx);
 
               return (
                 <g
@@ -227,7 +305,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                   onMouseLeave={() => setHoveredNode(null)}
                   onClick={() => setSelectedNode(isSelected ? null : node.id)}
                 >
-                  {/* Stronger glow circle behind selected/hovered nodes */}
+                  {/* Glowing aura behind active node */}
                   {(isSelected || isHovered) && (
                     <circle
                       r="34"
@@ -236,7 +314,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     />
                   )}
                   
-                  {/* Outer pulsing ring in entity color */}
+                  {/* Outer pulsing ring */}
                   <circle
                     r="28"
                     fill="none"
@@ -245,7 +323,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     className={`transition-all duration-300 ${isSelected ? "animate-ping opacity-20" : ""}`}
                   />
                   
-                  {/* Core Node Circle - Darker background, thicker colored border */}
+                  {/* Core Node Circle */}
                   <circle
                     r="24"
                     fill={isSelected ? "rgba(15, 23, 42, 0.95)" : "rgba(17, 24, 39, 0.8)"}
@@ -254,7 +332,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     className={`transition-all duration-300 ${isDimmed ? "opacity-30" : "opacity-100"}`}
                   />
 
-                  {/* Dynamic Lucide Icon Wrapper - Colored based on state */}
+                  {/* Semantic Icon */}
                   <g 
                     className={`transition-all duration-300 ${isDimmed ? "opacity-30" : "opacity-100"}`}
                     transform="translate(-10, -10)"
@@ -266,7 +344,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     )}
                   </g>
 
-                  {/* Node Label - Increased brightness and contrast */}
+                  {/* Node Label */}
                   <text
                     y="42"
                     textAnchor="middle"
@@ -281,14 +359,14 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
           </g>
         </svg>
         
-        {/* Floating tooltip when hovering over a node */}
+        {/* Hover Tooltip */}
         {hoveredNode && !selectedNode && (
           <div 
             className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-slate-950/90 border border-white/10 rounded-xl text-[11px] text-slate-200 backdrop-blur-md flex items-center gap-1.5 shadow-xl pointer-events-none animate-fadeIn"
           >
             <span 
               className="font-bold uppercase"
-              style={{ color: NODE_COLORS[hoveredNode] }}
+              style={{ color: getNodeColor(hoveredNode, nodes.findIndex(n => n.id === hoveredNode)) }}
             >
               {nodes.find(n => n.id === hoveredNode)?.label}
             </span>
@@ -303,7 +381,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
         {selectedNode && activeNodeObj ? (
           <div 
             className="p-5 bg-slate-950/50 border rounded-3xl backdrop-blur-md shadow-2xl flex flex-col gap-4.5 animate-slideIn w-full transition-all duration-300"
-            style={{ borderColor: `${activeNodeObj ? NODE_COLORS[selectedNode] + "30" : "rgba(255,255,255,0.06)"}` }}
+            style={{ borderColor: `${activeNodeColor}30` }}
           >
             {/* Entity Header */}
             <div className="flex items-center gap-3">
@@ -344,9 +422,6 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     key={idx}
                     onClick={() => onSelectSuggestion(suggestion)}
                     className="p-3 bg-white/4 border border-white/6 hover:bg-white/8 rounded-xl text-left text-[11px] text-slate-200 font-semibold transition cursor-pointer flex items-center justify-between group"
-                    style={{ 
-                      hoverBorderColor: activeNodeColor
-                    } as any}
                   >
                     <span className="group-hover:text-white transition duration-150 leading-relaxed pr-2">{suggestion}</span>
                     <ChevronRight 

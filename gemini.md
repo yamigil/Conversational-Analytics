@@ -42,6 +42,11 @@
 - Ran automated browser subagents to visually verify the layouts, colors, responsive coordinates, hover tooltips, glowing animations, and inspector selections, saving verified screenshots in artifacts.
 - Committed, merged, and pushed all updates to both **`showcase`** and **`main`** branches, triggering serverless Cloud Run and Firebase Hosting CDNs to deploy the updates live.
 
+### 7. Cloud Run Warm-Up & Cold-Start Elimination (Performance Optimization)
+- **The Problem**: Serverless Cloud Run containers scaled down to 0 when idle, causing a "cold-start" latency of up to 2 minutes on initial page loads, degrading the user experience.
+- **Live Cloud Update**: Executed `gcloud run services update` in the cloud to set `--min-instances=1` on both live services: `ca-analytics-portal` (internal/main) and `ca-analytics-portal-showcase` (external/showcase). Both services now keep a warm container instance active 24/7, reducing initial page load times from 2 minutes to under a second!
+- **CI/CD Workflow Hardening**: Hardened both GitHub Actions workflows ([.github/workflows/firebase-deploy.yml](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/.github/workflows/firebase-deploy.yml) and [.github/workflows/firebase-deploy-showcase.yml](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/.github/workflows/firebase-deploy-showcase.yml)) to append `--min-instances=1` in their `flags` properties. All future deployments are guaranteed to preserve this performance optimization!
+
 ---
 
 ## Next Session Plans

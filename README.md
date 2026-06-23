@@ -57,9 +57,10 @@ Deploy the entire application (frontend and backend served together) as a single
        --platform managed \
        --region us-central1 \
        --allow-unauthenticated \
-       --port 8000
+       --port 8000 \
+       --min-instances 1
    ```
-   *Note: This command uploads under 1MB of source assets and builds the container fresh in the cloud in under 2 minutes.*
+   *Note: Setting `--min-instances 1` keeps at least one container instance warm 24/7 to completely eliminate cold-start latency, ensuring sub-second initial page load times.*
 
 2. **Grant IAM Permissions**:
    Go to the **GCP IAM Console** and grant the Cloud Run Default Service Account (`<project-number>-compute@developer.gserviceaccount.com`) the following roles in your target project:

@@ -51,7 +51,7 @@ jobs:
           service: ca-analytics-portal-showcase
           region: us-central1
           source: ./
-          flags: '--allow-unauthenticated --port 8000 --set-env-vars RESTRICT_TO_GOOGLE=false,ALLOWED_EMAILS=${{ secrets.ALLOWED_EMAILS }},ALLOWED_DOMAINS=${{ secrets.ALLOWED_DOMAINS }}'
+          flags: '--allow-unauthenticated --port 8000 --min-instances=1 --set-env-vars RESTRICT_TO_GOOGLE=false,ALLOWED_EMAILS=${{ secrets.ALLOWED_EMAILS }},ALLOWED_DOMAINS=${{ secrets.ALLOWED_DOMAINS }}'
 
       - name: Deploy to Firebase Hosting (Showcase)
         uses: FirebaseExtended/action-hosting-deploy@v0

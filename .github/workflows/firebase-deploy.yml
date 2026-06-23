@@ -58,4 +58,4 @@ jobs:
           service: ca-analytics-portal
           region: us-central1
           source: ./
-          flags: '--allow-unauthenticated --port 8000'
+          flags: '--allow-unauthenticated --port 8000 --min-instances=1'

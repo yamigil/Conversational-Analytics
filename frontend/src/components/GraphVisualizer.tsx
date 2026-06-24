@@ -15,7 +15,10 @@ import {
   CreditCard,
   DollarSign,
   Globe,
-  Database
+  Database,
+  Car,
+  Wrench,
+  FileText
 } from "lucide-react";
 
 interface Node {
@@ -113,10 +116,19 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   const renderNodeIcon = (iconName: string, size: number = 22, color: string = "#fff") => {
     const name = (iconName || "").toLowerCase();
     
+    if (name.includes("vehicle") || name.includes("car") || name.includes("truck") || name.includes("auto")) {
+      return <Car size={size} color={color} />;
+    }
+    if (name.includes("service") || name.includes("maintenance") || name.includes("repair") || name.includes("wrench")) {
+      return <Wrench size={size} color={color} />;
+    }
+    if (name.includes("deal") || name.includes("jacket") || name.includes("contract") || name.includes("file") || name.includes("document")) {
+      return <FileText size={size} color={color} />;
+    }
     if (name.includes("user") || name.includes("customer") || name.includes("visitor") || name.includes("client")) {
       return <Users size={size} color={color} />;
     }
-    if (name.includes("order") || name.includes("transaction") || name.includes("sale") || name.includes("purchase") || name.includes("deal")) {
+    if (name.includes("order") || name.includes("transaction") || name.includes("sale") || name.includes("purchase")) {
       return <ShoppingBag size={size} color={color} />;
     }
     if (name.includes("product") || name.includes("item") || name.includes("package") || name.includes("sku") || name.includes("part")) {

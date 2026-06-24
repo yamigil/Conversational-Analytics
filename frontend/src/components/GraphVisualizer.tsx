@@ -47,22 +47,37 @@ interface GraphVisualizerProps {
   brandPrimaryColor?: string;
 }
 
-// Wider preset coordinates to spread nodes further towards the boundaries, reclaiming canvas space
 const PRESET_COORDINATES: Record<string, { x: number; y: number }> = {
+  // 1. The Look Graph Showcase Presets
   users: { x: 75, y: 70 },
   orders: { x: 75, y: 330 },
   products: { x: 300, y: 200 },
   brands: { x: 525, y: 70 },
-  stores: { x: 525, y: 330 }
+  stores: { x: 525, y: 330 },
+  
+  // 2. Penske Customer 360 Graph Showcase Presets (spacious, wide pyramid layout)
+  customers: { x: 300, y: 70 },
+  web_events: { x: 90, y: 190 },
+  vehicles: { x: 510, y: 190 },
+  deal_jackets: { x: 190, y: 330 },
+  service_visits: { x: 410, y: 330 }
 };
 
 // Vibrant color presets for flagship nodes
 const PRESET_COLORS: Record<string, string> = {
+  // The Look Graph
   users: "#a78bfa",      // Bright Violet/Purple
   orders: "#38bdf8",     // Bright Cyan/Blue
   products: "#34d399",    // Bright Emerald Green
   brands: "#fbbf24",     // Bright Amber Gold
-  stores: "#f472b6"      // Bright Pink/Rose
+  stores: "#f472b6",     // Bright Pink/Rose
+  
+  // Penske Customer 360 Graph
+  customers: "#a78bfa",      // Bright Violet/Purple (Customer root)
+  vehicles: "#38bdf8",       // Bright Cyan/Blue (Vehicles)
+  service_visits: "#34d399", // Bright Emerald Green (Service Wrench)
+  deal_jackets: "#fbbf24",   // Bright Amber Gold (F&I Contracts)
+  web_events: "#f472b6"      // Bright Pink/Rose (GA4 Marketing)
 };
 
 // Curated 8-color cyclic palette for custom/unknown graph schemas

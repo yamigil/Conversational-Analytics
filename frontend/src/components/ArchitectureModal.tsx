@@ -1,14 +1,16 @@
 import React, { useState } from "react";
-import { X, Database, MessageSquare, Network, Brain } from "lucide-react";
+import { X, Database, MessageSquare, Network, Brain, Share2 } from "lucide-react";
 
 interface ArchitectureModalProps {
   isOpen: boolean;
   onClose: () => void;
+  isGraphAgent?: boolean;
 }
 
 export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
   isOpen,
-  onClose
+  onClose,
+  isGraphAgent = false
 }) => {
   const [selectedComponent, setSelectedComponent] = useState<string>("storage");
 
@@ -17,7 +19,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
   const FlowConnector = ({ colorClass = "bg-blue-400" }: { colorClass?: string }) => (
     <>
       {/* Desktop Flow Connector (Horizontal) */}
-      <div className="hidden md:flex items-center justify-center shrink-0 mx-1 relative w-16 h-6 select-none">
+      <div className="hidden md:flex items-center justify-center shrink-0 mx-1 relative w-12 xl:w-16 h-6 select-none">
         {/* Background track line */}
         <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-slate-800/80 -translate-y-1/2 rounded-full overflow-hidden">
           {/* Animated flow background gradient */}
@@ -78,6 +80,12 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
         whatItDoes: "Powers semantic understanding of the data by storing table/column descriptions, business glossaries, column metadata, and table relationships (ERDs).",
         whyNeeded: "Provides the reasoning engine with crucial business context and structural schemas so it knows what the data represents without needing hardcoded logic."
       },
+      graph_schema: {
+        title: "BigQuery Property Graph",
+        subtitle: "Native SQL/PGQ Graph Database Schema",
+        whatItDoes: "Defines the customer-centric property graph schema (nodes and relationship edges) directly on top of the BigQuery tables using native SQL/PGQ MATCH syntax.",
+        whyNeeded: "Enables the reasoning engine to execute deep, multi-hop relationship traversals (e.g. tracking customer service histories and F&I deal jackets) with sub-second latency, bypassing slow relational JOINs."
+      },
       reasoning: {
         title: "Conversational Analytics API (Reasoning Engine)",
         subtitle: "Natural Language SQL Generator",
@@ -135,7 +143,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
       {/* Modal Card Box */}
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="glass-panel w-full max-w-5xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh] bg-slate-950/95 border-white/10"
+        className="glass-panel w-full max-w-[95%] xl:max-w-5xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh] bg-slate-950/95 border-white/10"
       >
         
         {/* Modal Header */}
@@ -173,12 +181,12 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
             </div>
             
             {/* Flow Nodes Grid */}
-            <div className="flex flex-col md:flex-row justify-between gap-2 items-center bg-slate-900/20 border border-white/5 p-6 rounded-2xl">
+            <div className="flex flex-col md:flex-row justify-between gap-2 items-center bg-slate-900/20 border border-white/5 p-6 rounded-2xl overflow-x-auto">
               
               {/* Node 1: Storage */}
               <div 
                 onClick={() => setSelectedComponent("storage")}
-                className={`glass-panel p-4 rounded-xl flex flex-col items-center text-center w-40 shrink-0 cursor-pointer select-none transition duration-300 ${selectedComponent === "storage" ? "border-blue-500 bg-blue-500/10 shadow-[0_0_12px_rgba(59,130,246,0.3)]" : "border-white/6 hover:border-blue-500/30"}`}
+                className={`glass-panel p-4 rounded-xl flex flex-col items-center text-center w-36 xl:w-40 shrink-0 cursor-pointer select-none transition duration-300 ${selectedComponent === "storage" ? "border-blue-500 bg-blue-500/10 shadow-[0_0_12px_rgba(59,130,246,0.3)]" : "border-white/6 hover:border-blue-500/30"}`}
               >
                 <Database size={24} className="text-blue-400 mb-2" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">01. Storage</span>
@@ -191,7 +199,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
               {/* Node 2: Catalog */}
               <div 
                 onClick={() => setSelectedComponent("catalog")}
-                className={`glass-panel p-4 rounded-xl flex flex-col items-center text-center w-40 shrink-0 cursor-pointer select-none transition duration-300 ${selectedComponent === "catalog" ? "border-amber-500 bg-amber-500/10 shadow-[0_0_12px_rgba(245,158,11,0.3)]" : "border-white/6 hover:border-amber-500/30"}`}
+                className={`glass-panel p-4 rounded-xl flex flex-col items-center text-center w-36 xl:w-40 shrink-0 cursor-pointer select-none transition duration-300 ${selectedComponent === "catalog" ? "border-amber-500 bg-amber-500/10 shadow-[0_0_12px_rgba(245,158,11,0.3)]" : "border-white/6 hover:border-amber-500/30"}`}
               >
                 <Network size={24} className="text-amber-400 mb-2" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">02. Metadata</span>
@@ -199,12 +207,31 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
                 <span className="text-[9px] text-slate-400 mt-1">Formerly Dataplex</span>
               </div>
 
-              <FlowConnector colorClass="bg-amber-400" />
+              {/* Dynamic Node 2b: Graph Schema (Only for Graph Agents!) */}
+              {isGraphAgent ? (
+                <>
+                  <FlowConnector colorClass="bg-amber-400" />
+                  
+                  <div 
+                    onClick={() => setSelectedComponent("graph_schema")}
+                    className={`glass-panel p-4 rounded-xl flex flex-col items-center text-center w-36 xl:w-40 shrink-0 cursor-pointer select-none transition duration-300 ${selectedComponent === "graph_schema" ? "border-pink-500 bg-pink-500/10 shadow-[0_0_12px_rgba(236,72,153,0.3)]" : "border-white/6 hover:border-pink-500/30"}`}
+                  >
+                    <Share2 size={24} className="text-pink-400 mb-2 animate-pulse" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">02b. Schema</span>
+                    <span className="text-xs font-semibold text-white mt-1">Property Graph</span>
+                    <span className="text-[9px] text-slate-400 mt-1">Native SQL/PGQ</span>
+                  </div>
+                  
+                  <FlowConnector colorClass="bg-pink-400" />
+                </>
+              ) : (
+                <FlowConnector colorClass="bg-amber-400" />
+              )}
 
               {/* Node 3: Reasoning Engine */}
               <div 
                 onClick={() => setSelectedComponent("reasoning")}
-                className={`glass-panel p-4 rounded-xl flex flex-col items-center text-center w-40 shrink-0 cursor-pointer select-none transition duration-300 ${selectedComponent === "reasoning" ? "border-purple-500 bg-purple-500/10 shadow-[0_0_12px_rgba(139,92,246,0.3)]" : "border-white/6 hover:border-purple-500/30"}`}
+                className={`glass-panel p-4 rounded-xl flex flex-col items-center text-center w-36 xl:w-40 shrink-0 cursor-pointer select-none transition duration-300 ${selectedComponent === "reasoning" ? "border-purple-500 bg-purple-500/10 shadow-[0_0_12px_rgba(139,92,246,0.3)]" : "border-white/6 hover:border-purple-500/30"}`}
               >
                 <Brain size={24} className="text-purple-400 mb-2" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">03. Engine</span>
@@ -217,7 +244,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
               {/* Node 4: Custom UI */}
               <div 
                 onClick={() => setSelectedComponent("display")}
-                className={`glass-panel p-4 rounded-xl flex flex-col items-center text-center w-40 shrink-0 cursor-pointer select-none transition duration-300 ${selectedComponent === "display" ? "border-brand-primary bg-brand-primary/10 shadow-[0_0_12px_hsl(var(--primary-color)/0.3)]" : "border-brand-primary/45 hover:border-brand-primary"}`}
+                className={`glass-panel p-4 rounded-xl flex flex-col items-center text-center w-36 xl:w-40 shrink-0 cursor-pointer select-none transition duration-300 ${selectedComponent === "display" ? "border-brand-primary bg-brand-primary/10 shadow-[0_0_12px_hsl(var(--primary-color)/0.3)]" : "border-brand-primary/45 hover:border-brand-primary"}`}
               >
                 <MessageSquare size={24} className="text-brand-primary mb-2" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-brand-primary">04. Interface</span>

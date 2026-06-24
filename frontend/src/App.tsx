@@ -3818,6 +3818,7 @@ const App: React.FC = () => {
         key={isArchModalOpen ? "open" : "closed"}
         isOpen={isArchModalOpen} 
         onClose={() => setIsArchModalOpen(false)} 
+        isGraphAgent={agents.find(a => a.name === selectedAgent)?.isGraphAgent || false}
       />
 
       {/* Global Glassmorphic Loading Overlay */}

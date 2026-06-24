@@ -298,7 +298,6 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     strokeWidth={highlighted ? "3" : "1.5"}
                     strokeDasharray={highlighted ? "none" : "6, 6"}
                     markerEnd={highlighted ? "url(#arrow-end-active)" : "url(#arrow-end)"}
-                    markerStart={highlighted ? "url(#arrow-start-active)" : "url(#arrow-start)"}
                     className={`transition-all duration-300 ${dimmed ? "opacity-20" : "opacity-100"}`}
                     style={{ color: edgeColor }}
                   />

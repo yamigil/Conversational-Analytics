@@ -186,16 +186,67 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   const activeNodeColor = selectedNode ? getNodeColor(selectedNode, activeNodeIdx) : brandPrimaryColor;
 
   return (
-    <div className="w-full flex flex-col lg:flex-row gap-6 items-center justify-center py-2 select-none max-w-full mx-auto animate-fadeIn">
+    <div className="w-full flex flex-col gap-6 items-center py-2 select-none max-w-4xl mx-auto animate-fadeIn">
       {/* 1. Interactive Animated SVG Graph Canvas */}
-      <div className="relative w-full lg:w-3/5 bg-slate-950/60 border border-white/10 rounded-3xl p-4 backdrop-blur-md shadow-2xl flex items-center justify-center overflow-hidden aspect-[3/2] w-full max-w-2xl lg:max-w-none">
+      <div className="relative w-full bg-slate-950/60 border border-white/10 rounded-3xl p-4 backdrop-blur-md shadow-2xl flex items-center justify-center overflow-hidden aspect-[3/2] md:aspect-[16/10] w-full">
         {/* Grid background */}
         <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.025)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
         
         <svg 
           viewBox="0 0 600 400" 
-          className="w-full h-full overflow-visible"
+          className="w-full h-full overflow-visible cursor-default"
+          onClick={() => setSelectedNode(null)}
         >
+          <defs>
+            {/* Standard edge arrow markers */}
+            <marker
+              id="arrow-end"
+              viewBox="0 0 10 10"
+              refX="6"
+              refY="5"
+              markerWidth="5"
+              markerHeight="5"
+              orient="auto"
+            >
+              <path d="M 0 1.5 L 7 5 L 0 8.5 z" fill="rgba(255,255,255,0.25)" />
+            </marker>
+            <marker
+              id="arrow-start"
+              viewBox="0 0 10 10"
+              refX="1"
+              refY="5"
+              markerWidth="5"
+              markerHeight="5"
+              orient="auto-start-reverse"
+            >
+              <path d="M 0 1.5 L 7 5 L 0 8.5 z" fill="rgba(255,255,255,0.25)" />
+            </marker>
+            
+            {/* Highlighted active edge arrow markers */}
+            <marker
+              id="arrow-end-active"
+              viewBox="0 0 10 10"
+              refX="6"
+              refY="5"
+              markerWidth="5"
+              markerHeight="5"
+              orient="auto"
+            >
+              <path d="M 0 1.5 L 7 5 L 0 8.5 z" fill="currentColor" />
+            </marker>
+            <marker
+              id="arrow-start-active"
+              viewBox="0 0 10 10"
+              refX="1"
+              refY="5"
+              markerWidth="5"
+              markerHeight="5"
+              orient="auto-start-reverse"
+            >
+              <path d="M 0 1.5 L 7 5 L 0 8.5 z" fill="currentColor" />
+            </marker>
+          </defs>
+
           {/* A. Relationship Tracks (Edges) */}
           <g>
             {edges.map((edge, idx) => {
@@ -209,40 +260,56 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
               const highlighted = isEdgeHighlighted(edge);
               const dimmed = (hoveredNode || selectedNode) && !highlighted;
 
+              // Shorten edge lines to end exactly at the node boundary rings (34px radius)
+              const dx = tgt.x - src.x;
+              const dy = tgt.y - src.y;
+              const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+              const ux = dx / dist;
+              const uy = dy / dist;
+
+              const rBoundary = 34;
+              const x1 = src.x + ux * rBoundary;
+              const y1 = src.y + uy * rBoundary;
+              const x2 = tgt.x - ux * rBoundary;
+              const y2 = tgt.y - uy * rBoundary;
+
               return (
                 <g key={idx} className="transition-all duration-300">
                   {/* Glowing background line for highlighted connections */}
                   {highlighted && (
                     <line
-                      x1={src.x}
-                      y1={src.y}
-                      x2={tgt.x}
-                      y2={tgt.y}
+                      x1={x1}
+                      y1={y1}
+                      x2={x2}
+                      y2={y2}
                       stroke={edgeColor}
-                      strokeWidth="6"
+                      strokeWidth="5"
                       strokeLinecap="round"
                       className="opacity-30 blur-sm"
                     />
                   )}
                   {/* Core relationship line */}
                   <line
-                    x1={src.x}
-                    y1={src.y}
-                    x2={tgt.x}
-                    y2={tgt.y}
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
                     stroke={highlighted ? edgeColor : "rgba(255,255,255,0.15)"}
-                    strokeWidth={highlighted ? "3.5" : "1.75"}
+                    strokeWidth={highlighted ? "3" : "1.5"}
                     strokeDasharray={highlighted ? "none" : "6, 6"}
+                    markerEnd={highlighted ? "url(#arrow-end-active)" : "url(#arrow-end)"}
+                    markerStart={highlighted ? "url(#arrow-start-active)" : "url(#arrow-start)"}
                     className={`transition-all duration-300 ${dimmed ? "opacity-20" : "opacity-100"}`}
+                    style={{ color: edgeColor }}
                   />
                   
                   {/* Native SVG flowing particle animations */}
                   {highlighted && (
-                    <circle r="5" fill={edgeColor} className="filter drop-shadow-[0_0_8px_var(--tw-shadow-color)]" style={{ shadowColor: edgeColor } as any}>
+                    <circle r="4.5" fill={edgeColor} className="filter drop-shadow-[0_0_8px_var(--tw-shadow-color)]" style={{ shadowColor: edgeColor } as any}>
                       <animateMotion
                         dur="2s"
                         repeatCount="indefinite"
-                        path={`M ${src.x} ${src.y} L ${tgt.x} ${tgt.y}`}
+                        path={`M ${x1} ${y1} L ${x2} ${y2}`}
                       />
                     </circle>
                   )}
@@ -314,7 +381,10 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                   className="cursor-pointer group"
                   onMouseEnter={() => setHoveredNode(node.id)}
                   onMouseLeave={() => setHoveredNode(null)}
-                  onClick={() => setSelectedNode(isSelected ? null : node.id)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent deselecting when clicking the node itself
+                    setSelectedNode(isSelected ? null : node.id);
+                  }}
                 >
                   {/* Larger glowing aura behind active node */}
                   {(isSelected || isHovered) && (
@@ -388,46 +458,48 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
       </div>
 
       {/* 2. Dynamic Glassmorphic Entity Inspector Card */}
-      <div className="w-full lg:w-2/5 flex flex-col h-full min-h-[260px] justify-center w-full max-w-md lg:max-w-none">
+      <div className="w-full flex flex-col min-h-[160px] justify-center w-full">
         {selectedNode && activeNodeObj ? (
           <div 
-            className="p-5 bg-slate-950/50 border rounded-3xl backdrop-blur-md shadow-2xl flex flex-col gap-4.5 animate-slideIn w-full transition-all duration-300"
+            className="p-5 bg-slate-950/50 border rounded-3xl backdrop-blur-md shadow-2xl grid grid-cols-1 md:grid-cols-2 gap-6 animate-slideIn w-full transition-all duration-300"
             style={{ borderColor: `${activeNodeColor}30` }}
           >
-            {/* Entity Header */}
-            <div className="flex items-center gap-3">
-              <div 
-                className="w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300"
-                style={{ 
-                  backgroundColor: `${activeNodeColor}15`,
-                  borderColor: `${activeNodeColor}40`
-                }}
-              >
-                {renderNodeIcon(activeNodeObj.icon, 18, activeNodeColor)}
-              </div>
-              <div className="flex flex-col">
-                <h3 className="text-sm font-bold text-white tracking-tight uppercase">{activeNodeObj.label}</h3>
-                <span 
-                  className="text-[9px] font-bold uppercase tracking-widest transition-all duration-300"
-                  style={{ color: activeNodeColor }}
+            {/* COLUMN 1: Entity Info */}
+            <div className="flex flex-col gap-3.5">
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300"
+                  style={{ 
+                    backgroundColor: `${activeNodeColor}15`,
+                    borderColor: `${activeNodeColor}40`
+                  }}
                 >
-                  {activeNodeObj.type}
-                </span>
+                  {renderNodeIcon(activeNodeObj.icon, 18, activeNodeColor)}
+                </div>
+                <div className="flex flex-col">
+                  <h3 className="text-sm font-bold text-white tracking-tight uppercase">{activeNodeObj.label}</h3>
+                  <span 
+                    className="text-[9px] font-bold uppercase tracking-widest transition-all duration-300"
+                    style={{ color: activeNodeColor }}
+                  >
+                    {activeNodeObj.type}
+                  </span>
+                </div>
               </div>
+
+              {/* Entity Description */}
+              <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                {activeNodeObj.description}
+              </p>
             </div>
 
-            {/* Entity Description */}
-            <p className="text-xs text-slate-300 leading-relaxed font-medium">
-              {activeNodeObj.description}
-            </p>
-
-            {/* Curated Suggested Queries */}
+            {/* COLUMN 2: Curated Suggested Queries */}
             <div className="flex flex-col gap-2">
               <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                 <Sparkles size={11} className="animate-pulse" style={{ color: activeNodeColor }} />
                 Suggested Graph Insights:
               </h4>
-              <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto pr-1">
+              <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto pr-1">
                 {suggestions.map((suggestion, idx) => (
                   <button
                     key={idx}
@@ -446,7 +518,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
             </div>
           </div>
         ) : (
-          <div className="p-6 bg-white/3 border border-white/6 rounded-3xl backdrop-blur-sm text-center flex flex-col gap-4 w-full mx-auto">
+          <div className="p-6 bg-white/3 border border-white/6 rounded-3xl backdrop-blur-sm text-center flex flex-col gap-4 w-full max-w-xl mx-auto">
             <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 border border-brand-primary/15 text-brand-primary flex items-center justify-center mx-auto shadow-sm">
               <Network size={22} className="animate-pulse text-brand-primary" />
             </div>

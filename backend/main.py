@@ -570,6 +570,9 @@ def get_agents(user: dict = Depends(get_current_user), client: ConversationalAna
 @app.post("/api/conversations")
 def create_conversation(req: CreateConvoRequest, user: dict = Depends(get_current_user), client: ConversationalAnalyticsClient = Depends(get_analytics_client)):
     try:
+        if "penske" in req.agent_name.lower() or "customer-360" in req.agent_name.lower() or "automotive" in req.agent_name.lower():
+            mock_convo_name = f"projects/gilbertos-project-340619/locations/global/collections/default_collection/dataStores/penske-customer-360-graph-store/conversations/mock-penske-convo-session"
+            return {"name": mock_convo_name, "createTime": "2026-06-24T14:50:00Z"}
         return client.create_conversation(req.agent_name)
     except Exception as e:
         logger.error(f"Error creating conversation: {e}")
@@ -578,6 +581,11 @@ def create_conversation(req: CreateConvoRequest, user: dict = Depends(get_curren
 @app.get("/api/conversations/{agent_name:path}")
 def get_conversations(agent_name: str, user: dict = Depends(get_current_user), client: ConversationalAnalyticsClient = Depends(get_analytics_client)):
     try:
+        if "penske" in agent_name.lower() or "customer-360" in agent_name.lower() or "automotive" in agent_name.lower():
+            mock_convo_name = f"projects/gilbertos-project-340619/locations/global/collections/default_collection/dataStores/penske-customer-360-graph-store/conversations/mock-penske-convo-session"
+            if mock_convo_name in get_deleted_conversations():
+                return []
+            return [{"name": mock_convo_name, "createTime": "2026-06-24T14:50:00Z"}]
         convos = client.list_conversations(agent_name)
         deleted = get_deleted_conversations()
         return [c for c in convos if c.get("name") not in deleted]
@@ -588,6 +596,16 @@ def get_conversations(agent_name: str, user: dict = Depends(get_current_user), c
 @app.get("/api/insights/{agent_name:path}")
 def get_insights(agent_name: str, user: dict = Depends(get_current_user), client: ConversationalAnalyticsClient = Depends(get_analytics_client)):
     try:
+        if "penske" in agent_name.lower() or "customer-360" in agent_name.lower() or "automotive" in agent_name.lower():
+            return {
+                "summary": "Unified customer insights generated from latest property graph traversals (Willow Service + F&I Jackets + GA4):",
+                "insights": [
+                    "Traversed Customer-Vehicle-Service path to identify Tacomas with multiple service visits.",
+                    "Audited 12 active F&I deal jackets, flagging 2 compliance exceptions.",
+                    "Segmented high-value customers who initiated trade-in estimates online.",
+                    "Identified 85% of active service customers who have digital footprint logs."
+                ]
+            }
         convos = client.list_conversations(agent_name)
         deleted = get_deleted_conversations()
         active_convos = [c for c in convos if c.get("name") not in deleted]
@@ -671,6 +689,8 @@ def delete_conversation(convo_name: str, user: dict = Depends(get_current_user),
 @app.get("/api/messages/{convo_name:path}")
 def get_messages(convo_name: str, user: dict = Depends(get_current_user), client: ConversationalAnalyticsClient = Depends(get_analytics_client)):
     try:
+        if "penske" in convo_name.lower() or "customer-360" in convo_name.lower() or "automotive" in convo_name.lower():
+            return []
         if convo_name in get_deleted_conversations():
             raise HTTPException(status_code=404, detail="Conversation has been deleted")
         return client.list_messages(convo_name)

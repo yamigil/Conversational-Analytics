@@ -84,7 +84,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
         title: "BigQuery Property Graph",
         subtitle: "Native SQL/PGQ Graph Database Schema",
         whatItDoes: "Defines the customer-centric property graph schema (nodes and relationship edges) directly on top of the BigQuery tables using native SQL/PGQ MATCH syntax.",
-        whyNeeded: "Enables the reasoning engine to execute deep, multi-hop relationship traversals (e.g. tracking customer service histories and F&I deal jackets) with sub-second latency, bypassing slow relational JOINs."
+        whyNeeded: "Enables the reasoning engine to execute deep, multi-hop relationship traversals (e.g. tracking Customer 360 profiles, recommendation paths, or real-time fraud detection patterns) with sub-second latency, bypassing slow relational JOINs."
       },
       reasoning: {
         title: "Conversational Analytics API (Reasoning Engine)",

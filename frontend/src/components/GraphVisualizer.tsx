@@ -339,18 +339,28 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                   key={`label-${idx}`} 
                   className={`transition-all duration-300 ${dimmed ? "opacity-15" : "opacity-100"}`}
                 >
-                  {/* Micro-glassmorphic background pill - wider width for padded layout */}
-                  <rect
-                    x={xMid - 33}
-                    y={yMid - 9}
-                    width="66"
-                    height="18"
-                    rx="9"
-                    fill="rgba(15, 23, 42, 0.9)"
-                    stroke={highlighted ? edgeColor : "rgba(255,255,255,0.12)"}
-                    strokeWidth={highlighted ? "1.5" : "1"}
-                    className="transition-all duration-300"
-                  />
+                  {/* Micro-glassmorphic background pill - dynamically sized based on character length */}
+                  {(() => {
+                    const labelLength = edge.label.length;
+                    const approxCharWidth = 5.6; // average char width at 8.5px with tracking
+                    const padding = 16; // horizontal padding
+                    const rectWidth = Math.max(52, labelLength * approxCharWidth + padding);
+                    const rectHeight = 18;
+                    const rx = rectHeight / 2;
+                    return (
+                      <rect
+                        x={xMid - rectWidth / 2}
+                        y={yMid - rectHeight / 2}
+                        width={rectWidth}
+                        height={rectHeight}
+                        rx={rx}
+                        fill="rgba(15, 23, 42, 0.9)"
+                        stroke={highlighted ? edgeColor : "rgba(255,255,255,0.12)"}
+                        strokeWidth={highlighted ? "1.5" : "1"}
+                        className="transition-all duration-300"
+                      />
+                    );
+                  })()}
                   {/* Edge Label text */}
                   <text
                     x={xMid}

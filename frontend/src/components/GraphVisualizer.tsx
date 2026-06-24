@@ -56,11 +56,11 @@ const PRESET_COORDINATES: Record<string, { x: number; y: number }> = {
   stores: { x: 525, y: 330 },
   
   // 2. Penske Customer 360 Graph Showcase Presets (spacious, wide pyramid layout)
-  customers: { x: 300, y: 70 },
-  web_events: { x: 90, y: 190 },
-  vehicles: { x: 510, y: 190 },
-  deal_jackets: { x: 190, y: 330 },
-  service_visits: { x: 410, y: 330 }
+  customers: { x: 300, y: 95 },
+  web_events: { x: 90, y: 210 },
+  vehicles: { x: 510, y: 210 },
+  deal_jackets: { x: 190, y: 335 },
+  service_visits: { x: 410, y: 335 }
 };
 
 // Vibrant color presets for flagship nodes

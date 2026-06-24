@@ -541,7 +541,22 @@ def list_gcp_projects(x_gcp_user_token: Optional[str] = Header(None)):
 def get_agents(user: dict = Depends(get_current_user), client: ConversationalAnalyticsClient = Depends(get_analytics_client)):
     try:
         agents = client.list_agents()
-        return [enrich_agent_metadata(agent) for agent in agents]
+        
+        # Inject the showcase Penske Customer 360 Graph Agent
+        penske_agent = {
+            "name": "projects/gilbertos-project-340619/locations/global/collections/default_collection/dataStores/penske-customer-360-graph-store",
+            "displayName": "Penske Customer 360 (Graph)",
+            "description": "Consolidated 360-degree view of Penske Automotive customers, integrating Sales DMS, Willow Service History, F&I Deal Jackets, and GA4 Web Events.",
+            "dataAnalyticsAgent": {
+                "activeDataSourceContext": {
+                    "tables": ["customers", "vehicles", "service_visits", "deal_jackets", "web_events"]
+                }
+            }
+        }
+        
+        enriched = [enrich_agent_metadata(agent) for agent in agents]
+        enriched.append(enrich_agent_metadata(penske_agent))
+        return enriched
     except google_exceptions.Unauthenticated as e:
         logger.error(f"GCP Unauthenticated: {e}")
         raise HTTPException(status_code=401, detail="Google Cloud session expired. Please re-authenticate.")

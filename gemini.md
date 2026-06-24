@@ -49,8 +49,31 @@
 
 ---
 
+## Implemented Checklists & Milestones (Session 2)
+
+### 8. Viewport-Immune & Self-Healing Guided Tour (Frontend)
+- **Self-Healing Safeguard**: Implemented a robust tour-state observer hook in [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L1491). If a user or script navigates to the chat workspace while the tour is on Step 8 (Launch Chat Workspace), the tour automatically heals itself and advances to Step 9, preventing any "stuck" tour states.
+- **Step 17 (Show Schema) Positioning & Highlights**: Re-mapped the Step 17 popup to top-aligned coordinates directly below the `[📊 Show Schema]` button in the header, keeping it perfectly visible and right-aligned. Fixed a highlight bug by restricting the golden border exclusively to the header button.
+- **Step 18 (Ask a Question) & Step 20 (Suggestions) Relocation**: Re-mapped these bottom-anchored steps to the bottom-aligned block (placing them *above* the elements), preventing them from being pushed off-screen at the bottom.
+- **Step 19 (Show Thinking) Arrow & Next Button Calibration**: Fixed the Step 19 arrow direction by moving it to the bottom-arrow (`-bottom-2`) block, making it point directly down at the `Show thinking` button in the message body. Enabled the standard `[ Next ]` button on the Step 19 popup card so users can advance naturally.
+- **Step 20 Suggestions Highlight**: Corrected a copy-paste bug at line 3279 where the suggestions container was checking for `tourStep === 19` instead of `tourStep === 20`. The suggestions container now glows beautifully during Step 20.
+
+### 9. Dynamic Table Centering (Flat-Table View)
+- Upgraded the database table grid in [frontend/src/components/GraphVisualizer.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/components/GraphVisualizer.tsx#L313) from a rigid left-aligned grid to a responsive **Flexbox wrap container with center alignment (`justify-center`)** and card sizing. 
+- Standard flat-table agents (like the `Marketing Agent`) now display their connected database tables centered beautifully on the screen, dynamically adjusting based on the number of objects.
+
+### 10. Click Outside to Close Schema Drawer
+- Added `id="schema-drawer-container"` to the collapsible drawer container and implemented a global React `useEffect` listener hook. Clicking anywhere outside the drawer (or the toggle button) automatically collapses it with a fluid, modern transition.
+
+### 11. Rigorous Graph Agent Separation & Penske Graph Restoration
+- **The Issue**: `Penske Customer 360` was misclassified as a flat-table agent (displaying 0 tables instead of the graph) because it was missing `"graph"` in its name/description and failed the published-context label fallback.
+- **The Fix**: Expanded `is_graph_agent` in [backend/main.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/main.py#L532) to explicitly scan for Penske and Customer 360 keywords, and removed the unstable `published_context` fallback.
+- **The Result**: Graph agents (like `Penske Customer 360`) are now perfectly distinguished from flat-table agents (like `The Look Ecommerce`). Graph agents render their gorgeous interactive SVG node-link force graphs, while flat-table agents render their centered database tables.
+
+---
+
 ## Next Session Plans
 
-1.  **Graph Query History Visualizer**: Render custom visual paths in the graph as the user converses (e.g., highlighting the nodes that were queried in the last chat message).
-2.  **Custom Brand-Color Graph Propagations**: Connect the SVG glowing particles and halos directly to the selected branding theme (`brandPrimaryColor`) for showcase portals.
-3.  **Graph Agent Live Editor**: Build an admin developer tab that allows Customer Engineers to write custom nodes, edge relationships, and suggested questions directly in the browser, saving schemas locally.
+1.  **Graph Query History Visualizer**: Highlight queried nodes in the graph based on the user's active conversation history.
+2.  **Custom Brand-Color Graph Propagations**: Connect the SVG flowing particles and halo glows directly to the active branding theme (`brandPrimaryColor`).
+3.  **Graph Agent Live Editor**: Build a developer portal allowing Customer Engineers to write custom graph schemas and questions directly in the browser.

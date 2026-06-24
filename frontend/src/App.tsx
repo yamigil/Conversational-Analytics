@@ -322,11 +322,11 @@ const MessageThinkingBlock: React.FC<{
             id="show-thinking-btn"
             onClick={() => {
               setIsOpen(!isOpen);
-              if (tourStep === 18 && setTourStep) {
-                setTourStep(19);
+              if (tourStep === 19 && setTourStep) {
+                setTourStep(20);
               }
             }}
-            className={`text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition cursor-pointer flex items-center gap-1 select-none border-none bg-transparent p-0 ${tourStep === 18 ? 'tour-highlight px-1.5 py-0.5 rounded bg-sky-400/10' : ''}`}
+            className={`text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition cursor-pointer flex items-center gap-1 select-none border-none bg-transparent p-0 ${tourStep === 19 ? 'tour-highlight px-1.5 py-0.5 rounded bg-sky-400/10' : ''}`}
           >
             {isOpen ? "Hide thinking" : "Show thinking"}
             <ChevronDown size={11} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
@@ -693,6 +693,7 @@ const App: React.FC = () => {
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSchemaExpanded, setIsSchemaExpanded] = useState(false);
 
   const isAllowedDomain = (email: string | null | undefined): boolean => {
     if (!email) return false;
@@ -1065,7 +1066,7 @@ const App: React.FC = () => {
     await fetchAgents();
   };
   const getDisplayStepInfo = (actualStep: number) => {
-    if (actualStep >= 14 && actualStep <= 19) {
+    if (actualStep >= 14 && actualStep <= 20) {
       const hasConvos = conversations.length > 0;
       if (hasConvos) {
         return {
@@ -1073,25 +1074,28 @@ const App: React.FC = () => {
           text: actualStep === 14 ? "Demo: Select AI Agent"
               : actualStep === 15 ? "Demo: Choose Thinking Mode"
               : actualStep === 16 ? "Demo: Clean Slate"
-              : actualStep === 17 ? "Demo: Ask a Question"
-              : actualStep === 18 ? "Demo: Show Thinking Process"
+              : actualStep === 17 ? "Demo: Toggle Schema"
+              : actualStep === 18 ? "Demo: Ask a Question"
+              : actualStep === 19 ? "Demo: Show Thinking Process"
               : "Demo: Multi-turn & Follow-ups",
-          total: 6
+          total: 7
         };
       } else {
         const num = actualStep === 14 ? 1
                   : actualStep === 15 ? 2
                   : actualStep === 17 ? 3
                   : actualStep === 18 ? 4
-                  : 5;
+                  : actualStep === 19 ? 5
+                  : 6;
         return {
           num,
           text: actualStep === 14 ? "Demo: Select AI Agent"
               : actualStep === 15 ? "Demo: Choose Thinking Mode"
-              : actualStep === 17 ? "Demo: Ask a Question"
-              : actualStep === 18 ? "Demo: Show Thinking Process"
+              : actualStep === 17 ? "Demo: Toggle Schema"
+              : actualStep === 18 ? "Demo: Ask a Question"
+              : actualStep === 19 ? "Demo: Show Thinking Process"
               : "Demo: Multi-turn & Follow-ups",
-          total: 5
+          total: 6
         };
       }
     }
@@ -1484,6 +1488,12 @@ const App: React.FC = () => {
   useEffect(() => {
     if (tourStep === 0 || tourStep === -1) return;
 
+    // Self-healing: If we navigated to the chat page while on Step 8, advance to Step 9!
+    if (currentPage === "chat" && tourStep === 8) {
+      setTourStep(9);
+      return;
+    }
+
     let targetId = "";
     if (tourStep === 1) targetId = "settings-gear-btn";
     else if (tourStep === 2) targetId = "settings-sidebar-nav";
@@ -1501,9 +1511,10 @@ const App: React.FC = () => {
     else if (tourStep === 14) targetId = "agent-select-container";
     else if (tourStep === 15) targetId = "chat-mode-btn";
     else if (tourStep === 16) targetId = "new-convo-btn";
-    else if (tourStep === 17) targetId = "chat-input-container";
-    else if (tourStep === 18) targetId = "show-thinking-btn";
-    else if (tourStep === 19) targetId = "chat-suggestions-container";
+    else if (tourStep === 17) targetId = "toggle-schema-btn";
+    else if (tourStep === 18) targetId = "chat-input-container";
+    else if (tourStep === 19) targetId = "show-thinking-btn";
+    else if (tourStep === 20) targetId = "chat-suggestions-container";
 
     const isElementVisible = (element: HTMLElement, checkTop = false): boolean => {
       const rect = element.getBoundingClientRect();
@@ -1599,12 +1610,12 @@ const App: React.FC = () => {
         return;
       }
       
-      if (tourStep === 1 || tourStep === 6 || tourStep === 13 || tourStep === 18) {
+      if (tourStep === 1 || tourStep === 6 || tourStep === 13 || tourStep === 17) {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.bottom + 12}px`,
-          right: (tourStep === 1 || tourStep === 13) ? `${window.innerWidth - rect.right}px` : undefined,
-          left: (tourStep === 6 || tourStep === 18) ? `${rect.left}px` : undefined,
+          right: (tourStep === 1 || tourStep === 13 || tourStep === 17) ? `${window.innerWidth - rect.right}px` : undefined,
+          left: (tourStep === 6) ? `${rect.left}px` : undefined,
           zIndex: 9999,
           opacity: 1,
           transition: 'opacity 0.15s ease, transform 0.15s ease'
@@ -1636,7 +1647,7 @@ const App: React.FC = () => {
           opacity: 1,
           transition: 'opacity 0.15s ease, transform 0.15s ease'
         });
-      } else if (tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 17 || tourStep === 19) {
+      } else if (tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 18 || tourStep === 19 || tourStep === 20) {
         const useRightAlign = (tourStep === 4 || tourStep === 5);
         setTooltipStyle({
           position: 'fixed',
@@ -1726,9 +1737,9 @@ const App: React.FC = () => {
       } else {
         setTourStep(16);
       }
-    } else if (tourStep >= 14 && tourStep <= 18) {
+    } else if (tourStep >= 14 && tourStep <= 19) {
       setTourStep(tourStep + 1);
-    } else if (tourStep === 19) {
+    } else if (tourStep === 20) {
       setTourStep(0);
       sessionStorage.setItem("ca_visited_tour", "true");
     }
@@ -1786,7 +1797,7 @@ const App: React.FC = () => {
       } else {
         setTourStep(16);
       }
-    } else if (tourStep >= 15 && tourStep <= 19) {
+    } else if (tourStep >= 15 && tourStep <= 20) {
       setTourStep(tourStep - 1);
     }
   };
@@ -1797,6 +1808,28 @@ const App: React.FC = () => {
     sessionStorage.setItem("ca_visited_tour", "true");
   };
 
+  // Close schema drawer when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const drawer = document.getElementById("schema-drawer-container");
+      const toggleBtn = document.getElementById("toggle-schema-btn");
+      if (
+        isSchemaExpanded &&
+        drawer &&
+        !drawer.contains(event.target as Node) &&
+        toggleBtn &&
+        !toggleBtn.contains(event.target as Node)
+      ) {
+        setIsSchemaExpanded(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isSchemaExpanded]);
+
 
   const handleAgentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
@@ -1806,6 +1839,7 @@ const App: React.FC = () => {
     setMessages([]);
     fetchConversations(val);
     setIsSidebarOpen(false);
+    setIsSchemaExpanded(false);
     if (tourStep === 14) {
       setTourStep(15);
     }
@@ -1883,8 +1917,8 @@ const App: React.FC = () => {
     const text = (typeof overrideText === "string" ? overrideText : inputText).trim();
     if (!text || !selectedAgent) return;
 
-    if (tourStep === 17) {
-      setTourStep(18);
+    if (tourStep === 18) {
+      setTourStep(19);
     }
 
     setInputText("");
@@ -2915,6 +2949,64 @@ const App: React.FC = () => {
 
         {currentPage === "chat" && (
           <>
+            {/* Active Chat Header */}
+            {(() => {
+              const activeAgentObj = agents.find(a => a.name === selectedAgent);
+              return (
+                <div className="border-b border-white/6 bg-slate-950/20 backdrop-blur-md px-6 md:px-10 py-3 flex items-center justify-between shrink-0 select-none animate-fadeIn">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-bold text-slate-200 tracking-tight uppercase">
+                      {activeAgentObj?.displayName || selectedAgent.split("/").pop() || "Active Session"}
+                    </span>
+                  </div>
+                  
+                  {activeAgentObj?.graphData && (
+                    <button
+                      id="toggle-schema-btn"
+                      onClick={() => setIsSchemaExpanded(!isSchemaExpanded)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 bg-white/4 hover:bg-white/8 border border-white/6 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-300 transition cursor-pointer border-none ${tourStep === 17 ? 'tour-highlight border-amber-500/50' : ''}`}
+                    >
+                      <Network size={12} className={isSchemaExpanded ? "text-amber-400 animate-pulse" : "text-slate-400"} />
+                      <span>{isSchemaExpanded ? "Hide Schema" : "Show Schema"}</span>
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+            
+            {/* Collapsible Schema Drawer */}
+            {(() => {
+              const activeAgentObj = agents.find(a => a.name === selectedAgent);
+              if (isSchemaExpanded && activeAgentObj?.graphData) {
+                return (
+                  <div id="schema-drawer-container" className="w-full border-b border-white/6 bg-slate-950/40 backdrop-blur-md py-4 px-6 overflow-hidden max-h-[380px] md:max-h-[420px] overflow-y-auto">
+                    <GraphVisualizer
+                      graphData={activeAgentObj.graphData}
+                      onSelectSuggestion={(question) => {
+                        setInputText(question);
+                        handleSendMessage(question);
+                      }}
+                      brandPrimaryColor={brandPrimary}
+                      brandLogoSvg={brandLogoSvg}
+                      brandLogoText={brandLogoText}
+                      agentName={selectedAgent}
+                      fetchTablePreview={async (tableName, agentName) => {
+                        const queryParams = new URLSearchParams({
+                          table_name: tableName,
+                          ...(agentName ? { agent_name: agentName } : {})
+                        });
+                        const res = await authenticatedFetch(`/api/preview?${queryParams.toString()}`);
+                        if (!res.ok) throw new Error("Failed to load table data preview");
+                        return await res.json();
+                      }}
+                      isGraphAgent={activeAgentObj.isGraphAgent}
+                    />
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
             {/* Messages Panel */}
             <section className="flex-1 overflow-y-auto px-4 md:px-10 py-6 md:py-8 flex flex-col gap-6">
@@ -2980,43 +3072,23 @@ const App: React.FC = () => {
                 // Clean empty state with beautiful query starters
                 (() => {
                   const activeAgentObj = selectedAgent ? agents.find(a => a.name === selectedAgent) : undefined;
-                  const isGraphAgent = !!activeAgentObj?.isGraphAgent;
 
                   return (
-                    <div className={`flex-1 flex flex-col items-center justify-center p-4 md:p-8 mx-auto text-center my-auto animate-fadeIn select-none transition-all duration-300 ${isGraphAgent ? 'max-w-5xl w-full' : 'max-w-2xl'}`}>
-                      {/* Brand icon - hide or scale down for graph agents to maximize screen real estate */}
-                      {!isGraphAgent && (
-                        <div className="w-14 h-14 rounded-2xl bg-brand-primary/10 border border-brand-primary/25 flex items-center justify-center mb-6 shadow-sm shadow-brand-primary/5">
-                          <Sparkles size={26} className="text-brand-primary animate-pulse" />
-                        </div>
-                      )}
+                    <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 mx-auto text-center my-auto animate-fadeIn select-none transition-all duration-300 max-w-2xl">
+                      {/* Brand icon */}
+                      <div className="w-14 h-14 rounded-2xl bg-brand-primary/10 border border-brand-primary/25 flex items-center justify-center mb-6 shadow-sm shadow-brand-primary/5">
+                        <Sparkles size={26} className="text-brand-primary animate-pulse" />
+                      </div>
                       
                       {selectedAgent ? (
-                        isGraphAgent ? (
-                          // Compact, elegant header for Graph Visualizer to maximize screen real estate
-                          <div className="mb-6 flex flex-col items-center gap-1">
-                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[10px] font-bold tracking-wider uppercase mb-1">
-                              <Sparkles size={11} className="animate-pulse" />
-                              BigQuery Graph Schema Active
-                            </div>
-                            <h2 className="font-heading text-xl md:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 tracking-tight leading-none">
-                              Explore Database Relationships
-                            </h2>
-                            <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
-                              Active agent: <strong className="text-slate-200">{activeAgentObj?.displayName || activeAgentObj?.name.split("/").pop()}</strong>
-                            </p>
-                          </div>
-                        ) : (
-                          // Standard welcome header
-                          <>
-                            <h2 className="font-heading text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 mb-3 tracking-tight leading-none">
-                              What would you like to analyze today?
-                            </h2>
-                            <p className="text-xs md:text-sm text-slate-400 mb-5 md:mb-8 max-w-md leading-relaxed">
-                              {activeAgentObj?.welcomeSubtitle || activeAgentObj?.description || "Ask any analytical question about your business data, cost trends, or marketing performance."}
-                            </p>
-                          </>
-                        )
+                        <>
+                          <h2 className="font-heading text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 mb-3 tracking-tight leading-none">
+                            What would you like to analyze today?
+                          </h2>
+                          <p className="text-xs md:text-sm text-slate-400 mb-5 md:mb-8 max-w-md leading-relaxed">
+                            {activeAgentObj?.welcomeSubtitle || activeAgentObj?.description || "Ask any analytical question about your connected data tables."}
+                          </p>
+                        </>
                       ) : (
                         <>
                           <h2 className="font-heading text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 mb-3 tracking-tight leading-none">
@@ -3065,20 +3137,6 @@ const App: React.FC = () => {
                   {selectedAgent ? (
                     (() => {
                       const activeAgentObj = agents.find(a => a.name === selectedAgent);
-                      
-                      // Render Graph visualizer if the active agent is a BigQuery Graph Agent
-                      if (activeAgentObj?.isGraphAgent && activeAgentObj.graphData) {
-                        return (
-                          <GraphVisualizer
-                            graphData={activeAgentObj.graphData}
-                            onSelectSuggestion={(question) => {
-                              setInputText(question);
-                              handleSendMessage(question);
-                            }}
-                            brandPrimaryColor={brandPrimary}
-                          />
-                        );
-                      }
                       
                       // Render standard suggestions grid
                       return (
@@ -3218,7 +3276,7 @@ const App: React.FC = () => {
                 return (
                   <div 
                     id="chat-suggestions-container"
-                    className={`flex flex-col gap-2 mt-2 ml-13 animate-fadeIn ${tourStep === 19 ? 'tour-highlight p-2 rounded-2xl bg-white/2 border border-white/6' : ''}`}
+                    className={`flex flex-col gap-2 mt-2 ml-13 animate-fadeIn ${tourStep === 20 ? 'tour-highlight p-2 rounded-2xl bg-white/2 border border-white/6' : ''}`}
                   >
                     <div className="flex flex-wrap gap-2">
                       {suggestionsToRender.map((suggestion: string, sIdx: number) => (
@@ -3312,7 +3370,7 @@ const App: React.FC = () => {
             <div className="px-4 md:px-10 pb-4 md:pb-8 pt-2 mt-auto">
               <div 
                 id="chat-input-container"
-                className={`glass-panel flex flex-col gap-2 px-4 md:px-6 py-3 md:py-4 rounded-2xl shadow-xl ${(tourStep === 17) ? 'tour-highlight' : ''}`}
+                className={`glass-panel flex flex-col gap-2 px-4 md:px-6 py-3 md:py-4 rounded-2xl shadow-xl ${(tourStep === 18) ? 'tour-highlight' : ''}`}
               >
                 <textarea 
                   ref={textareaRef}
@@ -3921,8 +3979,8 @@ const App: React.FC = () => {
           {/* Arrow indicator */}
           {window.innerWidth >= 768 && (
             <>
-              {(tourStep === 1 || tourStep === 6 || tourStep === 13 || tourStep === 18) && (
-                <div className={`absolute -top-2 ${tourStep === 1 || tourStep === 13 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-t border-l border-amber-500/55 rotate-45`} />
+              {(tourStep === 1 || tourStep === 6 || tourStep === 13 || tourStep === 17) && (
+                <div className={`absolute -top-2 ${tourStep === 1 || tourStep === 13 || tourStep === 17 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-t border-l border-amber-500/55 rotate-45`} />
               )}
               {(tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14 || tourStep === 16) && (
                 <div className="absolute -left-2 top-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
@@ -3933,7 +3991,7 @@ const App: React.FC = () => {
               {(tourStep === 3 || tourStep === 12) && (
                 <div className="absolute -right-2 top-6 w-4 h-4 bg-slate-900 border-t border-r border-amber-500/55 rotate-45" />
               )}
-              {(tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 17 || tourStep === 19) && (
+              {(tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 18 || tourStep === 19 || tourStep === 20) && (
                 <div className={`absolute -bottom-2 ${tourStep === 4 || tourStep === 5 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-b border-r border-amber-500/55 rotate-45`} />
               )}
             </>
@@ -3971,16 +4029,17 @@ const App: React.FC = () => {
             }
             {tourStep === 11 && "Toggle between 'Fast Answer' for quick responses, or 'In-Depth Analysis' to activate advanced reasoning models for complex queries and multi-step data visualizations."}
             {tourStep === 12 && "Change how the workspace interacts with the Conversational Analytics API directly from this quick dropdown menu, without going to the settings page."}
-            {tourStep === 13 && "Access the architecture diagram explaining the components used in this portal to provide additional technical context in case it is needed."}
+            {tourStep === 13 && "Access the reference architecture diagram explaining the pipeline flow from ingestion to display. Note that the architecture and visualizer schemas change dynamically depending on whether you choose a standard relational flat-table agent or a graph-connected property agent!"}
             {tourStep === 14 && (window.innerWidth < 768
               ? "We have automatically opened the top-left menu (☰) for you. Select a specialized AI agent to load its analytical capabilities."
               : "To begin the demo, select a specialized AI agent from this dropdown menu to load its analytical capabilities.")
             }
             {tourStep === 15 && "Select a thinking mode: Toggle 'Fast Answer' for quick responses, or 'In-Depth Analysis' to activate advanced reasoning models for complex queries."}
             {tourStep === 16 && "You already have active conversations for this agent. Click the '+' button to start a new, clean conversation and get a clean slate for the tutorial!"}
-            {tourStep === 17 && "Ask a question about your database! Type in the chat input or simply click one of the suggested query starter cards below (e.g., 'Show me the monthly trend of cost and revenue')."}
-            {tourStep === 18 && "Once the agent begins responding, click 'Show thinking' to inspect the step-by-step reasoning, plan logic, and generated BigQuery SQL queries."}
-            {tourStep === 19 && "Great query! You can follow-up on your conversation by typing in the input box, or simply click any of the dynamic follow-up suggestions generated by Gemini at the bottom."}
+            {tourStep === 17 && "Need to reference your database? Click the 'Show Schema' button in the chat header at any time to expand or collapse the interactive schema diagram, allowing you to browse table structures and preview live BigQuery records!"}
+            {tourStep === 18 && "Ask a question about your database! Type in the chat input or simply click one of the suggested query starter cards below (e.g., 'Show me the monthly trend of cost and revenue')."}
+            {tourStep === 19 && "Once the agent begins responding, click 'Show thinking' to inspect the step-by-step reasoning, plan logic, and generated BigQuery SQL queries."}
+            {tourStep === 20 && "Great query! You can follow-up on your conversation by typing in the input box, or simply click any of the dynamic follow-up suggestions generated by Gemini at the bottom."}
           </p>
 
           {/* Buttons */}
@@ -4031,12 +4090,12 @@ const App: React.FC = () => {
                         Back
                       </button>
                     )}
-                    {tourStep !== 1 && tourStep !== 8 && tourStep !== 14 && tourStep !== 15 && tourStep !== 17 && tourStep !== 18 ? (
+                    {tourStep !== 1 && tourStep !== 8 && tourStep !== 14 && tourStep !== 15 && tourStep !== 18 ? (
                       <button 
                         onClick={handleNextTour}
                         className="py-1.5 px-3.5 bg-brand-primary hover:opacity-90 text-white rounded-lg text-xs font-semibold cursor-pointer transition shadow-md border-none"
                       >
-                        {tourStep === 19 ? "Finish Walkthrough" : (getDisplayStepInfo(tourStep).num === getDisplayStepInfo(tourStep).total ? "Finish" : "Next")}
+                        {tourStep === 20 ? "Finish Walkthrough" : (getDisplayStepInfo(tourStep).num === getDisplayStepInfo(tourStep).total ? "Finish" : "Next")}
                       </button>
                     ) : (
                       <span className="text-[10px] text-amber-400 font-bold animate-pulse mr-1 whitespace-nowrap">
@@ -4044,7 +4103,7 @@ const App: React.FC = () => {
                          tourStep === 8 ? "Click card to proceed" : 
                          tourStep === 14 ? "Select an agent" : 
                          tourStep === 15 ? "Choose thinking mode" : 
-                         tourStep === 17 ? "Submit query or pill" : 
+                         tourStep === 18 ? "Submit query or pill" : 
                          "Click 'Show thinking'"}
                       </span>
                     )}

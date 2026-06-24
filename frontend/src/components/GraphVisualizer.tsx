@@ -18,7 +18,9 @@ import {
   Database,
   Car,
   Wrench,
-  FileText
+  FileText,
+  Loader2,
+  Table
 } from "lucide-react";
 
 interface Node {
@@ -45,6 +47,12 @@ interface GraphVisualizerProps {
   };
   onSelectSuggestion: (question: string) => void;
   brandPrimaryColor?: string;
+  brandLogoSvg?: string;
+  brandLogoUrl?: string;
+  brandLogoText?: string;
+  agentName?: string;
+  fetchTablePreview?: (tableName: string, agentName?: string) => Promise<{ columns: string[], rows: any[] }>;
+  isGraphAgent?: boolean;
 }
 
 const PRESET_COORDINATES: Record<string, { x: number; y: number }> = {
@@ -95,15 +103,26 @@ const DYNAMIC_PALETTE = [
 export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   graphData,
   onSelectSuggestion,
-  brandPrimaryColor = "#3b82f6"
+  brandPrimaryColor = "#3b82f6",
+  brandLogoSvg,
+  brandLogoUrl,
+  brandLogoText,
+  agentName,
+  fetchTablePreview,
+  isGraphAgent = true
 }) => {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  
+  const [activeTab, setActiveTab] = useState<"queries" | "preview">("queries");
+  const [previewData, setPreviewData] = useState<{ columns: string[], rows: any[] } | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState<boolean>(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   // Check if we should use the preset showcase layout
   const usePresetLayout = graphData.nodes.every(n => PRESET_COORDINATES[n.id]);
 
-  // Dynamic Layout Engine: maps coordinates on the fly
+  // Dynamic Layout Engine: maps coordinates on the fly (supporting central schema root)
   const nodes: Node[] = graphData.nodes.map((n, idx) => {
     if (usePresetLayout && PRESET_COORDINATES[n.id]) {
       return {
@@ -113,10 +132,34 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
       };
     }
     
-    // Circular Layout distribution for custom graphs (expanded radius from 125 to 145)
+    const hasSchemaRoot = graphData.nodes.some(node => node.id === "schema_root");
+    
+    if (n.id === "schema_root") {
+      return {
+        ...n,
+        x: 300,
+        y: 200
+      };
+    }
+    
+    if (hasSchemaRoot) {
+      const otherNodes = graphData.nodes.filter(node => node.id !== "schema_root");
+      const otherIdx = otherNodes.findIndex(node => node.id === n.id);
+      const center = { x: 300, y: 200 };
+      const radius = 150;
+      const angle = (2 * Math.PI * otherIdx) / otherNodes.length - Math.PI / 2;
+      
+      return {
+        ...n,
+        x: Math.round(center.x + radius * Math.cos(angle)),
+        y: Math.round(center.y + radius * Math.sin(angle))
+      };
+    }
+    
+    // Circular Layout distribution for custom graphs
     const center = { x: 300, y: 200 };
     const radius = 145;
-    const angle = (2 * Math.PI * idx) / graphData.nodes.length - Math.PI / 2; // Start at top
+    const angle = (2 * Math.PI * idx) / graphData.nodes.length - Math.PI / 2;
     
     return {
       ...n,
@@ -124,6 +167,48 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
       y: Math.round(center.y + radius * Math.sin(angle))
     };
   });
+
+  // Reset tab and fetch preview in background when selected node changes
+  React.useEffect(() => {
+    if (!selectedNode) {
+      setPreviewData(null);
+      setActiveTab("queries");
+      return;
+    }
+    
+    if (selectedNode === "schema_root") {
+      setPreviewData(null);
+      setActiveTab("queries");
+      return;
+    }
+
+    const fetchPreview = async () => {
+      setIsPreviewLoading(true);
+      setPreviewError(null);
+      try {
+        if (fetchTablePreview) {
+          const data = await fetchTablePreview(selectedNode, agentName);
+          setPreviewData(data);
+        } else {
+          const queryParams = new URLSearchParams({
+            table_name: selectedNode,
+            ...(agentName ? { agent_name: agentName } : {})
+          });
+          const res = await fetch(`/api/preview?${queryParams.toString()}`);
+          if (!res.ok) throw new Error("Failed to load table data preview");
+          const data = await res.json();
+          setPreviewData(data);
+        }
+      } catch (err: any) {
+        console.error("Preview fetch error:", err);
+        setPreviewError(err.message || "Failed to load table data preview");
+      } finally {
+        setIsPreviewLoading(false);
+      }
+    };
+
+    fetchPreview();
+  }, [selectedNode, agentName, fetchTablePreview]);
 
   const edges = graphData.edges;
 
@@ -173,7 +258,10 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     if (name.includes("globe") || name.includes("country") || name.includes("region") || name.includes("world") || name.includes("site")) {
       return <Globe size={size} color={color} />;
     }
-    if (name.includes("db") || name.includes("database") || name.includes("table") || name.includes("schema")) {
+    if (name.includes("table")) {
+      return <Table size={size} color={color} />;
+    }
+    if (name.includes("db") || name.includes("database") || name.includes("schema")) {
       return <Database size={size} color={color} />;
     }
     return <Network size={size} color={color} />;
@@ -199,6 +287,244 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   const activeNodeIdx = nodes.findIndex(n => n.id === selectedNode);
   const suggestions = selectedNode ? graphData.nodeSuggestions[selectedNode] || [] : [];
   const activeNodeColor = selectedNode ? getNodeColor(selectedNode, activeNodeIdx) : brandPrimaryColor;
+
+  if (!isGraphAgent) {
+    return (
+      <div className="w-full flex flex-col gap-6 select-none max-w-4xl mx-auto animate-fadeIn">
+        {/* Tables Grid Layout */}
+        <div className="relative w-full bg-slate-950/60 border border-white/10 rounded-3xl p-6 backdrop-blur-md shadow-2xl flex flex-col gap-5 overflow-hidden">
+          {/* Grid background */}
+          <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.025)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
+          
+          {/* Top Header */}
+          <div className="relative z-10 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Database className="text-brand-primary" size={18} style={{ color: brandPrimaryColor }} />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                Connected Dataset Tables
+              </h3>
+            </div>
+            <span className="text-[10px] bg-white/5 border border-white/6 px-2.5 py-1 rounded-full text-slate-400 font-semibold uppercase tracking-wider">
+              {nodes.filter(n => n.id !== "schema_root").length} Tables Available
+            </span>
+          </div>
+
+          {/* Tables Grid */}
+          <div className="relative z-10 flex flex-wrap justify-center gap-4 w-full">
+            {nodes.filter(n => n.id !== "schema_root").map((node, idx) => {
+              const isSelected = selectedNode === node.id;
+              const isHovered = hoveredNode === node.id;
+              const nodeColor = getNodeColor(node.id, idx);
+              
+              return (
+                <div
+                  key={node.id}
+                  onClick={() => {
+                    setSelectedNode(isSelected ? null : node.id);
+                  }}
+                  onMouseEnter={() => setHoveredNode(node.id)}
+                  onMouseLeave={() => setHoveredNode(null)}
+                  className={`group relative p-4 rounded-xl border transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[120px] flex-1 min-w-[240px] max-w-[320px] ${
+                    isSelected
+                      ? "bg-brand-primary/10 border-brand-primary/60 shadow-[0_0_15px_rgba(59,130,246,0.15)]"
+                      : "bg-slate-900/40 border-white/6 hover:bg-slate-950/60 hover:border-white/12"
+                  }`}
+                  style={isSelected ? { borderColor: `${nodeColor}60`, backgroundColor: `${nodeColor}10` } : {}}
+                >
+                  <div className="flex items-center justify-between">
+                    <div 
+                      className="p-2 rounded-lg bg-white/5 group-hover:bg-brand-primary/10 transition"
+                      style={isSelected || isHovered ? { backgroundColor: `${nodeColor}15` } : {}}
+                    >
+                      {renderNodeIcon(node.icon, 16, isSelected || isHovered ? nodeColor : "#94a3b8")}
+                    </div>
+                    {isSelected && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse" style={{ backgroundColor: nodeColor }} />
+                    )}
+                  </div>
+                  <div>
+                    <h4 
+                      className={`text-xs font-bold transition ${isSelected ? "text-white" : "text-slate-200"}`}
+                      style={isSelected ? { color: nodeColor } : {}}
+                    >
+                      {node.label}
+                    </h4>
+                    <p className="text-[10px] text-slate-400 font-medium mt-1 line-clamp-2">
+                      {node.description || "Connected database table containing records for analytical queries."}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 2. Dynamic Glassmorphic Entity Inspector Card */}
+        <div className="w-full flex flex-col min-h-[160px] justify-center w-full">
+          {selectedNode && activeNodeObj ? (
+            <div 
+              className="p-5 bg-slate-950/50 border rounded-3xl backdrop-blur-md shadow-2xl grid grid-cols-1 md:grid-cols-2 gap-6 animate-slideIn w-full transition-all duration-300"
+              style={{ borderColor: `${activeNodeColor}30` }}
+            >
+              {/* COLUMN 1: Entity Info */}
+              <div className="flex flex-col gap-3.5">
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300"
+                    style={{ borderColor: `${activeNodeColor}40`, backgroundColor: `${activeNodeColor}10` }}
+                  >
+                    {renderNodeIcon(activeNodeObj.icon, 20, activeNodeColor)}
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-white">
+                      {activeNodeObj.label}
+                    </h3>
+                    <span 
+                      className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-white/5 border border-white/8 block mt-1 w-max"
+                      style={{ color: activeNodeColor, borderColor: `${activeNodeColor}20` }}
+                    >
+                      Table
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                  {activeNodeObj.description}
+                </p>
+              </div>
+
+              {/* COLUMN 2: Tabs (Queries & Data Preview) */}
+              <div className="flex flex-col gap-4 min-h-[160px]">
+                <div className="flex items-center gap-4 border-b border-white/6 pb-2">
+                  <button
+                    onClick={() => setActiveTab("queries")}
+                    className={`flex items-center gap-1.5 pb-1 text-xs font-bold uppercase tracking-wider transition cursor-pointer border-none bg-transparent ${
+                      activeTab === "queries" 
+                        ? "text-slate-200 border-b-2 border-brand-primary" 
+                        : "text-slate-500 hover:text-slate-300"
+                    }`}
+                    style={activeTab === "queries" ? { borderBottomColor: activeNodeColor } : {}}
+                  >
+                    <HelpCircle size={13} />
+                    Suggested Insights
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("preview")}
+                    className={`flex items-center gap-1.5 pb-1 text-xs font-bold uppercase tracking-wider transition cursor-pointer border-none bg-transparent ${
+                      activeTab === "preview" 
+                        ? "text-slate-200 border-b-2 border-brand-primary" 
+                        : "text-slate-500 hover:text-slate-300"
+                    }`}
+                    style={activeTab === "preview" ? { borderBottomColor: activeNodeColor } : {}}
+                  >
+                    <Database size={13} />
+                    Data Preview
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto max-h-[180px] custom-scrollbar pr-1">
+                  {activeTab === "queries" ? (
+                    <div className="flex flex-col gap-2">
+                      {suggestions.map((q, qIdx) => (
+                        <div 
+                          key={qIdx}
+                          onClick={() => onSelectSuggestion(q)}
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-white/4 hover:bg-white/8 border border-white/6 hover:border-white/12 transition cursor-pointer group"
+                        >
+                          <span className="text-xs text-slate-300 group-hover:text-white transition font-medium">
+                            {q}
+                          </span>
+                          <ChevronRight size={14} className="text-slate-500 group-hover:text-white transition transform group-hover:translate-x-0.5" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="w-full h-full min-h-[120px] flex flex-col justify-center">
+                      {isPreviewLoading ? (
+                        <div className="flex flex-col items-center justify-center gap-2.5 py-4">
+                          <Loader2 size={24} className="text-brand-primary animate-spin" style={{ color: activeNodeColor }} />
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider animate-pulse">
+                            Fetching Live BigQuery Preview...
+                          </span>
+                        </div>
+                      ) : previewError ? (
+                        <div className="flex flex-col items-center justify-center gap-1.5 py-4 text-center">
+                          <HelpCircle size={20} className="text-rose-400" />
+                          <span className="text-[10.5px] text-rose-300 font-bold">
+                            {previewError}
+                          </span>
+                        </div>
+                      ) : previewData && previewData.rows.length > 0 ? (
+                        <div className="w-full overflow-x-auto rounded-xl border border-white/6 bg-slate-950/30">
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="border-b border-white/8 bg-slate-900/40">
+                                {previewData.columns.map((col) => (
+                                  <th 
+                                    key={col} 
+                                    className="px-3 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider sticky top-0 bg-slate-900/80 backdrop-blur-sm"
+                                  >
+                                    {col}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {previewData.rows.map((row, rIdx) => (
+                                <tr 
+                                  key={rIdx} 
+                                  className="border-b border-white/4 hover:bg-white/2 transition"
+                                >
+                                  {previewData.columns.map((col) => {
+                                    const val = row[col];
+                                    return (
+                                      <td 
+                                        key={col} 
+                                        className="px-3 py-1.5 text-[10.5px] font-medium text-slate-300 truncate max-w-[150px]"
+                                      >
+                                        {val === null || val === undefined ? (
+                                          <span className="text-[9px] text-slate-600 font-bold italic">null</span>
+                                        ) : typeof val === "object" ? (
+                                          JSON.stringify(val)
+                                        ) : (
+                                          String(val)
+                                        )}
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center py-6 text-slate-500 text-[10.5px] font-semibold italic">
+                          No records found.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full p-6 bg-slate-950/40 border border-white/6 rounded-3xl flex flex-col items-center justify-center text-center gap-2.5 animate-fadeIn">
+              <div className="p-3 rounded-full bg-white/4 border border-white/6">
+                <Database className="text-slate-400" size={20} />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                  Explore Dataset Tables
+                </h4>
+                <p className="text-[10.5px] text-slate-500 font-medium mt-1">
+                  Select any table card above to inspect its columns, suggested queries, and live BigQuery data preview.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full flex flex-col gap-6 items-center py-2 select-none max-w-4xl mx-auto animate-fadeIn">
@@ -261,6 +587,34 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
               <path d="M 0 1.5 L 7 5 L 0 8.5 z" fill="currentColor" />
             </marker>
           </defs>
+          
+          {/* Subtle watermark of the brand logo in the background */}
+          {brandLogoSvg ? (
+            <g 
+              className="opacity-[0.02] pointer-events-none select-none text-slate-100"
+              transform="translate(300, 200) scale(1.8)"
+              dangerouslySetInnerHTML={{ __html: brandLogoSvg }}
+              style={{ transformOrigin: "center" }}
+            />
+          ) : brandLogoUrl ? (
+            <image
+              href={brandLogoUrl}
+              x="200"
+              y="100"
+              width="200"
+              height="200"
+              className="opacity-[0.02] pointer-events-none select-none"
+            />
+          ) : brandLogoText ? (
+            <text
+              x="300"
+              y="215"
+              textAnchor="middle"
+              className="text-[42px] font-bold font-heading fill-white opacity-[0.015] uppercase tracking-[12px] pointer-events-none select-none"
+            >
+              {brandLogoText}
+            </text>
+          ) : null}
 
           {/* A. Relationship Tracks (Edges) */}
           <g>
@@ -517,27 +871,97 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
               </p>
             </div>
 
-            {/* COLUMN 2: Curated Suggested Queries */}
-            <div className="flex flex-col gap-2">
-              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                <Sparkles size={11} className="animate-pulse" style={{ color: activeNodeColor }} />
-                Suggested Graph Insights:
-              </h4>
-              <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto pr-1">
-                {suggestions.map((suggestion, idx) => (
+            {/* COLUMN 2: Tabs for Suggestions vs. Data Preview */}
+            <div className="flex flex-col gap-3 min-h-[180px]">
+              {/* Tab Headers */}
+              <div className="flex items-center border-b border-white/10 pb-1.5 gap-4">
+                <button
+                  onClick={() => setActiveTab("queries")}
+                  className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 pb-1 cursor-pointer transition border-b-2 border-transparent bg-transparent p-0 ${activeTab === "queries" ? "text-white border-white" : "text-slate-400 hover:text-slate-300"}`}
+                  style={activeTab === "queries" ? { borderBottomColor: activeNodeColor } : {}}
+                >
+                  <Sparkles size={11} className={activeTab === "queries" ? "animate-pulse" : ""} style={{ color: activeNodeColor }} />
+                  Suggested Insights
+                </button>
+                {selectedNode !== "schema_root" && (
                   <button
-                    key={idx}
-                    onClick={() => onSelectSuggestion(suggestion)}
-                    className="p-3 bg-white/4 border border-white/6 hover:bg-white/8 rounded-xl text-left text-[11px] text-slate-200 font-semibold transition cursor-pointer flex items-center justify-between group"
+                    onClick={() => setActiveTab("preview")}
+                    className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 pb-1 cursor-pointer transition border-b-2 border-transparent bg-transparent p-0 ${activeTab === "preview" ? "text-white border-white" : "text-slate-400 hover:text-slate-300"}`}
+                    style={activeTab === "preview" ? { borderBottomColor: activeNodeColor } : {}}
                   >
-                    <span className="group-hover:text-white transition duration-150 leading-relaxed pr-2">{suggestion}</span>
-                    <ChevronRight 
-                      size={12} 
-                      className="shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5"
-                      style={{ color: activeNodeColor }}
-                    />
+                    <Database size={11} style={{ color: activeNodeColor }} />
+                    Data Preview
                   </button>
-                ))}
+                )}
+              </div>
+
+              {/* Tab Contents */}
+              <div className="flex-1 flex flex-col min-h-0">
+                {activeTab === "queries" ? (
+                  /* TAB 1: Suggestions List */
+                  <div className="flex flex-col gap-2 max-h-[145px] overflow-y-auto pr-1">
+                    {suggestions.map((suggestion, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => onSelectSuggestion(suggestion)}
+                        className="p-2.5 bg-white/4 border border-white/6 hover:bg-white/8 rounded-xl text-left text-[11px] text-slate-200 font-semibold transition cursor-pointer flex items-center justify-between group"
+                      >
+                        <span className="group-hover:text-white transition duration-150 leading-relaxed pr-2">{suggestion}</span>
+                        <ChevronRight 
+                          size={12} 
+                          className="shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5"
+                          style={{ color: activeNodeColor }}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  /* TAB 2: Data Preview Table Grid */
+                  <div className="flex-1 flex flex-col justify-center min-h-0 max-h-[145px]">
+                    {isPreviewLoading ? (
+                      <div className="flex items-center justify-center gap-2 text-slate-400 py-6">
+                        <Loader2 size={16} className="animate-spin" style={{ color: activeNodeColor }} />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Fetching live preview...</span>
+                      </div>
+                    ) : previewError ? (
+                      <div className="text-center py-4 text-xs text-rose-400/80 font-medium">
+                        {previewError}
+                      </div>
+                    ) : previewData && previewData.rows.length > 0 ? (
+                      <div className="w-full overflow-x-auto border border-white/10 rounded-xl max-h-[140px] overflow-y-auto">
+                        <table className="w-full text-left border-collapse text-[10px]">
+                          <thead>
+                            <tr className="bg-slate-950 border-b border-white/10">
+                              {previewData.columns.map((col) => (
+                                <th 
+                                  key={col} 
+                                  className="px-3 py-2 text-slate-400 font-bold uppercase tracking-wider whitespace-nowrap sticky top-0 bg-slate-950"
+                                >
+                                  {col}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {previewData.rows.map((row, rIdx) => (
+                              <tr key={rIdx} className="border-b border-white/5 hover:bg-white/3 transition">
+                                {previewData.columns.map((col) => (
+                                  <td key={col} className="px-3 py-2 text-slate-200 font-medium whitespace-nowrap">
+                                    {row[col] !== null && row[col] !== undefined ? String(row[col]) : <span className="text-slate-600">NULL</span>}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        No data records available.
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

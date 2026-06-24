@@ -306,6 +306,105 @@ def add_deleted_conversation(convo_name: str):
     except Exception as e:
         logger.error(f"Error writing deleted conversations file: {e}")
 
+def extract_questions_from_text(text: str) -> list:
+    """Helper to parse and extract sample questions/query starters from a text block.
+    Supports inline numbered lists (e.g. (1) ... (2) ...), vertical numbered lists,
+    and questions inside quotes ending in a question mark."""
+    if not text:
+        return []
+    questions = []
+    
+    # 1. Match numbered list questions (supporting both newlines and inline like "(1) ... (2) ...")
+    # Matches a number marker like 1. or (1) or 1), followed by text, up to the next marker or end of string
+    numbered_matches = re.findall(r'(?:\(?\d+[\.\)]\s*)\s*(.*?)(?=\s*\(?\d+[\.\)]|$)', text, re.DOTALL)
+    for m in numbered_matches:
+        q = m.strip()
+        # Clean trailing periods, commas, or spaces
+        q = q.rstrip(".,; ")
+        if 15 < len(q) < 160:
+            # Filter out structural schemas or descriptions containing colons, markdown stars, or BQ keys
+            if any(k in q.lower() for k in ["primary key", "key column", "foreign key", "table schema"]):
+                continue
+            if q.count(":") > 1 or q.count("`") > 2 or "*" in q or "#" in q:
+                continue
+            if not q.endswith("?"):
+                q += "?"
+            questions.append(q)
+            
+    # 2. Extract questions inside quotes ending with a question mark (fallback/extra)
+    quoted_matches = re.findall(r'["\']([^"\']+\?)["\']', text)
+    for m in quoted_matches:
+        q = m.strip()
+        if 15 < len(q) < 160:
+            if not any(k in q.lower() for k in ["primary key", "key column", "foreign key", "table schema"]):
+                if q.count(":") > 1 or q.count("`") > 2 or "*" in q or "#" in q:
+                    continue
+                if not any(k in q.upper() for k in ["SELECT", "FROM", "WHERE", "WITH", "LIMIT"]):
+                    q = re.sub(r'[\*\`\_]', '', q)
+                    if q not in questions:
+                        questions.append(q)
+                    
+    return questions
+
+def get_table_specific_suggestions(table_name: str) -> list:
+    """Returns premium, highly-analytical table-level suggested queries based on table names."""
+    name_lower = table_name.lower()
+    
+    # A. order_items / sales orders
+    if "order_items" in name_lower or "order" in name_lower:
+        return [
+            "What are our total sales and profit margins from order_items this month?",
+            "Can we see the monthly order volume and return rate from order_items?",
+            "What is the distribution of order status (Processing, Completed, Returned) in order_items?"
+        ]
+        
+    # B. products catalog
+    if "product" in name_lower:
+        return [
+            "What are the top 10 most expensive products by retail price?",
+            "How many unique products do we have in each department and category?",
+            "Which product brands have the highest average retail price in our catalog?"
+        ]
+        
+    # C. users / customers profiles
+    if "user" in name_lower or "customer" in name_lower:
+        return [
+            "What is the distribution of users by traffic source and age group?",
+            "Can we see the number of new user signups by country and state?",
+            "What are the most common traffic sources for our customers?"
+        ]
+        
+    # D. events / web traffic logs
+    if "event" in name_lower or "session" in name_lower:
+        return [
+            "What is the count of events by action type (view, cart, purchase)?",
+            "Which traffic sources generate the highest number of website sessions?",
+            "What is the daily trend of website events for the last 30 days?"
+        ]
+        
+    # E. SA360 / Marketing actuals
+    if "sa360" in name_lower or "actual" in name_lower or "marketing" in name_lower:
+        return [
+            "What is the sum of cost, impressions, and clicks grouped by account?",
+            "Can we calculate the click-through rate (CTR) for each account type?",
+            "Show me the daily clicks and cost trends from this marketing dataset."
+        ]
+        
+    # F. corpusembeddings / vector database
+    if "embedding" in name_lower or "corpus" in name_lower:
+        return [
+            "What are the columns and schema of the corpusembeddings table?",
+            "Show me a sample of 5 records with their text content and embeddings.",
+            "How many total text chunks and embedding vectors are stored here?"
+        ]
+        
+    # Default fallback for custom/unknown tables
+    return [
+        f"Show me a detailed summary and column types of the {table_name} table.",
+        f"What are the top 10 most recent records from the {table_name} table?",
+        f"Can you show me the count of records grouped by the primary columns in {table_name}?"
+    ]
+
 def enrich_agent_metadata(agent: dict) -> dict:
     """Enriches a data agent with dynamically generated suggested questions and welcome subtitles."""
     display_name = agent.get("displayName", "Data Agent")
@@ -334,20 +433,15 @@ def enrich_agent_metadata(agent: dict) -> dict:
                 if table_str not in tables:
                     tables.append(table_str)
                     
-    # 2. Extract suggested queries directly from the agent's system prompt (instructions)
+    # 2. Extract suggested queries from the agent's description first (where GCP console stores sample queries)
     suggestions = []
-    if system_instruction:
-        # Match questions ending in ? inside quotes (single or double)
-        matches = re.findall(r'["\']([^"\']+\?)["\']', system_instruction)
-        for m in matches:
-            m_clean = m.strip()
-            # Basic validation: reasonable length, not SQL fragments, ends with ?
-            if 15 < len(m_clean) < 120 and "?" in m_clean:
-                if not any(k in m_clean.upper() for k in ["SELECT", "FROM", "WHERE", "WITH", "LIMIT"]):
-                    # Clean up markdown formatting if any
-                    m_clean = re.sub(r'[\*\`\_]', '', m_clean)
-                    suggestions.append(m_clean)
-                    
+    if description:
+        suggestions.extend(extract_questions_from_text(description))
+        
+    # 3. Extract suggested queries from system instruction if we still need more
+    if len(suggestions) < 3 and system_instruction:
+        suggestions.extend(extract_questions_from_text(system_instruction))
+        
     # Remove duplicates while preserving order
     unique_suggestions = []
     for s in suggestions:
@@ -355,7 +449,53 @@ def enrich_agent_metadata(agent: dict) -> dict:
             unique_suggestions.append(s)
     suggestions = unique_suggestions[:3]
     
-    # 3. Fallback: Generate custom queries based on discovered BigQuery tables
+    # 4. Fallback: Dynamic Brand-based default presets
+    name_lower = display_name.lower()
+    desc_lower = description.lower()
+    
+    if len(suggestions) < 3:
+        preset_suggestions = []
+        
+        # A. Marketing / Advertising
+        if any(k in name_lower or k in desc_lower for k in ["marketing", "ga4", "sa360", "advertising"]):
+            preset_suggestions = [
+                "What are the top 10 best-selling product categories by total sales revenue?",
+                "How does our monthly order volume compare across different countries?",
+                "Can we see the distribution of users by traffic source and country?"
+            ]
+            
+        # B. Penske / Automotive / Customer 360
+        elif any(k in name_lower or k in desc_lower for k in ["penske", "customer 360", "customer360", "dealership"]):
+            preset_suggestions = [
+                "Show me the distribution of customer purchase history by vehicle brand.",
+                "What is the average F&I deal jacket amount for our premium tier customers?",
+                "Can we see the trends in customer service satisfaction scores over the last quarter?"
+            ]
+            
+        # C. Graph-specific Looker agent
+        elif "graph" in name_lower or "graph" in desc_lower:
+            preset_suggestions = [
+                "How does the graph schema prevent overcounting across order items?",
+                "Show me the monthly trend of cost and revenue using graph measures.",
+                "What are the top 5 brands by number of items sold according to graph aggregations?"
+            ]
+            
+        # D. General E-commerce (The Look)
+        elif any(k in name_lower or k in desc_lower for k in ["ecommerce", "the look", "thelook", "retail", "shop"]):
+            preset_suggestions = [
+                "Show me the monthly trend of cost and revenue for this year.",
+                "What are the top 5 brands by number of items sold?",
+                "What is the average order value (AOV) for each month?"
+            ]
+            
+        # If we matched any specific category, append them!
+        if preset_suggestions:
+            for ps in preset_suggestions:
+                if ps not in suggestions:
+                    suggestions.append(ps)
+            suggestions = suggestions[:3]
+        
+    # 5. Double Fallback: Custom table-based queries for custom agents
     if len(suggestions) < 3 and tables:
         primary_table = tables[0]
         table_suggestions = [
@@ -368,23 +508,19 @@ def enrich_agent_metadata(agent: dict) -> dict:
                 suggestions.append(ts)
         suggestions = suggestions[:3]
         
-    # 4. Double Fallback: Brand-based default presets
-    if not suggestions:
-        name_lower = display_name.lower()
-        if "marketing" in name_lower or "ga4" in name_lower:
-            suggestions = [
-                "What are the top 10 best-selling product categories by total sales revenue?",
-                "How does our monthly order volume compare across different countries?",
-                "Can we see the distribution of users by traffic source and country?"
-            ]
-        else:
-            suggestions = [
-                "Show me the monthly trend of cost and revenue for this year.",
-                "What are the top 5 brands by number of items sold?",
-                "What is the average order value (AOV) for each month?"
-            ]
+    # 6. Triple Fallback: Generic presets as last resort
+    if len(suggestions) < 3:
+        preset_suggestions = [
+            "Show me the monthly trend of cost and revenue for this year.",
+            "What are the top 5 brands by number of items sold?",
+            "What is the average order value (AOV) for each month?"
+        ]
+        for ps in preset_suggestions:
+            if ps not in suggestions:
+                suggestions.append(ps)
+        suggestions = suggestions[:3]
             
-    # 5. Generate a beautiful, custom welcome subtitle based on the agent's tables or description
+    # 7. Generate a beautiful, custom welcome subtitle based on the agent's tables or description
     welcome_subtitle = description
     if not welcome_subtitle:
         if tables:
@@ -392,56 +528,49 @@ def enrich_agent_metadata(agent: dict) -> dict:
         else:
             welcome_subtitle = "Ask any analytical question about your business data, cost trends, or performance."
             
-    # 6. Detect and Inject Graph Database Schema if it is a Graph Agent
+    # 8. Detect and Inject Graph Database Schema if it is a Graph Agent
     is_graph_agent = (
-        any("graph" in t.lower() for t in tables) or 
-        "graph" in display_name.lower() or
-        "penske" in display_name.lower() or
-        "customer-360" in display_name.lower()
+        "graph" in name_lower or 
+        "graph" in desc_lower or 
+        any(k in name_lower or k in desc_lower for k in ["penske", "customer 360", "customer360"])
     )
     agent["isGraphAgent"] = is_graph_agent
     
     if is_graph_agent:
-        if "penske" in display_name.lower() or "customer-360" in display_name.lower() or "automotive" in display_name.lower():
-            # Inject Custom Penske Automotive Customer 360 Graph Schema!
+        # Relational Graph Agents
+        if any(k in name_lower or k in desc_lower for k in ["penske", "customer 360", "customer360"]):
+            # Penske Property Graph
             agent["graphData"] = {
                 "nodes": [
-                    {"id": "customers", "label": "Customers", "icon": "users", "type": "customer", "description": "Unified customer master records containing names, emails, active phone numbers, and addresses."},
-                    {"id": "vehicles", "label": "Vehicles", "icon": "car", "type": "vehicle", "description": "Vehicles owned or leased by customers, including model trim levels, year, and acquisition types."},
-                    {"id": "service_visits", "label": "Service History", "icon": "wrench", "type": "service", "description": "Toyota Tacoma service visits (Willow system), detailing repair orders, mileages, costs, and dealer locations."},
-                    {"id": "deal_jackets", "label": "F&I Deal Jackets", "icon": "file-text", "type": "finance", "description": "F&I finance and leasing deal jackets, detailing credit scores, interest rates, loan amounts, and audit compliance statuses."},
-                    {"id": "web_events", "label": "Web Traffic (GA4)", "icon": "globe", "type": "marketing", "description": "Digital footprints from GA4 and marketing channels, including trade-in estimates, build-and-price selections, and accessory searches."}
+                    {"id": "customers", "label": "Customers", "icon": "users", "type": "customer", "description": "Customer demographic details, CRM records, tier designations, and business indicators."},
+                    {"id": "sales", "label": "Sales", "icon": "shopping-bag", "type": "transaction", "description": "Vehicle sales transactions, deal jackets, purchase types, and financing indicators."},
+                    {"id": "service_histories", "label": "Service Histories", "icon": "wrench", "type": "event", "description": "Vehicle maintenance logs, service tickets, diagnostic codes, and repair details."},
+                    {"id": "web_events", "label": "Web Events", "icon": "globe", "type": "interaction", "description": "Digital footprints, vehicle detail views, dealership site visits, and application logs."}
                 ],
                 "edges": [
-                    {"source": "customers", "target": "vehicles", "label": "OWNS"},
-                    {"source": "vehicles", "target": "service_visits", "label": "SERVICED_AT"},
-                    {"source": "customers", "target": "deal_jackets", "label": "FINANCED_WITH"},
-                    {"source": "customers", "target": "web_events", "label": "TRIGGERED"}
+                    {"source": "customers", "target": "sales", "label": "BUYS"},
+                    {"source": "customers", "target": "service_histories", "label": "SERVICED_BY"},
+                    {"source": "customers", "target": "web_events", "label": "TRIGGERS"}
                 ],
                 "nodeSuggestions": {
                     "customers": [
-                        "List the top 5 customers with the most service visits.",
-                        "Show the demographic distribution of our customers by state.",
-                        "Which customers own a vehicle but have no phone number on record?"
+                        "How many premium tier customers do we have?",
+                        "What is the average customer lifetime value across our dealership?",
+                        "Show me the distribution of customers by region and status."
                     ],
-                    "vehicles": [
-                        "What is the ratio of leased vs. retail-purchased Tacomas?",
-                        "Show total sales volume and lease originations by trim level.",
-                        "List all vehicles model year 2025 or newer and their trim levels."
+                    "sales": [
+                        "What is our total sales revenue and gross profit margins this quarter?",
+                        "Compare monthly vehicle sales volume between retail lease and finance types.",
+                        "Show me the average finance and insurance (F&I) amount in our deal jackets."
                     ],
-                    "service_visits": [
-                        "What is the average service cost of a 45k Mile Major Service?",
-                        "Compare the total service revenue across different Penske dealership locations.",
-                        "Which vehicles have had more than 3 oil changes in the last 6 months?"
-                    ],
-                    "deal_jackets": [
-                        "Audit the active deal jackets and list any that are currently IN_AUDIT.",
-                        "What is the average interest rate for customers with a credit score below 650?",
-                        "Compare average loan amounts between retail buyers and lease originations."
+                    "service_histories": [
+                        "What are the most common service diagnostic codes reported?",
+                        "Show the monthly trend of repair service costs over the last year.",
+                        "List vehicles that have had more than three service visits in 6 months."
                     ],
                     "web_events": [
-                        "Find customers who searched for 'TRD suspension kits' and have active service appointments.",
-                        "How many customers generated a trade-in estimate online in the last 30 days?",
+                        "Which vehicle pages generate the highest number of online detail views?",
+                        "What is the daily trend of website visits and session duration?",
                         "List the most common web events triggered by lease holders."
                     ]
                 }
@@ -494,6 +623,51 @@ def enrich_agent_metadata(agent: dict) -> dict:
             if not description:
                 welcome_subtitle = "Explore your connected BigQuery Graph database. Hover and click nodes to discover relationships and ask questions!"
             
+    else:
+        # Auto-generate Star Relational Schema for standard agents!
+        table_nodes = []
+        table_edges = []
+        
+        # Add central root node
+        table_nodes.append({
+            "id": "schema_root",
+            "label": "Database Schema",
+            "icon": "database",
+            "type": "database",
+            "description": f"Relational database schema containing all tables available to the {display_name} agent."
+        })
+        
+        for t in tables:
+            # Extract clean table name (e.g. from "dataset.table_name" -> "table_name")
+            clean_name = t.split(".")[-1] if "." in t else t
+            
+            table_nodes.append({
+                "id": clean_name,
+                "label": clean_name,
+                "icon": clean_name,
+                "type": "table",
+                "description": f"Connected database table: {clean_name}. Contains columns, metrics, and records for analytical queries."
+            })
+            
+            # Draw a directed edge from database to table
+            table_edges.append({
+                "source": "schema_root",
+                "target": clean_name,
+                "label": "CONTAINS"
+            })
+            
+        agent["graphData"] = {
+            "nodes": table_nodes,
+            "edges": table_edges,
+            "nodeSuggestions": {
+                # Dynamically generate domain-specific table-level suggestions
+                clean_name: get_table_specific_suggestions(clean_name) 
+                for clean_name in [t.split(".")[-1] if "." in t else t for t in tables]
+            }
+        }
+        if not welcome_subtitle:
+            welcome_subtitle = f"Explore the connected tables schema for {display_name}. Hover and click table nodes to inspect columns and preview data!"
+
     # Inject metadata properties into the agent dict returned to the UI
     agent["suggestions"] = suggestions
     agent["welcomeSubtitle"] = welcome_subtitle
@@ -673,6 +847,172 @@ def get_messages(convo_name: str, user: dict = Depends(get_current_user), client
     except Exception as e:
         logger.error(f"Error listing messages: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve conversation history.")
+
+
+@app.get("/api/preview")
+def get_table_preview(
+    table_name: str,
+    agent_name: Optional[str] = None,
+    user: dict = Depends(get_current_user),
+    client: ConversationalAnalyticsClient = Depends(get_analytics_client)
+):
+    # 1. Define high-fidelity mock data dictionary
+    mock_previews = {
+        "customers": {
+            "columns": ["customer_id", "first_name", "last_name", "email", "phone_number", "state"],
+            "rows": [
+                {"customer_id": 1001, "first_name": "Gilbert", "last_name": "Gomez", "email": "gilgtz@penske.com", "phone_number": "+1 (248) 555-0199", "state": "MI"},
+                {"customer_id": 1002, "first_name": "Sarah", "last_name": "Connor", "email": "sconnor@resistance.net", "phone_number": "+1 (310) 555-0182", "state": "CA"},
+                {"customer_id": 1003, "first_name": "John", "last_name": "Doe", "email": "jdoe@toyota.com", "phone_number": "+1 (800) 555-0155", "state": "TX"},
+                {"customer_id": 1004, "first_name": "Elena", "last_name": "Rostova", "email": "elena.r@lexus.co.jp", "phone_number": "+81 3-5555-0123", "state": "Tokyo"},
+                {"customer_id": 1005, "first_name": "Marcus", "last_name": "Vance", "email": "mvance@vonsarcade.com", "phone_number": "+1 (415) 555-0144", "state": "CA"}
+            ]
+        },
+        "vehicles": {
+            "columns": ["vehicle_id", "vin", "make", "model", "year", "trim", "acquisition_type"],
+            "rows": [
+                {"vehicle_id": "V1", "vin": "1FTFW1RG5LFA00001", "make": "Toyota", "model": "Tacoma", "year": 2021, "trim": "TRD Pro", "acquisition_type": "Lease"},
+                {"vehicle_id": "V2", "vin": "5YJ3E1EB8LF000002", "make": "Toyota", "model": "Tundra", "year": 2022, "trim": "Limited", "acquisition_type": "Purchase"},
+                {"vehicle_id": "V3", "vin": "1GNSKCKD2LR000003", "make": "Lexus", "model": "RX 350", "year": 2023, "trim": "F Sport", "acquisition_type": "Purchase"},
+                {"vehicle_id": "V4", "vin": "4T1BF1FK1LU000004", "make": "Toyota", "model": "RAV4", "year": 2020, "trim": "XLE", "acquisition_type": "Lease"},
+                {"vehicle_id": "V5", "vin": "1GCYDKED4LF000005", "make": "Toyota", "model": "Tacoma", "year": 2021, "trim": "SR5", "acquisition_type": "Purchase"}
+            ]
+        },
+        "service_visits": {
+            "columns": ["visit_id", "vehicle_id", "date", "repair_order_no", "mileage", "cost", "status"],
+            "rows": [
+                {"visit_id": "RO101", "vehicle_id": "V1", "date": "2026-04-15", "repair_order_no": "RO-88291", "mileage": 45120, "cost": 324.50, "status": "COMPLETED"},
+                {"visit_id": "RO102", "vehicle_id": "V2", "date": "2026-05-10", "repair_order_no": "RO-88402", "mileage": 28900, "cost": 150.00, "status": "COMPLETED"},
+                {"visit_id": "RO103", "vehicle_id": "V1", "date": "2026-06-01", "repair_order_no": "RO-88941", "mileage": 48200, "cost": 890.75, "status": "COMPLETED"},
+                {"visit_id": "RO104", "vehicle_id": "V4", "date": "2026-06-12", "repair_order_no": "RO-89102", "mileage": 55210, "cost": 89.95, "status": "COMPLETED"},
+                {"visit_id": "RO105", "vehicle_id": "V5", "date": "2026-06-20", "repair_order_no": "RO-89332", "mileage": 12400, "cost": 210.00, "status": "COMPLETED"}
+            ]
+        },
+        "deal_jackets": {
+            "columns": ["deal_id", "customer_id", "date", "finance_company", "credit_score", "loan_amount", "audit_status"],
+            "rows": [
+                {"deal_id": "D2001", "customer_id": 1001, "date": "2026-01-10", "finance_company": "Toyota Financial Services", "credit_score": 785, "loan_amount": 42500.00, "audit_status": "PASSED"},
+                {"deal_id": "D2002", "customer_id": 1002, "date": "2026-02-14", "finance_company": "Chase Auto", "credit_score": 680, "loan_amount": 31000.00, "audit_status": "WARNING"},
+                {"deal_id": "D2003", "customer_id": 1003, "date": "2026-03-22", "finance_company": "Ally Financial", "credit_score": 740, "loan_amount": 52000.00, "audit_status": "PASSED"},
+                {"deal_id": "D2004", "customer_id": 1004, "date": "2026-04-05", "finance_company": "Toyota Financial Services", "credit_score": 810, "loan_amount": 38000.00, "audit_status": "PASSED"},
+                {"deal_id": "D2005", "customer_id": 1005, "date": "2026-05-18", "finance_company": "Wells Fargo Auto", "credit_score": 620, "loan_amount": 24500.00, "audit_status": "IN_AUDIT"}
+            ]
+        },
+        "web_events": {
+            "columns": ["event_id", "customer_id", "timestamp", "event_name", "page_path", "source"],
+            "rows": [
+                {"event_id": "E901", "customer_id": 1001, "timestamp": "2026-06-24T10:12:00Z", "event_name": "trade_in_estimate", "page_path": "/vehicles/trade-in", "source": "Google"},
+                {"event_id": "E902", "customer_id": 1001, "timestamp": "2026-06-24T10:15:00Z", "event_name": "build_and_price", "page_path": "/tacoma/build", "source": "Direct"},
+                {"event_id": "E903", "customer_id": 1002, "timestamp": "2026-06-24T10:20:00Z", "event_name": "view_accessory", "page_path": "/tacoma/accessories", "source": "Facebook"},
+                {"event_id": "E904", "customer_id": 1003, "timestamp": "2026-06-24T10:22:00Z", "event_name": "schedule_service", "page_path": "/service/book", "source": "Email"},
+                {"event_id": "E905", "customer_id": 1005, "timestamp": "2026-06-24T10:25:00Z", "event_name": "finance_calculator", "page_path": "/finance/apply", "source": "Google"}
+            ]
+        },
+        # The Look Ecommerce fallback mock data
+        "users": {
+            "columns": ["id", "first_name", "last_name", "email", "age", "country"],
+            "rows": [
+                {"id": 1, "first_name": "John", "last_name": "Smith", "email": "john.smith@gmail.com", "age": 34, "country": "United States"},
+                {"id": 2, "first_name": "Marie", "last_name": "Dubois", "email": "marie.dubois@yahoo.fr", "age": 28, "country": "France"},
+                {"id": 3, "first_name": "Carlos", "last_name": "Silva", "email": "csilva@outlook.com.br", "age": 42, "country": "Brazil"},
+                {"id": 4, "first_name": "Yuki", "last_name": "Tanaka", "email": "yuki.t@docomo.ne.jp", "age": 31, "country": "Japan"},
+                {"id": 5, "first_name": "Hans", "last_name": "Schmidt", "email": "hans.s@t-online.de", "age": 55, "country": "Germany"}
+            ]
+        },
+        "orders": {
+            "columns": ["order_id", "user_id", "status", "created_at", "num_of_item"],
+            "rows": [
+                {"order_id": 12501, "user_id": 1, "status": "Shipped", "created_at": "2026-06-23T14:32:00Z", "num_of_item": 2},
+                {"order_id": 12502, "user_id": 2, "status": "Complete", "created_at": "2026-06-23T15:10:00Z", "num_of_item": 1},
+                {"order_id": 12503, "user_id": 3, "status": "Processing", "created_at": "2026-06-24T08:45:00Z", "num_of_item": 3},
+                {"order_id": 12504, "user_id": 4, "status": "Complete", "created_at": "2026-06-24T09:12:00Z", "num_of_item": 1},
+                {"order_id": 12505, "user_id": 5, "status": "Cancelled", "created_at": "2026-06-24T10:05:00Z", "num_of_item": 2}
+            ]
+        },
+        "products": {
+            "columns": ["id", "name", "category", "brand", "retail_price", "department"],
+            "rows": [
+                {"id": 101, "name": "Men's Slim Fit Denim Jeans", "category": "Jeans", "brand": "Levi's", "retail_price": 59.50, "department": "Men"},
+                {"id": 102, "name": "Women's Run Free Sneakers", "category": "Active", "brand": "Nike", "retail_price": 120.00, "department": "Women"},
+                {"id": 103, "name": "Unisex Classic Leather Belt", "category": "Accessories", "brand": "Calvin Klein", "retail_price": 38.00, "department": "Unisex"},
+                {"id": 104, "name": "Men's Wool Blend Winter Coat", "category": "Outerwear", "brand": "Columbia", "retail_price": 180.00, "department": "Men"},
+                {"id": 105, "name": "Women's Floral Summer Dress", "category": "Dresses", "brand": "Zara", "retail_price": 49.95, "department": "Women"}
+            ]
+        }
+    }
+    
+    clean_name = table_name.lower().strip()
+    if "." in clean_name:
+        clean_name = clean_name.split(".")[-1]
+        
+    try:
+        project_id = get_project_id()
+        if project_id and agent_name:
+            bq_client = bigquery.Client(project=project_id)
+            
+            # Dynamically look up the agent definition to extract the real dataset and table IDs
+            real_dataset_id = None
+            real_table_id = None
+            try:
+                agents = client.list_agents()
+                for a in agents:
+                    if a.get("name") == agent_name:
+                        da_agent = a.get("dataAnalyticsAgent", {})
+                        for context_key in ["publishedContext", "lastPublishedContext", "stagingContext"]:
+                            context = da_agent.get(context_key, {})
+                            ds_refs = context.get("datasourceReferences", {})
+                            bq_ref = ds_refs.get("bq", {})
+                            table_refs = bq_ref.get("tableReferences", [])
+                            for t in table_refs:
+                                tid = t.get("tableId", "")
+                                did = t.get("datasetId", "")
+                                if tid.lower().strip() == clean_name or tid.lower().strip().replace("_", "") == clean_name.replace("_", ""):
+                                    real_dataset_id = did
+                                    real_table_id = tid
+                                    break
+                            if real_table_id:
+                                break
+                        break
+            except Exception as lookup_err:
+                logger.error(f"Error looking up agent datasource references: {lookup_err}")
+                
+            if real_dataset_id and real_table_id:
+                full_table_id = f"{project_id}.{real_dataset_id}.{real_table_id}"
+            elif "penske" in agent_name.lower() or "customer-360" in agent_name.lower():
+                full_table_id = f"{project_id}.penske_customer_360.{clean_name}"
+            else:
+                if clean_name in ["users", "orders", "products", "distribution_centers", "events", "inventory_items", "order_items"]:
+                    full_table_id = f"bigquery-public-data.thelook_ecommerce.{clean_name}"
+                else:
+                    raise ValueError("Unknown dataset path, falling back to mock")
+                    
+            query = f"SELECT * FROM `{full_table_id}` LIMIT 5"
+            logger.info(f"Running live data preview query: {query}")
+            query_job = bq_client.query(query)
+            result = query_job.result()
+            
+            columns = [field.name for field in result.schema]
+            rows = []
+            for row in result:
+                rows.append(dict(row.items()))
+                
+            return {"columns": columns, "rows": rows}
+    except Exception as e:
+        logger.warning(f"Failed to fetch live BigQuery preview (falling back to mock): {e}")
+        
+    if clean_name in mock_previews:
+        return mock_previews[clean_name]
+        
+    return {
+        "columns": ["id", "created_at", "status", "value"],
+        "rows": [
+            {"id": 1, "created_at": "2026-06-24T08:00:00Z", "status": "ACTIVE", "value": "Record A"},
+            {"id": 2, "created_at": "2026-06-24T09:15:00Z", "status": "ACTIVE", "value": "Record B"},
+            {"id": 3, "created_at": "2026-06-24T10:30:00Z", "status": "PENDING", "value": "Record C"},
+            {"id": 4, "created_at": "2026-06-24T11:45:00Z", "status": "INACTIVE", "value": "Record D"},
+            {"id": 5, "created_at": "2026-06-24T12:00:00Z", "status": "ACTIVE", "value": "Record E"}
+        ]
+    }
 
 import time
 

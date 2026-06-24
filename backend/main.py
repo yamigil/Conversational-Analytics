@@ -393,7 +393,12 @@ def enrich_agent_metadata(agent: dict) -> dict:
             welcome_subtitle = "Ask any analytical question about your business data, cost trends, or performance."
             
     # 6. Detect and Inject Graph Database Schema if it is a Graph Agent
-    is_graph_agent = any("graph" in t.lower() for t in tables) or "graph" in display_name.lower()
+    is_graph_agent = (
+        any("graph" in t.lower() for t in tables) or 
+        "graph" in display_name.lower() or
+        "penske" in display_name.lower() or
+        "customer-360" in display_name.lower()
+    )
     agent["isGraphAgent"] = is_graph_agent
     
     if is_graph_agent:
@@ -542,20 +547,7 @@ def get_agents(user: dict = Depends(get_current_user), client: ConversationalAna
     try:
         agents = client.list_agents()
         
-        # Inject the showcase Penske Customer 360 Graph Agent
-        penske_agent = {
-            "name": "projects/gilbertos-project-340619/locations/global/collections/default_collection/dataStores/penske-customer-360-graph-store",
-            "displayName": "Penske Customer 360 (Graph)",
-            "description": "Consolidated 360-degree view of Penske Automotive customers, integrating Sales DMS, Willow Service History, F&I Deal Jackets, and GA4 Web Events.",
-            "dataAnalyticsAgent": {
-                "activeDataSourceContext": {
-                    "tables": ["customers", "vehicles", "service_visits", "deal_jackets", "web_events"]
-                }
-            }
-        }
-        
         enriched = [enrich_agent_metadata(agent) for agent in agents]
-        enriched.append(enrich_agent_metadata(penske_agent))
         return enriched
     except google_exceptions.Unauthenticated as e:
         logger.error(f"GCP Unauthenticated: {e}")
@@ -570,9 +562,6 @@ def get_agents(user: dict = Depends(get_current_user), client: ConversationalAna
 @app.post("/api/conversations")
 def create_conversation(req: CreateConvoRequest, user: dict = Depends(get_current_user), client: ConversationalAnalyticsClient = Depends(get_analytics_client)):
     try:
-        if "penske" in req.agent_name.lower() or "customer-360" in req.agent_name.lower() or "automotive" in req.agent_name.lower():
-            mock_convo_name = f"projects/gilbertos-project-340619/locations/global/collections/default_collection/dataStores/penske-customer-360-graph-store/conversations/mock-penske-convo-session"
-            return {"name": mock_convo_name, "createTime": "2026-06-24T14:50:00Z"}
         return client.create_conversation(req.agent_name)
     except Exception as e:
         logger.error(f"Error creating conversation: {e}")
@@ -581,11 +570,6 @@ def create_conversation(req: CreateConvoRequest, user: dict = Depends(get_curren
 @app.get("/api/conversations/{agent_name:path}")
 def get_conversations(agent_name: str, user: dict = Depends(get_current_user), client: ConversationalAnalyticsClient = Depends(get_analytics_client)):
     try:
-        if "penske" in agent_name.lower() or "customer-360" in agent_name.lower() or "automotive" in agent_name.lower():
-            mock_convo_name = f"projects/gilbertos-project-340619/locations/global/collections/default_collection/dataStores/penske-customer-360-graph-store/conversations/mock-penske-convo-session"
-            if mock_convo_name in get_deleted_conversations():
-                return []
-            return [{"name": mock_convo_name, "createTime": "2026-06-24T14:50:00Z"}]
         convos = client.list_conversations(agent_name)
         deleted = get_deleted_conversations()
         return [c for c in convos if c.get("name") not in deleted]
@@ -596,16 +580,7 @@ def get_conversations(agent_name: str, user: dict = Depends(get_current_user), c
 @app.get("/api/insights/{agent_name:path}")
 def get_insights(agent_name: str, user: dict = Depends(get_current_user), client: ConversationalAnalyticsClient = Depends(get_analytics_client)):
     try:
-        if "penske" in agent_name.lower() or "customer-360" in agent_name.lower() or "automotive" in agent_name.lower():
-            return {
-                "summary": "Unified customer insights generated from latest property graph traversals (Willow Service + F&I Jackets + GA4):",
-                "insights": [
-                    "Traversed Customer-Vehicle-Service path to identify Tacomas with multiple service visits.",
-                    "Audited 12 active F&I deal jackets, flagging 2 compliance exceptions.",
-                    "Segmented high-value customers who initiated trade-in estimates online.",
-                    "Identified 85% of active service customers who have digital footprint logs."
-                ]
-            }
+
         convos = client.list_conversations(agent_name)
         deleted = get_deleted_conversations()
         active_convos = [c for c in convos if c.get("name") not in deleted]
@@ -689,8 +664,7 @@ def delete_conversation(convo_name: str, user: dict = Depends(get_current_user),
 @app.get("/api/messages/{convo_name:path}")
 def get_messages(convo_name: str, user: dict = Depends(get_current_user), client: ConversationalAnalyticsClient = Depends(get_analytics_client)):
     try:
-        if "penske" in convo_name.lower() or "customer-360" in convo_name.lower() or "automotive" in convo_name.lower():
-            return []
+
         if convo_name in get_deleted_conversations():
             raise HTTPException(status_code=404, detail="Conversation has been deleted")
         return client.list_messages(convo_name)
@@ -1142,19 +1116,7 @@ def penske_mock_stream_generator(query: str, chat_mode: str):
 @app.post("/api/chat")
 def chat(req: ChatRequestModel, user: dict = Depends(get_current_user), client: ConversationalAnalyticsClient = Depends(get_analytics_client)):
     try:
-        # Check if this is our Penske Customer 360 Showcase Agent
-        if "penske" in req.agent_name.lower() or "customer-360" in req.agent_name.lower() or "automotive" in req.agent_name.lower():
-            # Log query telemetry to BigQuery (for compliance tracking)
-            log_chat_to_bigquery(
-                user_email=user.get("email", "unknown"),
-                conversation_name=req.conversation_name,
-                agent_name=req.agent_name,
-                query=req.message_text
-            )
-            return StreamingResponse(
-                penske_mock_stream_generator(req.message_text, req.chat_mode),
-                media_type="text/event-stream"
-            )
+
 
         # Log query telemetry to BigQuery for standard agents
         log_chat_to_bigquery(

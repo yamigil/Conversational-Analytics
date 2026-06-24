@@ -342,9 +342,9 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                   {/* Micro-glassmorphic background pill - dynamically sized based on character length */}
                   {(() => {
                     const labelLength = edge.label.length;
-                    const approxCharWidth = 5.6; // average char width at 8.5px with tracking
-                    const padding = 16; // horizontal padding
-                    const rectWidth = Math.max(52, labelLength * approxCharWidth + padding);
+                    const approxCharWidth = 7.5; // Increased from 5.6 to handle bold wide tracking
+                    const padding = 24; // Increased from 16 for elegant horizontal margins
+                    const rectWidth = Math.max(56, labelLength * approxCharWidth + padding);
                     const rectHeight = 18;
                     const rx = rectHeight / 2;
                     return (

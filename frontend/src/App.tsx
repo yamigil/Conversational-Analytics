@@ -960,6 +960,7 @@ const App: React.FC = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConvo, setSelectedConvo] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loadingAgentSchema, setLoadingAgentSchema] = useState<boolean>(false);
 
 
   // Connection and Reasoning Modes
@@ -1296,6 +1297,35 @@ const App: React.FC = () => {
     document.title = `${brand.name} - Data Workspace`;
   };
 
+  // Lazy-load detailed schema and suggestions for a selected agent on-demand
+  const fetchAgentSchema = async (agentName: string, currentAgentsList?: Agent[]) => {
+    if (!agentName) return;
+    
+    const targetList = currentAgentsList || agents;
+    const agent = targetList.find(a => a.name === agentName);
+    if (!agent) return;
+    
+    if (agent.isGraphAgent && !agent.graphData) {
+      setLoadingAgentSchema(true);
+      try {
+        const res = await authenticatedFetch(`/api/agents/${encodeURIComponent(agentName)}/schema`);
+        if (res.ok) {
+          const enriched = await res.json();
+          setAgents(prev => prev.map(a => a.name === agentName ? { 
+            ...a, 
+            graphData: enriched.graphData,
+            welcomeSubtitle: enriched.welcomeSubtitle,
+            suggestions: enriched.suggestions
+          } : a));
+        }
+      } catch (err) {
+        console.error("Failed to lazy-load agent schema:", err);
+      } finally {
+        setLoadingAgentSchema(false);
+      }
+    }
+  };
+
   // Fetch Agents
   const fetchAgents = async () => {
     try {
@@ -1326,14 +1356,16 @@ const App: React.FC = () => {
 
         // Restore active agent from session storage or fallback to auto-selecting the first agent
         const savedAgent = sessionStorage.getItem("activeAgentName");
-        if (savedAgent && data.some((a: Agent) => a.name === savedAgent)) {
-          setSelectedAgent(savedAgent);
-          fetchConversations(savedAgent);
-        } else if (data.length > 0) {
-          const firstAgent = data[0].name;
-          setSelectedAgent(firstAgent);
-          sessionStorage.setItem("activeAgentName", firstAgent);
-          fetchConversations(firstAgent);
+        const activeAgentName = (savedAgent && data.some((a: Agent) => a.name === savedAgent)) ? savedAgent : (data.length > 0 ? data[0].name : "");
+        
+        if (activeAgentName) {
+          setSelectedAgent(activeAgentName);
+          if (!savedAgent && data.length > 0) {
+            sessionStorage.setItem("activeAgentName", activeAgentName);
+          }
+          fetchConversations(activeAgentName);
+          // Trigger lazy loading of the graph schema for the resolved active agent!
+          fetchAgentSchema(activeAgentName, data);
         }
       } else {
         fetch("/api/debug/log", {
@@ -1969,6 +2001,7 @@ const App: React.FC = () => {
     setSelectedConvo("");
     setMessages([]);
     fetchConversations(val);
+    fetchAgentSchema(val);
     setIsSidebarOpen(false);
     setIsSchemaExpanded(false);
     if (tourStep === 14) {
@@ -2812,6 +2845,7 @@ const App: React.FC = () => {
                             }}
                             className="w-full py-2 px-3 bg-slate-950 border border-white/8 rounded-lg text-xs text-slate-200 focus:border-brand-primary outline-none cursor-pointer appearance-none"
                           >
+                            <option value="all">All Common Regions (Scan All)</option>
                             <option value="global">Global (Default)</option>
                             <option value="us-central1">us-central1 (Iowa)</option>
                             <option value="europe-west1">europe-west1 (Belgium)</option>
@@ -3108,32 +3142,60 @@ const App: React.FC = () => {
             {/* Collapsible Schema Drawer */}
             {(() => {
               const activeAgentObj = agents.find(a => a.name === selectedAgent);
-              if (isSchemaExpanded && activeAgentObj?.graphData) {
-                return (
-                  <div id="schema-drawer-container" className="w-full flex-1 bg-slate-950/40 backdrop-blur-md py-4 px-6 overflow-y-auto flex flex-col">
-                    <GraphVisualizer
-                      graphData={activeAgentObj.graphData}
-                      onSelectSuggestion={(question) => {
-                        setInputText(question);
-                        handleSendMessage(question);
-                      }}
-                      brandPrimaryColor={brandPrimary}
-                      brandLogoSvg={brandLogoSvg}
-                      brandLogoText={brandLogoText}
-                      agentName={selectedAgent}
-                      fetchTablePreview={async (tableName, agentName) => {
-                        const queryParams = new URLSearchParams({
-                          table_name: tableName,
-                          ...(agentName ? { agent_name: agentName } : {})
-                        });
-                        const res = await authenticatedFetch(`/api/preview?${queryParams.toString()}`);
-                        if (!res.ok) throw new Error("Failed to load table data preview");
-                        return await res.json();
-                      }}
-                      isGraphAgent={activeAgentObj.isGraphAgent}
-                    />
-                  </div>
-                );
+              if (isSchemaExpanded) {
+                if (loadingAgentSchema) {
+                  return (
+                    <div id="schema-drawer-container" className="w-full flex-1 bg-slate-950/40 backdrop-blur-md py-12 px-6 overflow-hidden flex flex-col items-center justify-center min-h-[340px] border-b border-white/6 select-none">
+                      <div className="relative w-28 h-28 flex items-center justify-center mb-6">
+                        {/* Shimmer glowing background ring */}
+                        <div className="absolute inset-0 rounded-full border border-brand-primary/25 bg-brand-primary/5 animate-ping opacity-75" style={{ animationDuration: '2.5s' }} />
+                        <div className="absolute inset-4 rounded-full border border-white/10 bg-slate-950/80 backdrop-blur-md flex items-center justify-center shadow-xl shadow-brand-primary/5">
+                          {/* Pulsing Central Network Icon */}
+                          <Network className="text-brand-primary animate-pulse" size={32} />
+                        </div>
+                        {/* Small orbiting node dots */}
+                        <div className="absolute w-2.5 h-2.5 rounded-full bg-amber-500 animate-bounce" style={{ top: '10%', right: '15%', animationDelay: '0.2s' }} />
+                        <div className="absolute w-2.5 h-2.5 rounded-full bg-emerald-400 animate-bounce" style={{ bottom: '15%', left: '10%', animationDelay: '0.4s' }} />
+                        <div className="absolute w-2.5 h-2.5 rounded-full bg-indigo-400 animate-bounce" style={{ bottom: '10%', right: '20%', animationDelay: '0.6s' }} />
+                      </div>
+                      <h3 className="text-sm font-bold text-slate-100 mb-2 tracking-widest uppercase flex items-center gap-2">
+                        <Sparkles size={14} className="text-amber-400 animate-pulse" />
+                        Constructing Graph Schema
+                      </h3>
+                      <p className="text-[11px] text-slate-400 text-center max-w-sm leading-relaxed">
+                        Scanning BigQuery tables dynamically to resolve entities, properties, and relationships. Building your custom graph blueprint...
+                      </p>
+                    </div>
+                  );
+                }
+                
+                if (activeAgentObj?.graphData) {
+                  return (
+                    <div id="schema-drawer-container" className="w-full flex-1 bg-slate-950/40 backdrop-blur-md py-4 px-6 overflow-y-auto flex flex-col">
+                      <GraphVisualizer
+                        graphData={activeAgentObj.graphData}
+                        onSelectSuggestion={(question) => {
+                          setInputText(question);
+                          handleSendMessage(question);
+                        }}
+                        brandPrimaryColor={brandPrimary}
+                        brandLogoSvg={brandLogoSvg}
+                        brandLogoText={brandLogoText}
+                        agentName={selectedAgent}
+                        fetchTablePreview={async (tableName, agentName) => {
+                          const queryParams = new URLSearchParams({
+                            table_name: tableName,
+                            ...(agentName ? { agent_name: agentName } : {})
+                          });
+                          const res = await authenticatedFetch(`/api/preview?${queryParams.toString()}`);
+                          if (!res.ok) throw new Error("Failed to load table data preview");
+                          return await res.json();
+                        }}
+                        isGraphAgent={activeAgentObj.isGraphAgent}
+                      />
+                    </div>
+                  );
+                }
               }
               return null;
             })()}
@@ -3692,6 +3754,7 @@ const App: React.FC = () => {
                           }}
                           className="w-full py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 outline-none focus:border-brand-primary/50 cursor-pointer appearance-none"
                         >
+                          <option value="all">All Common Regions (Scan All)</option>
                           <option value="global">Global (Default)</option>
                           <option value="us-central1">us-central1 (Iowa)</option>
                           <option value="europe-west1">europe-west1 (Belgium)</option>

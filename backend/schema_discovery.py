@@ -243,7 +243,7 @@ def discover_bq_graph_schema(project_id: str, dataset_id: str) -> Optional[dict]
         logger.error(f"Failed to dynamically discover BigQuery property graph schema: {e}")
         return None
 
-def enrich_agent_metadata(agent: dict) -> dict:
+def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
     """Enriches a data agent with dynamically generated suggested questions and welcome subtitles."""
     display_name = agent.get("displayName", "Data Agent")
     description = agent.get("description", "")
@@ -365,9 +365,13 @@ def enrich_agent_metadata(agent: dict) -> dict:
     agent["isGraphAgent"] = is_graph_agent
     
     if is_graph_agent:
-        project_id = None
-        dataset_id = None
-        if tables:
+        if skip_db_scan:
+            agent["graphData"] = None
+            welcome_subtitle = f"Explore your connected BigQuery Property Graph dynamically. Hover and click nodes to discover relationships."
+        else:
+            project_id = None
+            dataset_id = None
+            if tables:
             first_table = tables[0]
             parts = first_table.split(".")
             if len(parts) == 3:

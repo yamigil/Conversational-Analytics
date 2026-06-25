@@ -142,9 +142,6 @@ def get_location() -> str:
                 brand_settings = branding_data.get("brands", {}).get(active_brand, {})
                 location = brand_settings.get("gcpLocation")
                 if location:
-                    # Map legacy slow "all" location to fast stable "global" location to prevent dual scanning
-                    if location == "all":
-                        location = "global"
                     logger.info(f"Loaded GCP Location from branding settings: {location}")
                     return location
         except Exception as e:
@@ -316,10 +313,25 @@ def get_agents(user: dict = Depends(get_current_user), client: ConversationalAna
         except Exception as debug_err:
             logger.warning(f"Could not write agent debug file: {debug_err}")
             
-        enriched = [enrich_agent_metadata(agent) for agent in agents]
+        enriched = [enrich_agent_metadata(agent, skip_db_scan=True) for agent in agents]
         return enriched
     except Exception as e:
         handle_route_exception(e, "list data agents")
+
+@app.get("/api/agents/{agent_name:path}/schema")
+def get_agent_schema(agent_name: str, user: dict = Depends(get_current_user), client: ConversationalAnalyticsClient = Depends(get_analytics_client)):
+    try:
+        logger.info(f"On-Demand Schema Request received for agent: {agent_name}")
+        agent = client.get_agent(agent_name)
+        if not agent:
+            raise HTTPException(status_code=404, detail=f"Agent '{agent_name}' not found.")
+            
+        from schema_discovery import enrich_agent_metadata
+        enriched = enrich_agent_metadata(agent, skip_db_scan=False)
+        return enriched
+    except Exception as e:
+        handle_route_exception(e, "load agent schema details")
+
 
 @app.post("/api/conversations")
 def create_conversation(req: CreateConvoRequest, user: dict = Depends(get_current_user), client: ConversationalAnalyticsClient = Depends(get_analytics_client)):

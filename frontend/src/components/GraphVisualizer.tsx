@@ -100,6 +100,153 @@ const DYNAMIC_PALETTE = [
   "#f43f5e"  // Red/Pink
 ];
 
+const getInstanceLabel = (nodeId: string, row: any, idx: number): string => {
+  if (nodeId === "customers") return row.name ? row.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase() : `C${idx+1}`;
+  if (nodeId === "orders") return `O${idx+1}`;
+  if (nodeId === "products") return `P${idx+1}`;
+  if (nodeId === "brands") return `B${idx+1}`;
+  if (nodeId === "stores") return `S${idx+1}`;
+  if (nodeId === "vehicles") return `V${idx+1}`;
+  if (nodeId === "service_visits") return `SV${idx+1}`;
+  if (nodeId === "deal_jackets") return `DJ${idx+1}`;
+  if (nodeId === "web_events") return `WE${idx+1}`;
+  return `${nodeId[0].toUpperCase()}${idx+1}`;
+};
+
+const getInstanceSuggestions = (nodeId: string, row: any): string[] => {
+  if (nodeId === "customers") {
+    const name = row.name || "this customer";
+    const cid = row.customer_id || "";
+    return [
+      `Show me the complete service visit history and repair costs for customer ${name}.`,
+      `List all vehicles purchased or leased by customer ID ${cid}.`,
+      `What online web events and searches did customer ${name} perform?`
+    ];
+  }
+  if (nodeId === "orders") {
+    const oid = row.order_id || row.id || "this order";
+    return [
+      `Which customer placed order ${oid} and what is their contact email?`,
+      `List the brand names and prices of all products included in order ${oid}.`,
+      `Show me other orders placed by the user who made order ${oid}.`
+    ];
+  }
+  if (nodeId === "vehicles") {
+    const vin = row.vin || "this vehicle";
+    return [
+      `Who is the customer that purchased the vehicle with VIN ${vin}?`,
+      `Show the full service ticket history, costs, and repair dates for vehicle ${vin}.`,
+      `What is the credit score and loan status in the F&I deal jacket for vehicle ${vin}?`
+    ];
+  }
+  if (nodeId === "service_visits") {
+    const vid = row.visit_id || "this visit";
+    const vin = row.vin || "";
+    return [
+      `Which customer owns the vehicle with VIN ${vin} that was serviced in visit ${vid}?`,
+      `What was the total cost and service type breakdown for visit ${vid}?`,
+      `Compare the service cost of visit ${vid} with our dealership average.`
+    ];
+  }
+  if (nodeId === "deal_jackets") {
+    const did = row.deal_id || "this deal";
+    return [
+      `Show me the profile and contact details of the customer for deal jacket ${did}.`,
+      `What is the interest rate, credit score, and status of finance deal ${did}?`,
+      `Which finance provider was chosen for deal jacket ${did}?`
+    ];
+  }
+  if (nodeId === "web_events") {
+    const eid = row.event_id || "this event";
+    const cid = row.customer_id || "";
+    return [
+      `Who is the customer who triggered web event ${eid}?`,
+      `What is the timestamp and details of web event ${eid}?`,
+      `Show me all digital browser activities triggered by customer ID ${cid} in the last month.`
+    ];
+  }
+  if (nodeId === "users") {
+    const name = row.name || "this user";
+    const uid = row.id || "";
+    return [
+      `List all orders placed by user ${name} including purchase dates and order status.`,
+      `What are the most popular product categories browsed or purchased by user ID ${uid}?`,
+      `Show the billing address and traffic source channel for user ${name}.`
+    ];
+  }
+  if (nodeId === "products") {
+    const pid = row.id || "";
+    return [
+      `Which other customers purchased the product with ID ${pid}?`,
+      `What is the retail price, cost, and profit margin for product ID ${pid}?`,
+      `Show the inventory stock levels and store locations for product ID ${pid}.`
+    ];
+  }
+  return [
+    `Show me a summary of all connected relations for this specific record.`,
+    `What other tables reference the primary keys in this record?`
+  ];
+};
+
+const getLocalMockSatellites = (nodeId: string): any[] => {
+  const cleanId = nodeId.toLowerCase().trim();
+  
+  if (cleanId === "customers" || cleanId === "users") {
+    return [
+      { "customer_id": 1001, "name": "Gilbert Gomez", "email": "gilgtz@penske.com", "phone_number": "+1 (248) 555-0199", "state": "MI" },
+      { "customer_id": 1002, "name": "Sarah Connor", "email": "sconnor@resistance.net", "phone_number": "+1 (310) 555-0182", "state": "CA" },
+      { "customer_id": 1003, "name": "Elena Rostova", "email": "elena.r@lexus.co.jp", "phone_number": "+81 3-5555-0123", "state": "Tokyo" }
+    ];
+  }
+  if (cleanId === "orders") {
+    return [
+      { "order_id": 12501, "status": "Shipped", "created_at": "2026-06-23T14:32:00Z", "num_of_item": 2, "value": "$119.00" },
+      { "order_id": 12502, "status": "Complete", "created_at": "2026-06-23T15:10:00Z", "num_of_item": 1, "value": "$59.50" },
+      { "order_id": 12503, "status": "Processing", "created_at": "2026-06-24T08:45:00Z", "num_of_item": 3, "value": "$238.00" }
+    ];
+  }
+  if (cleanId === "products") {
+    return [
+      { "id": 101, "name": "Slim Fit Denim Jeans", "category": "Jeans", "brand": "Levi's", "retail_price": 59.50, "department": "Men" },
+      { "id": 102, "name": "Run Free Sneakers", "category": "Active", "brand": "Nike", "retail_price": 120.00, "department": "Women" },
+      { "id": 103, "name": "Classic Leather Belt", "category": "Accessories", "brand": "Calvin Klein", "retail_price": 38.00, "department": "Unisex" }
+    ];
+  }
+  if (cleanId === "vehicles") {
+    return [
+      { "vehicle_id": "V1", "vin": "1FTFW1RG5LFA00001", "make": "Toyota", "model": "Tacoma", "year": 2021, "trim": "TRD Pro", "acquisition_type": "Lease" },
+      { "vehicle_id": "V2", "vin": "5YJ3E1EB8LF000002", "make": "Toyota", "model": "Tundra", "year": 2022, "trim": "Limited", "acquisition_type": "Purchase" },
+      { "vehicle_id": "V3", "vin": "1GNSKCKD2LR000003", "make": "Lexus", "model": "RX 350", "year": 2023, "trim": "F Sport", "acquisition_type": "Purchase" }
+    ];
+  }
+  if (cleanId === "service_visits") {
+    return [
+      { "visit_id": "RO101", "vehicle_id": "V1", "date": "2026-04-15", "repair_order_no": "RO-88291", "mileage": 45120, "cost": "$324.50", "status": "COMPLETED" },
+      { "visit_id": "RO102", "vehicle_id": "V2", "date": "2026-05-10", "repair_order_no": "RO-88402", "mileage": 28900, "cost": "$150.00", "status": "COMPLETED" },
+      { "visit_id": "RO103", "vehicle_id": "V1", "date": "2026-06-01", "repair_order_no": "RO-88941", "mileage": 48200, "cost": "$890.75", "status": "COMPLETED" }
+    ];
+  }
+  if (cleanId === "deal_jackets") {
+    return [
+      { "deal_id": "D2001", "customer_id": 1001, "date": "2026-01-10", "finance_company": "Toyota Financial Services", "credit_score": 785, "loan_amount": "$42,500.00", "audit_status": "PASSED" },
+      { "deal_id": "D2002", "customer_id": 1002, "date": "2026-02-14", "finance_company": "Chase Auto", "credit_score": 680, "loan_amount": "$31,000.00", "audit_status": "WARNING" },
+      { "deal_id": "D2003", "customer_id": 1003, "date": "2026-03-22", "finance_company": "Ally Financial", "credit_score": 740, "loan_amount": "$52,000.00", "audit_status": "PASSED" }
+    ];
+  }
+  if (cleanId === "web_events") {
+    return [
+      { "event_id": "E901", "customer_id": 1001, "timestamp": "2026-06-24T10:12:00Z", "event_name": "trade_in_estimate", "page_path": "/vehicles/trade-in", "source": "Google" },
+      { "event_id": "E902", "customer_id": 1001, "timestamp": "2026-06-24T10:15:00Z", "event_name": "build_and_price", "page_path": "/tacoma/build", "source": "Direct" },
+      { "event_id": "E903", "customer_id": 1002, "timestamp": "2026-06-24T10:20:00Z", "event_name": "view_accessory", "page_path": "/tacoma/accessories", "source": "Facebook" }
+    ];
+  }
+  return [
+    { "id": 1, "status": "ACTIVE", "created_at": "2026-06-24", "value": "Instance 1" },
+    { "id": 2, "status": "ACTIVE", "created_at": "2026-06-24", "value": "Instance 2" },
+    { "id": 3, "status": "PENDING", "created_at": "2026-06-24", "value": "Instance 3" }
+  ];
+};
+
 export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   graphData,
   onSelectSuggestion,
@@ -113,6 +260,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
 }) => {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [selectedInstance, setSelectedInstance] = useState<any | null>(null);
   
   const [activeTab, setActiveTab] = useState<"queries" | "preview">("queries");
   const [previewData, setPreviewData] = useState<{ columns: string[], rows: any[] } | null>(null);
@@ -125,10 +273,13 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   // Dynamic Layout Engine: maps coordinates on the fly (supporting central schema root)
   const nodes: Node[] = graphData.nodes.map((n, idx) => {
     if (usePresetLayout && PRESET_COORDINATES[n.id]) {
+      const dx = PRESET_COORDINATES[n.id].x - 300;
+      const dy = PRESET_COORDINATES[n.id].y - 200;
       return {
         ...n,
-        x: PRESET_COORDINATES[n.id].x,
-        y: PRESET_COORDINATES[n.id].y
+        // Scale and center positions onto 800x460 widescreen canvas
+        x: Math.round(400 + dx * 1.32),
+        y: Math.round(230 + dy * 1.22)
       };
     }
     
@@ -137,16 +288,16 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     if (n.id === "schema_root") {
       return {
         ...n,
-        x: 300,
-        y: 200
+        x: 400,
+        y: 230
       };
     }
     
     if (hasSchemaRoot) {
       const otherNodes = graphData.nodes.filter(node => node.id !== "schema_root");
       const otherIdx = otherNodes.findIndex(node => node.id === n.id);
-      const center = { x: 300, y: 200 };
-      const radius = 150;
+      const center = { x: 400, y: 230 };
+      const radius = 180;
       const angle = (2 * Math.PI * otherIdx) / otherNodes.length - Math.PI / 2;
       
       return {
@@ -157,8 +308,8 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     }
     
     // Circular Layout distribution for custom graphs
-    const center = { x: 300, y: 200 };
-    const radius = 145;
+    const center = { x: 400, y: 230 };
+    const radius = 175;
     const angle = (2 * Math.PI * idx) / graphData.nodes.length - Math.PI / 2;
     
     return {
@@ -168,8 +319,9 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     };
   });
 
-  // Reset tab and fetch preview in background when selected node changes
+  // Reset tab, selected instance, and fetch preview in background when selected node changes
   React.useEffect(() => {
+    setSelectedInstance(null);
     if (!selectedNode) {
       setPreviewData(null);
       setActiveTab("queries");
@@ -527,16 +679,19 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   }
 
   return (
-    <div className="w-full flex flex-col gap-6 items-center py-2 select-none max-w-4xl mx-auto animate-fadeIn">
+    <div className="w-full flex flex-col gap-6 items-center py-2 select-none max-w-7xl mx-auto animate-fadeIn">
       {/* 1. Interactive Animated SVG Graph Canvas */}
-      <div className="relative w-full bg-slate-950/60 border border-white/10 rounded-3xl p-4 backdrop-blur-md shadow-2xl flex items-center justify-center overflow-hidden aspect-[3/2] md:aspect-[16/10] w-full">
+      <div className="relative w-full bg-slate-950/60 border border-white/10 rounded-3xl p-4 backdrop-blur-md shadow-2xl flex items-center justify-center overflow-hidden aspect-[16/10] md:aspect-[16/9.2] w-full">
         {/* Grid background */}
         <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.025)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
         
         <svg 
-          viewBox="0 0 600 400" 
+          viewBox="0 0 800 460" 
           className="w-full h-full overflow-visible cursor-default"
-          onClick={() => setSelectedNode(null)}
+          onClick={() => {
+            setSelectedNode(null);
+            setSelectedInstance(null);
+          }}
         >
           <defs>
             {/* Standard edge arrow markers */}
@@ -629,6 +784,50 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
               const highlighted = isEdgeHighlighted(edge);
               const dimmed = (hoveredNode || selectedNode) && !highlighted;
 
+              const isSelfLoop = edge.source === edge.target;
+
+              if (isSelfLoop) {
+                // Render curved teardrop loop path for self-loops (spacious & beautiful!)
+                const pathData = `M ${src.x + 10} ${src.y - 32} C ${src.x + 45} ${src.y - 85}, ${src.x - 45} ${src.y - 85}, ${src.x - 10} ${src.y - 32}`;
+                return (
+                  <g key={idx} className="transition-all duration-300">
+                    {/* Glowing background line for highlighted connections */}
+                    {highlighted && (
+                      <path
+                        d={pathData}
+                        fill="none"
+                        stroke={edgeColor}
+                        strokeWidth="5"
+                        strokeLinecap="round"
+                        className="opacity-30 blur-sm"
+                      />
+                    )}
+                    {/* Core relationship line */}
+                    <path
+                      d={pathData}
+                      fill="none"
+                      stroke={highlighted ? edgeColor : "rgba(255,255,255,0.15)"}
+                      strokeWidth={highlighted ? "3" : "1.5"}
+                      strokeDasharray={highlighted ? "none" : "6, 6"}
+                      markerEnd={highlighted ? "url(#arrow-end-active)" : "url(#arrow-end)"}
+                      className={`transition-all duration-300 ${dimmed ? "opacity-20" : "opacity-100"}`}
+                      style={{ color: edgeColor }}
+                    />
+                    
+                    {/* Native SVG flowing particle animations */}
+                    {highlighted && (
+                      <circle r="4.5" fill={edgeColor} className="filter drop-shadow-[0_0_8px_var(--tw-shadow-color)]" style={{ shadowColor: edgeColor } as any}>
+                        <animateMotion
+                          dur="2.5s"
+                          repeatCount="indefinite"
+                          path={pathData}
+                        />
+                      </circle>
+                    )}
+                  </g>
+                );
+              }
+
               // Shorten edge lines to end exactly at the node boundary rings (34px radius)
               const dx = tgt.x - src.x;
               const dy = tgt.y - src.y;
@@ -699,8 +898,9 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
               const highlighted = isEdgeHighlighted(edge);
               const dimmed = (hoveredNode || selectedNode) && !highlighted;
 
-              const xMid = (src.x + tgt.x) / 2;
-              const yMid = (src.y + tgt.y) / 2;
+              const isSelfLoop = edge.source === edge.target;
+              const xLabel = isSelfLoop ? src.x : (src.x + tgt.x) / 2;
+              const yLabel = isSelfLoop ? src.y - 72 : (src.y + tgt.y) / 2;
 
               return (
                 <g 
@@ -717,8 +917,8 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     const rx = rectHeight / 2;
                     return (
                       <rect
-                        x={xMid - rectWidth / 2}
-                        y={yMid - rectHeight / 2}
+                        x={xLabel - rectWidth / 2}
+                        y={yLabel - rectHeight / 2}
                         width={rectWidth}
                         height={rectHeight}
                         rx={rx}
@@ -731,8 +931,8 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                   })()}
                   {/* Edge Label text */}
                   <text
-                    x={xMid}
-                    y={yMid + 3}
+                    x={xLabel}
+                    y={yLabel + 3}
                     textAnchor="middle"
                     className={`text-[8.5px] font-bold tracking-widest uppercase transition-all duration-300 select-none ${highlighted ? "fill-white font-extrabold" : "fill-slate-400"}`}
                   >
@@ -751,6 +951,16 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
               const isDimmed = (hoveredNode || selectedNode) && !isSelected && !isHovered;
               
               const nodeColor = getNodeColor(node.id, idx);
+              
+              // Get satellites (first 3 records of the preview rows, falling back to local mocks if loading/error/missing)
+              let satellites: any[] = [];
+              if (isSelected) {
+                if (previewData && previewData.rows && previewData.rows.length > 0) {
+                  satellites = previewData.rows.slice(0, 3);
+                } else {
+                  satellites = getLocalMockSatellites(node.id);
+                }
+              }
 
               return (
                 <g
@@ -764,6 +974,75 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     setSelectedNode(isSelected ? null : node.id);
                   }}
                 >
+                  {/* Satellites Orbiting Nodes (Exploratory Data Nodes - SCALED UP FOR PREMIUM VISIBILITY) */}
+                  {satellites.map((sat, sIdx) => {
+                    const satelliteRadius = 92; // Spaced out further
+                    const angle = (2 * Math.PI * sIdx) / satellites.length - Math.PI / 2;
+                    const satX = satelliteRadius * Math.cos(angle);
+                    const satY = satelliteRadius * Math.sin(angle);
+                    
+                    return (
+                      <g key={sIdx} className="animate-fadeIn">
+                        {/* Connection track to satellite */}
+                        <line
+                          x1={0}
+                          y1={0}
+                          x2={satX}
+                          y2={satY}
+                          stroke={nodeColor}
+                          strokeWidth="2" // Thicker track
+                          strokeDasharray="4,4"
+                          className="opacity-60"
+                        />
+                        
+                        {/* Interactive Satellite Circle */}
+                        <g
+                          transform={`translate(${satX}, ${satY})`}
+                          className="cursor-pointer group/sat"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent toggling the main node
+                            setSelectedInstance(selectedInstance === sat ? null : sat);
+                          }}
+                        >
+                          {/* Pulsing glow on active satellite */}
+                          {selectedInstance === sat && (
+                            <circle
+                              r="24" // Larger glow radius
+                              fill={nodeColor}
+                              className="opacity-35 blur-md animate-pulse"
+                            />
+                          )}
+                          
+                          {/* Hover ping indicator */}
+                          <circle
+                            r="24" // Larger hover ping radius
+                            fill="none"
+                            stroke={nodeColor}
+                            strokeWidth="1.5"
+                            className="opacity-0 group-hover/sat:opacity-100 group-hover/sat:animate-ping duration-300"
+                          />
+                          
+                          {/* Satellite Core (Subnode) */}
+                          <circle
+                            r="18" // Subnode core radius increased from 12 to 18!
+                            fill="rgba(15, 23, 42, 0.95)"
+                            stroke={selectedInstance === sat ? "#ffffff" : nodeColor}
+                            strokeWidth={selectedInstance === sat ? "2.5" : "1.8"} // Stronger borders
+                            className="transition-all duration-200 hover:scale-110 shadow-lg"
+                          />
+                          
+                          {/* Satellite Text Label (Initials or entity indices) */}
+                          <text
+                            y="4.5" // Centered vertically for larger font
+                            textAnchor="middle"
+                            className="text-[10px] font-black fill-slate-200 select-none group-hover/sat:fill-white uppercase tracking-wider"
+                          >
+                            {getInstanceLabel(node.id, sat, sIdx)}
+                          </text>
+                        </g>
+                      </g>
+                    );
+                  })}
                   {/* Larger glowing aura behind active node */}
                   {(isSelected || isHovered) && (
                     <circle
@@ -842,65 +1121,60 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
             className="p-5 bg-slate-950/50 border rounded-3xl backdrop-blur-md shadow-2xl grid grid-cols-1 md:grid-cols-2 gap-6 animate-slideIn w-full transition-all duration-300"
             style={{ borderColor: `${activeNodeColor}30` }}
           >
-            {/* COLUMN 1: Entity Info */}
-            <div className="flex flex-col gap-3.5">
-              <div className="flex items-center gap-3">
-                <div 
-                  className="w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300"
-                  style={{ 
-                    backgroundColor: `${activeNodeColor}15`,
-                    borderColor: `${activeNodeColor}40`
-                  }}
-                >
-                  {renderNodeIcon(activeNodeObj.icon, 18, activeNodeColor)}
+            {selectedInstance ? (
+              /* ========================================================================= */
+              /* STATE A: Specific Record Instance Inspector                               */
+              /* ========================================================================= */
+              <>
+                {/* COLUMN 1: Dynamic Instance Fields */}
+                <div className="flex flex-col gap-3.5">
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-10 h-10 rounded-xl flex items-center justify-center border relative"
+                      style={{ 
+                        backgroundColor: `${activeNodeColor}15`,
+                        borderColor: `${activeNodeColor}40`
+                      }}
+                    >
+                      {renderNodeIcon(activeNodeObj.icon, 18, activeNodeColor)}
+                      {/* Live verification badge */}
+                      <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border border-slate-950 flex items-center justify-center text-[7px] font-bold text-white shadow-sm">
+                        ✓
+                      </div>
+                    </div>
+                    <div className="flex flex-col">
+                      <h3 className="text-xs font-extrabold text-white tracking-tight uppercase">
+                        {activeNodeObj.label.endsWith("s") || activeNodeObj.label.endsWith("S") ? activeNodeObj.label.slice(0, -1) : activeNodeObj.label} Record Instance
+                      </h3>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                        Live Database Entity
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Grid of properties */}
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 bg-white/2 border border-white/5 rounded-2xl p-3 text-[10.5px]">
+                    {Object.entries(selectedInstance)
+                      .slice(0, 6) // Show first 6 key-value properties
+                      .map(([key, val]) => (
+                        <div key={key} className="flex flex-col gap-0.5 py-0.5 border-b border-white/3">
+                          <span className="text-[8px] uppercase font-bold text-slate-500 tracking-wider select-none">{key.replace("_", " ")}</span>
+                          <span className="font-semibold text-slate-300 truncate" title={String(val)}>
+                            {val !== null && val !== undefined ? String(val) : <span className="text-slate-600">NULL</span>}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
                 </div>
-                <div className="flex flex-col">
-                  <h3 className="text-sm font-bold text-white tracking-tight uppercase">{activeNodeObj.label}</h3>
-                  <span 
-                    className="text-[9px] font-bold uppercase tracking-widest transition-all duration-300"
-                    style={{ color: activeNodeColor }}
-                  >
-                    {activeNodeObj.type}
-                  </span>
-                </div>
-              </div>
-
-              {/* Entity Description */}
-              <p className="text-xs text-slate-300 leading-relaxed font-medium">
-                {activeNodeObj.description}
-              </p>
-            </div>
-
-            {/* COLUMN 2: Tabs for Suggestions vs. Data Preview */}
-            <div className="flex flex-col gap-3 min-h-[180px]">
-              {/* Tab Headers */}
-              <div className="flex items-center border-b border-white/10 pb-1.5 gap-4">
-                <button
-                  onClick={() => setActiveTab("queries")}
-                  className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 pb-1 cursor-pointer transition border-b-2 border-transparent bg-transparent p-0 ${activeTab === "queries" ? "text-white border-white" : "text-slate-400 hover:text-slate-300"}`}
-                  style={activeTab === "queries" ? { borderBottomColor: activeNodeColor } : {}}
-                >
-                  <Sparkles size={11} className={activeTab === "queries" ? "animate-pulse" : ""} style={{ color: activeNodeColor }} />
-                  Suggested Insights
-                </button>
-                {selectedNode !== "schema_root" && (
-                  <button
-                    onClick={() => setActiveTab("preview")}
-                    className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 pb-1 cursor-pointer transition border-b-2 border-transparent bg-transparent p-0 ${activeTab === "preview" ? "text-white border-white" : "text-slate-400 hover:text-slate-300"}`}
-                    style={activeTab === "preview" ? { borderBottomColor: activeNodeColor } : {}}
-                  >
-                    <Database size={11} style={{ color: activeNodeColor }} />
-                    Data Preview
-                  </button>
-                )}
-              </div>
-
-              {/* Tab Contents */}
-              <div className="flex-1 flex flex-col min-h-0">
-                {activeTab === "queries" ? (
-                  /* TAB 1: Suggestions List */
+                
+                {/* COLUMN 2: Contextual Suggestions */}
+                <div className="flex flex-col gap-3 min-h-[180px]">
+                  <div className="flex items-center border-b border-white/10 pb-1.5 gap-2">
+                    <Sparkles size={11} className="animate-pulse" style={{ color: activeNodeColor }} />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-white">Suggested Record Insights</span>
+                  </div>
                   <div className="flex flex-col gap-2 max-h-[145px] overflow-y-auto pr-1">
-                    {suggestions.map((suggestion, idx) => (
+                    {getInstanceSuggestions(selectedNode, selectedInstance).map((suggestion, idx) => (
                       <button
                         key={idx}
                         onClick={() => onSelectSuggestion(suggestion)}
@@ -915,55 +1189,137 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                       </button>
                     ))}
                   </div>
-                ) : (
-                  /* TAB 2: Data Preview Table Grid */
-                  <div className="flex-1 flex flex-col justify-center min-h-0 max-h-[145px]">
-                    {isPreviewLoading ? (
-                      <div className="flex items-center justify-center gap-2 text-slate-400 py-6">
-                        <Loader2 size={16} className="animate-spin" style={{ color: activeNodeColor }} />
-                        <span className="text-[10px] font-bold uppercase tracking-widest">Fetching live preview...</span>
-                      </div>
-                    ) : previewError ? (
-                      <div className="text-center py-4 text-xs text-rose-400/80 font-medium">
-                        {previewError}
-                      </div>
-                    ) : previewData && previewData.rows.length > 0 ? (
-                      <div className="w-full overflow-x-auto border border-white/10 rounded-xl max-h-[140px] overflow-y-auto">
-                        <table className="w-full text-left border-collapse text-[10px]">
-                          <thead>
-                            <tr className="bg-slate-950 border-b border-white/10">
-                              {previewData.columns.map((col) => (
-                                <th 
-                                  key={col} 
-                                  className="px-3 py-2 text-slate-400 font-bold uppercase tracking-wider whitespace-nowrap sticky top-0 bg-slate-950"
-                                >
-                                  {col}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {previewData.rows.map((row, rIdx) => (
-                              <tr key={rIdx} className="border-b border-white/5 hover:bg-white/3 transition">
-                                {previewData.columns.map((col) => (
-                                  <td key={col} className="px-3 py-2 text-slate-200 font-medium whitespace-nowrap">
-                                    {row[col] !== null && row[col] !== undefined ? String(row[col]) : <span className="text-slate-600">NULL</span>}
-                                  </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                </div>
+              </>
+            ) : (
+              /* ========================================================================= */
+              /* STATE B: Standard Table Schema Inspector                                  */
+              /* ========================================================================= */
+              <>
+                {/* COLUMN 1: Entity Info */}
+                <div className="flex flex-col gap-3.5">
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300"
+                      style={{ 
+                        backgroundColor: `${activeNodeColor}15`,
+                        borderColor: `${activeNodeColor}40`
+                      }}
+                    >
+                      {renderNodeIcon(activeNodeObj.icon, 18, activeNodeColor)}
+                    </div>
+                    <div className="flex flex-col">
+                      <h3 className="text-sm font-bold text-white tracking-tight uppercase">{activeNodeObj.label}</h3>
+                      <span 
+                        className="text-[9px] font-bold uppercase tracking-widest transition-all duration-300"
+                        style={{ color: activeNodeColor }}
+                      >
+                        {activeNodeObj.type}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Entity Description */}
+                  <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                    {activeNodeObj.description}
+                  </p>
+                </div>
+
+                {/* COLUMN 2: Tabs for Suggestions vs. Data Preview */}
+                <div className="flex flex-col gap-3 min-h-[180px]">
+                  {/* Tab Headers */}
+                  <div className="flex items-center border-b border-white/10 pb-1.5 gap-4">
+                    <button
+                      onClick={() => setActiveTab("queries")}
+                      className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 pb-1 cursor-pointer transition border-b-2 border-transparent bg-transparent p-0 ${activeTab === "queries" ? "text-white border-white" : "text-slate-400 hover:text-slate-300"}`}
+                      style={activeTab === "queries" ? { borderBottomColor: activeNodeColor } : {}}
+                    >
+                      <Sparkles size={11} className={activeTab === "queries" ? "animate-pulse" : ""} style={{ color: activeNodeColor }} />
+                      Suggested Insights
+                    </button>
+                    {selectedNode !== "schema_root" && (
+                      <button
+                        onClick={() => setActiveTab("preview")}
+                        className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 pb-1 cursor-pointer transition border-b-2 border-transparent bg-transparent p-0 ${activeTab === "preview" ? "text-white border-white" : "text-slate-400 hover:text-slate-300"}`}
+                        style={activeTab === "preview" ? { borderBottomColor: activeNodeColor } : {}}
+                      >
+                        <Database size={11} style={{ color: activeNodeColor }} />
+                        Data Preview
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Tab Contents */}
+                  <div className="flex-1 flex flex-col min-h-0">
+                    {activeTab === "queries" ? (
+                      /* TAB 1: Suggestions List */
+                      <div className="flex flex-col gap-2 max-h-[145px] overflow-y-auto pr-1">
+                        {suggestions.map((suggestion, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => onSelectSuggestion(suggestion)}
+                            className="p-2.5 bg-white/4 border border-white/6 hover:bg-white/8 rounded-xl text-left text-[11px] text-slate-200 font-semibold transition cursor-pointer flex items-center justify-between group"
+                          >
+                            <span className="group-hover:text-white transition duration-150 leading-relaxed pr-2">{suggestion}</span>
+                            <ChevronRight 
+                              size={12} 
+                              className="shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5"
+                              style={{ color: activeNodeColor }}
+                            />
+                          </button>
+                        ))}
                       </div>
                     ) : (
-                      <div className="text-center py-6 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                        No data records available.
+                      /* TAB 2: Data Preview Table Grid */
+                      <div className="flex-1 flex flex-col justify-center min-h-0 max-h-[145px]">
+                        {isPreviewLoading ? (
+                          <div className="flex items-center justify-center gap-2 text-slate-400 py-6">
+                            <Loader2 size={16} className="animate-spin" style={{ color: activeNodeColor }} />
+                            <span className="text-[10px] font-bold uppercase tracking-widest">Fetching live preview...</span>
+                          </div>
+                        ) : previewError ? (
+                          <div className="text-center py-4 text-xs text-rose-400/80 font-medium">
+                            {previewError}
+                          </div>
+                        ) : previewData && previewData.rows.length > 0 ? (
+                          <div className="w-full overflow-x-auto border border-white/10 rounded-xl max-h-[140px] overflow-y-auto">
+                            <table className="w-full text-left border-collapse text-[10px]">
+                              <thead>
+                                <tr className="bg-slate-950 border-b border-white/10">
+                                  {previewData.columns.map((col) => (
+                                    <th 
+                                      key={col} 
+                                      className="px-3 py-2 text-slate-400 font-bold uppercase tracking-wider whitespace-nowrap sticky top-0 bg-slate-950"
+                                    >
+                                      {col}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {previewData.rows.map((row, rIdx) => (
+                                  <tr key={rIdx} className="border-b border-white/5 hover:bg-white/3 transition">
+                                    {previewData.columns.map((col) => (
+                                      <td key={col} className="px-3 py-2 text-slate-200 font-medium whitespace-nowrap">
+                                        {row[col] !== null && row[col] !== undefined ? String(row[col]) : <span className="text-slate-600">NULL</span>}
+                                      </td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <div className="text-center py-6 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                            No data records available.
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <div className="p-6 bg-white/3 border border-white/6 rounded-3xl backdrop-blur-sm text-center flex flex-col gap-4 w-full max-w-xl mx-auto">

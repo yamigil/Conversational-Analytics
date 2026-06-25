@@ -1262,8 +1262,18 @@ const App: React.FC = () => {
         setBrandLogoText(active.logoText);
         setBrandWelcome(active.welcomeMessage);
         setBrandLogoSvg(active.logoSvg || "");
-        setSettingsProjectId(active.gcpProjectId || "");
-        setSettingsLocation(active.gcpLocation || "all");
+        
+        // Sync active workspace settings with the brand defaults to overwrite stale localStorage
+        const resolvedProj = active.gcpProjectId || "";
+        const resolvedLoc = active.gcpLocation || "all";
+        
+        setSettingsProjectId(resolvedProj);
+        setSettingsLocation(resolvedLoc);
+        
+        setSelectedProject(resolvedProj);
+        localStorage.setItem("gcp_selected_project", resolvedProj);
+        
+        localStorage.setItem("gcp_selected_location", resolvedLoc);
       }
     } catch (e) {
       console.error("Failed to load branding configuration:", e);
@@ -1292,6 +1302,18 @@ const App: React.FC = () => {
       const res = await authenticatedFetch("/api/agents");
       if (res.ok) {
         const data = await res.json();
+        
+        fetch("/api/debug/log", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: "fetchAgents_success",
+            agentsCount: data.length,
+            agentsList: data.map((a: any) => ({ name: a.name, displayName: a.displayName })),
+            sessionStorageAgent: sessionStorage.getItem("activeAgentName")
+          })
+        }).catch(() => {});
+
         setAgents(data);
         setConnectionStatus("online");
         
@@ -1302,16 +1324,38 @@ const App: React.FC = () => {
           }
         }
 
-        // Restore active agent from session storage
+        // Restore active agent from session storage or fallback to auto-selecting the first agent
         const savedAgent = sessionStorage.getItem("activeAgentName");
         if (savedAgent && data.some((a: Agent) => a.name === savedAgent)) {
           setSelectedAgent(savedAgent);
           fetchConversations(savedAgent);
+        } else if (data.length > 0) {
+          const firstAgent = data[0].name;
+          setSelectedAgent(firstAgent);
+          sessionStorage.setItem("activeAgentName", firstAgent);
+          fetchConversations(firstAgent);
         }
       } else {
+        fetch("/api/debug/log", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: "fetchAgents_response_not_ok",
+            status: res.status,
+            statusText: res.statusText
+          })
+        }).catch(() => {});
         setConnectionStatus("error");
       }
-    } catch (e) {
+    } catch (e: any) {
+      fetch("/api/debug/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: "fetchAgents_exception",
+          error: e.message || String(e)
+        })
+      }).catch(() => {});
       console.error("Error loading agent list:", e);
       setConnectionStatus("error");
     }
@@ -1370,11 +1414,10 @@ const App: React.FC = () => {
 
 
 
-  // Fetch branding and agents only after the user session is authenticated and active
   useEffect(() => {
     if (user) {
-      fetchBranding();
       const init = async () => {
+        await fetchBranding();
         // If credentialsMode is user_sso, check if we have the Google OAuth token!
         if (credentialsMode === "user_sso") {
           const email = user?.email || auth.currentUser?.email || null;
@@ -1403,6 +1446,88 @@ const App: React.FC = () => {
       init();
     }
   }, [user]);
+
+  // Hook global window errors and promise rejections for remote diagnostics
+  useEffect(() => {
+    const handleError = (error: any) => {
+      fetch("/api/debug/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: "window_error",
+          message: error.message,
+          filename: error.filename,
+          lineno: error.lineno,
+          colno: error.colno,
+          stack: error.error?.stack
+        })
+      }).catch(() => {});
+    };
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      fetch("/api/debug/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: "unhandled_promise_rejection",
+          reason: String(event.reason)
+        })
+      }).catch(() => {});
+    };
+    window.addEventListener("error", handleError);
+    window.addEventListener("unhandledrejection", handleRejection);
+    return () => {
+      window.removeEventListener("error", handleError);
+      window.removeEventListener("unhandledrejection", handleRejection);
+    };
+  }, []);
+
+  // Redirect console.error to diagnostics endpoint
+  useEffect(() => {
+    const originalConsoleError = console.error;
+    console.error = (...args: any[]) => {
+      originalConsoleError.apply(console, args);
+      fetch("/api/debug/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: "console_error",
+          message: args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(" ")
+        })
+      }).catch(() => {});
+    };
+    return () => {
+      console.error = originalConsoleError;
+    };
+  }, []);
+
+  // Inspect the DOM select element options and log them
+  useEffect(() => {
+    // Wait a brief moment to ensure React has finished rendering the options
+    const timer = setTimeout(() => {
+      const select = document.querySelector("#agent-select-container select") as HTMLSelectElement | null;
+      if (select) {
+        const options = Array.from(select.options).map(o => ({ value: o.value, text: o.text, disabled: o.disabled }));
+        fetch("/api/debug/log", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: "dom_select_options",
+            optionsCount: options.length,
+            options: options
+          })
+        }).catch(() => {});
+      } else {
+        fetch("/api/debug/log", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: "dom_select_not_found"
+          })
+        }).catch(() => {});
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [agents]);
 
 
 
@@ -1614,12 +1739,14 @@ const App: React.FC = () => {
         return;
       }
       
-      if (tourStep === 1 || tourStep === 6 || tourStep === 13 || tourStep === 17) {
+      const isThinkingBubble = (tourStep === 19 && activeTargetId === "agent-thinking-bubble");
+
+      if (tourStep === 1 || tourStep === 6 || tourStep === 13 || tourStep === 17 || isThinkingBubble) {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.bottom + 12}px`,
           right: (tourStep === 1 || tourStep === 13 || tourStep === 17) ? `${window.innerWidth - rect.right}px` : undefined,
-          left: (tourStep === 6) ? `${rect.left}px` : undefined,
+          left: (tourStep === 6 || isThinkingBubble) ? `${rect.left}px` : undefined,
           zIndex: 9999,
           opacity: 1,
           transition: 'opacity 0.15s ease, transform 0.15s ease'
@@ -1651,7 +1778,7 @@ const App: React.FC = () => {
           opacity: 1,
           transition: 'opacity 0.15s ease, transform 0.15s ease'
         });
-      } else if (tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 18 || tourStep === 19 || tourStep === 20) {
+      } else if (tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 18 || (tourStep === 19 && !isThinkingBubble) || tourStep === 20) {
         const useRightAlign = (tourStep === 4 || tourStep === 5);
         setTooltipStyle({
           position: 'fixed',
@@ -2685,7 +2812,6 @@ const App: React.FC = () => {
                             }}
                             className="w-full py-2 px-3 bg-slate-950 border border-white/8 rounded-lg text-xs text-slate-200 focus:border-brand-primary outline-none cursor-pointer appearance-none"
                           >
-                            <option value="all">All Common Regions (Scan All)</option>
                             <option value="global">Global (Default)</option>
                             <option value="us-central1">us-central1 (Iowa)</option>
                             <option value="europe-west1">europe-west1 (Belgium)</option>
@@ -2984,7 +3110,7 @@ const App: React.FC = () => {
               const activeAgentObj = agents.find(a => a.name === selectedAgent);
               if (isSchemaExpanded && activeAgentObj?.graphData) {
                 return (
-                  <div id="schema-drawer-container" className="w-full border-b border-white/6 bg-slate-950/40 backdrop-blur-md py-4 px-6 overflow-hidden max-h-[380px] md:max-h-[420px] overflow-y-auto">
+                  <div id="schema-drawer-container" className="w-full flex-1 bg-slate-950/40 backdrop-blur-md py-4 px-6 overflow-y-auto flex flex-col">
                     <GraphVisualizer
                       graphData={activeAgentObj.graphData}
                       onSelectSuggestion={(question) => {
@@ -3012,8 +3138,10 @@ const App: React.FC = () => {
               return null;
             })()}
 
-            {/* Messages Panel */}
-            <section className="flex-1 overflow-y-auto px-4 md:px-10 py-6 md:py-8 flex flex-col gap-6">
+            {/* Messages Panel & Input hidden when schema is expanded */}
+            {!isSchemaExpanded && (
+              <>
+                <section className="flex-1 overflow-y-auto px-4 md:px-10 py-6 md:py-8 flex flex-col gap-6">
               {connectionStatus === "error" ? (
                 <div className="flex-1 flex items-center justify-center py-10 animate-slideIn">
                   <div className="glass-panel p-4 sm:p-8 rounded-2xl max-w-xl flex flex-col gap-5 text-center items-center border-rose-500/20 shadow-2xl shadow-rose-500/5">
@@ -3452,6 +3580,8 @@ const App: React.FC = () => {
             </div>
           </>
         )}
+      </>
+    )}
 
         {currentPage === "settings" && (
           <div className="max-w-4xl mx-auto w-full px-5 my-10 overflow-y-auto">
@@ -3562,7 +3692,6 @@ const App: React.FC = () => {
                           }}
                           className="w-full py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 outline-none focus:border-brand-primary/50 cursor-pointer appearance-none"
                         >
-                          <option value="all">All Common Regions (Scan All)</option>
                           <option value="global">Global (Default)</option>
                           <option value="us-central1">us-central1 (Iowa)</option>
                           <option value="europe-west1">europe-west1 (Belgium)</option>
@@ -3981,25 +4110,28 @@ const App: React.FC = () => {
           style={tooltipStyle}
         >
           {/* Arrow indicator */}
-          {window.innerWidth >= 768 && (
-            <>
-              {(tourStep === 1 || tourStep === 6 || tourStep === 13 || tourStep === 17) && (
-                <div className={`absolute -top-2 ${tourStep === 1 || tourStep === 13 || tourStep === 17 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-t border-l border-amber-500/55 rotate-45`} />
-              )}
-              {(tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14 || tourStep === 16) && (
-                <div className="absolute -left-2 top-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
-              )}
-              {(tourStep === 11 || tourStep === 15) && (
-                <div className="absolute -left-2 bottom-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
-              )}
-              {(tourStep === 3 || tourStep === 12) && (
-                <div className="absolute -right-2 top-6 w-4 h-4 bg-slate-900 border-t border-r border-amber-500/55 rotate-45" />
-              )}
-              {(tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 18 || tourStep === 19 || tourStep === 20) && (
-                <div className={`absolute -bottom-2 ${tourStep === 4 || tourStep === 5 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-b border-r border-amber-500/55 rotate-45`} />
-              )}
-            </>
-          )}
+          {window.innerWidth >= 768 && (() => {
+            const isThinkingBubble = tourStep === 19 && !document.getElementById("show-thinking-btn");
+            return (
+              <>
+                {(tourStep === 1 || tourStep === 6 || tourStep === 13 || tourStep === 17 || isThinkingBubble) && (
+                  <div className={`absolute -top-2 ${tourStep === 1 || tourStep === 13 || tourStep === 17 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-t border-l border-amber-500/55 rotate-45`} />
+                )}
+                {(tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14 || tourStep === 16) && (
+                  <div className="absolute -left-2 top-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
+                )}
+                {(tourStep === 11 || tourStep === 15) && (
+                  <div className="absolute -left-2 bottom-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
+                )}
+                {(tourStep === 3 || tourStep === 12) && (
+                  <div className="absolute -right-2 top-6 w-4 h-4 bg-slate-900 border-t border-r border-amber-500/55 rotate-45" />
+                )}
+                {(tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 18 || (tourStep === 19 && !isThinkingBubble) || tourStep === 20) && (
+                  <div className={`absolute -bottom-2 ${tourStep === 4 || tourStep === 5 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-b border-r border-amber-500/55 rotate-45`} />
+                )}
+              </>
+            );
+          })()}
 
           {/* Content */}
           <div className="flex items-center gap-2">

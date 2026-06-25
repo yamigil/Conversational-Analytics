@@ -1,49 +1,53 @@
 {
-  "activeBrand": "penske_automotive_group_official_logo",
   "brands": {
     "penske_automotive_group_official_logo": {
-      "backgroundColorEnd": "#07060a",
-      "logoText": "Penske Automotive",
-      "primaryColor": "294, 85%, 60%",
-      "name": "Penske Automotive",
-      "logoUrl": "",
-      "welcomeMessage": "Welcome to Penske Automotive Analytics Hub. Ask me anything about your analytics and data queries.",
-      "logoSvg": "<img src=\"https://upload.wikimedia.org/wikipedia/en/8/88/Penske_Automotive_logo.png\" alt=\"Penske Automotive Group Official Logo\" class=\"w-full h-full object-contain\" />",
       "secondaryColor": "114, 85%, 55%",
-      "backgroundColorStart": "#0e0c14"
-    },
-    "ulta_beauty_official_logo": {
-      "backgroundColorEnd": "#05080a",
-      "logoText": "Ulta",
-      "primaryColor": "158, 85%, 60%",
-      "name": "Ulta",
+      "primaryColor": "294, 85%, 60%",
+      "backgroundColorStart": "#0e0c14",
       "logoUrl": "",
-      "welcomeMessage": "Welcome to Ulta Analytics Hub. Ask me anything about your analytics and data queries.",
-      "logoSvg": "<img src=\"https://upload.wikimedia.org/wikipedia/commons/9/9e/Ulta_Beauty_logo.svg\" alt=\"Ulta Beauty Official Logo\" class=\"w-full h-full object-contain\" />",
-      "secondaryColor": "338, 85%, 55%",
-      "backgroundColorStart": "#0b0f13"
+      "name": "Penske Automotive",
+      "logoText": "Penske Automotive",
+      "gcpLocation": "all",
+      "logoSvg": "<img src=\"https://upload.wikimedia.org/wikipedia/en/8/88/Penske_Automotive_logo.png\" alt=\"Penske Automotive Group Official Logo\" class=\"w-full h-full object-contain\" />",
+      "gcpProjectId": "gilbertos-project-340619",
+      "welcomeMessage": "Welcome to Penske Automotive Analytics Hub. Ask me anything about your analytics and data queries.",
+      "backgroundColorEnd": "#07060a"
     },
     "tractor_supply_company_official_logo": {
-      "backgroundColorEnd": "#020802",
-      "logoText": "Tractor Supply",
-      "primaryColor": "120, 100%, 25%",
-      "name": "Tractor Supply",
-      "logoUrl": "",
-      "welcomeMessage": "Welcome to Tractor Supply Analytics. Let's analyze crop yields, equipment status, and parts distribution.",
-      "logoSvg": "<img src=\"https://upload.wikimedia.org/wikipedia/commons/8/86/TractorSupplyCompanylogo.svg\" alt=\"Tractor Supply Company Official Logo\" class=\"w-full h-full object-contain\" />",
       "secondaryColor": "48, 100%, 50%",
-      "backgroundColorStart": "#051205"
+      "primaryColor": "120, 100%, 25%",
+      "backgroundColorStart": "#051205",
+      "logoUrl": "",
+      "name": "Tractor Supply",
+      "logoText": "Tractor Supply",
+      "logoSvg": "<img src=\"https://upload.wikimedia.org/wikipedia/commons/8/86/TractorSupplyCompanylogo.svg\" alt=\"Tractor Supply Company Official Logo\" class=\"w-full h-full object-contain\" />",
+      "welcomeMessage": "Welcome to Tractor Supply Analytics. Let's analyze crop yields, equipment status, and parts distribution.",
+      "backgroundColorEnd": "#020802"
+    },
+    "ulta_beauty_official_logo": {
+      "secondaryColor": "338, 85%, 55%",
+      "primaryColor": "158, 85%, 60%",
+      "backgroundColorStart": "#0b0f13",
+      "logoUrl": "",
+      "name": "Ulta",
+      "logoText": "Ulta",
+      "logoSvg": "<img src=\"https://upload.wikimedia.org/wikipedia/commons/9/9e/Ulta_Beauty_logo.svg\" alt=\"Ulta Beauty Official Logo\" class=\"w-full h-full object-contain\" />",
+      "welcomeMessage": "Welcome to Ulta Analytics Hub. Ask me anything about your analytics and data queries.",
+      "backgroundColorEnd": "#05080a"
     },
     "default": {
-      "backgroundColorEnd": "#1a2333",
-      "logoText": "Google Cloud",
-      "primaryColor": "217, 89%, 61%",
-      "name": "Google Cloud",
-      "logoUrl": "",
-      "welcomeMessage": "Welcome to your data assistant. How can I help you analyze your databases today?",
-      "logoSvg": "<img src='/google_cloud_logo.svg' class='w-full h-full object-contain' />",
       "secondaryColor": "142, 70%, 45%",
-      "backgroundColorStart": "#0b0f19"
+      "primaryColor": "217, 89%, 61%",
+      "backgroundColorStart": "#0b0f19",
+      "logoUrl": "",
+      "name": "Google Cloud",
+      "logoText": "Google Cloud",
+      "gcpLocation": "global",
+      "logoSvg": "<img src='/google_cloud_logo.svg' class='w-full h-full object-contain' />",
+      "gcpProjectId": "gilbertos-project-340619",
+      "welcomeMessage": "Welcome to your data assistant. How can I help you analyze your databases today?",
+      "backgroundColorEnd": "#1a2333"
     }
-  }
+  },
+  "activeBrand": "penske_automotive_group_official_logo"
 }

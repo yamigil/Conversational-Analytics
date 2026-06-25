@@ -48,41 +48,38 @@ class ConversationalAnalyticsClient:
 
     def list_agents(self):
         """Lists all data agents in the configured location(s). Supports 'all' and comma-separated lists."""
-        target_locations = []
         if self.location.lower() == "all":
-            pass # Keep empty to allow all locations
+            target_locations = ["global", "us"]
         elif "," in self.location:
             target_locations = [l.strip().lower() for l in self.location.split(",") if l.strip()]
         else:
             target_locations = [self.location.lower()]
             
         results = []
-        try:
-            # We always query the global client using wildcard location parent
-            agent_client = self._get_agent_client("global")
-            parent = f"projects/{self.project_id}/locations/-"
-            
-            logger.info(f"Listing accessible data agents with parent={parent} using global client")
-            request = geminidataanalytics.ListAccessibleDataAgentsRequest(parent=parent)
-            agents = agent_client.list_accessible_data_agents(request=request)
-            
-            for agent in agents:
-                agent_dict = MessageToDict(agent._pb if hasattr(agent, '_pb') else agent)
-                # Filter out soft-deleted agents (which have deleteTime set in their metadata)
-                if "deleteTime" in agent_dict:
-                    continue
-                # Extract location from agent name to filter locally
-                agent_loc = self._get_location_from_name(agent_dict.get("name", "")).lower()
-                if not target_locations or agent_loc in target_locations:
+        for loc in target_locations:
+            parent = f"projects/{self.project_id}/locations/{loc}"
+            try:
+                agent_client = self._get_agent_client("global")
+                logger.info(f"Listing accessible data agents with parent={parent} using global client")
+                request = geminidataanalytics.ListAccessibleDataAgentsRequest(parent=parent)
+                agents = agent_client.list_accessible_data_agents(request=request)
+                
+                for agent in agents:
+                    agent_dict = MessageToDict(agent._pb if hasattr(agent, '_pb') else agent)
+                    # Filter out soft-deleted agents
+                    if "deleteTime" in agent_dict:
+                        continue
                     results.append(agent_dict)
-        except Exception as e:
-            logger.warning(f"Failed listing agents via list_accessible_data_agents: {e}. Falling back to regional list.")
-            # Fallback to the old regional loop but using global endpoint to avoid 404/502 subdomains
-            fallback_locations = ["global"] if not target_locations else target_locations
-            for loc in fallback_locations:
-                parent = f"projects/{self.project_id}/locations/{loc}"
+            except Exception as e:
+                logger.warning(f"Failed listing agents via list_accessible_data_agents for location {loc}: {e}")
+                # Abort immediately on definitive authentication errors to avoid slow sequential timeouts
+                if "401" in str(e) or "unauthenticated" in str(e).lower():
+                    raise e
+                # Skip fallback if it is a clear permission denied (403) or not found
+                if "403" in str(e) or "denied" in str(e).lower() or "404" in str(e):
+                    continue
+                
                 try:
-                    # If loc is not global, we query via the global endpoint because gateway doesn't allow regional hosts
                     agent_client = self._get_agent_client("global")
                     request = geminidataanalytics.ListDataAgentsRequest(parent=parent)
                     agents = agent_client.list_data_agents(request=request)
@@ -96,6 +93,17 @@ class ConversationalAnalyticsClient:
                     logger.warning(f"Failed fallback list for location {loc}: {ex}")
                 
         return results
+
+    def get_agent(self, agent_name: str):
+        """Retrieves a single data agent by name from the GCP API."""
+        try:
+            agent_client = self._get_agent_client("global")
+            request = geminidataanalytics.GetDataAgentRequest(name=agent_name)
+            agent = agent_client.get_data_agent(request=request)
+            return MessageToDict(agent._pb if hasattr(agent, '_pb') else agent)
+        except Exception as e:
+            logger.error(f"Failed to fetch data agent '{agent_name}' from API: {e}")
+            raise e
 
 
     def create_conversation(self, agent_name: str):

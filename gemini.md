@@ -90,10 +90,31 @@
 
 ---
 
+## Implemented Checklists & Milestones (Session 34 / Checkpoint 34)
+
+### 15. Interactive Graph Record Instance Explorer (Graph Instance Explorer)
+- **Orbiting Satellite Nodes**: Upgraded the SVG graph visualizer in [frontend/src/components/GraphVisualizer.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/components/GraphVisualizer.tsx) to dynamically render up to 3 mini satellite sub-nodes orbiting the selected master node at a `66px` radius, connected via delicate dashed track lines.
+- **Smart Initials & Index Labels**: Implemented `getInstanceLabel` to dynamically resolve record labels. It automatically extracts initials from the customer's name (e.g., "Marcus Aurelius" -> "MA") for personalized customer record nodes, and sequential shorthand (e.g., "O1", "O2", "O3", "P1", "P2") for orders, products, and vehicles, making the graph feel alive.
+- **Live Record Inspector Grid**: Clicking any satellite node opens the **Record Details** inspector in the left column. This renders a gorgeous glassmorphic key-value grid containing the record's first 6 column-value properties, complete with a clean emerald verification checkmark.
+- **Context-Aware Record Suggestions**: Implemented `getInstanceSuggestions` to dynamically generate extremely relevant natural language query starters tailored to the specific record clicked (e.g., if Order 10235 is selected, suggestions include *"List the brand names and prices of all products included in order 10235"*). Clicking any suggestion instantly populates and runs the query!
+- **Self-Healing Canvas Dismissal**: Cleanly resets both selected node and selected record instance states when clicking anywhere on the empty SVG canvas background, ensuring a smooth, fluid user experience.
+
+### 16. Physical Coordinate & Arrow Flipping for Tour Step 19
+- **Symmetrical Transition Alignment**: Calibrated the Guided Tour tooltip positioning in [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx). 
+- **Thinking Loader State**: When the target is the active typing bubble (`agent-thinking-bubble`), the tooltip sits perfectly **below** the loader, and its physical arrow points **upwards** (`-top-2`).
+- **Response Finished State**: Once the response finishes and the target is the `[Show thinking]` button, the tooltip dynamically slides to sit **above** the button, and its arrow flips to point **downwards** (`-bottom-2`), ensuring a symmetrical, visually flawless orientation.
+- **Dynamic IIFE Arrow Scope**: Replaced the static arrow JSX block in `App.tsx` with a dynamic self-evaluating IIFE block to cleanly manage the top/bottom arrow alignment states without adding state variables.
+
+### 17. Production Compilation and Verification
+- **Vite Production Rebuild**: Rebuilt the frontend React assets (`npm run build`) successfully with **zero compilation warnings or errors** in 524ms, writing the optimized chunks to `frontend/dist/`.
+- **QA Verification**: Verified that the empty-state welcome greetings and suggestions cards are 100% hidden when the schema is open, providing a clean canvas.
+
+---
+
 ## Next Session Plans
 
-1.  **Graph Query History Visualizer**: Highlight queried nodes in the graph based on the user's active conversation history.
+1.  **Graph Query History Visualizer**: Highlight queried nodes and connection edges in the graph based on the user's active conversation history.
 2.  **Custom Brand-Color Graph Propagations**: Connect the SVG flowing particles and halo glows directly to the active branding theme (`brandPrimaryColor`).
 3.  **Graph Agent Live Editor**: Build a developer portal allowing Customer Engineers to write custom graph schemas and questions directly in the browser.
-4.  **Automatic SQL Execution inside Visualizer**: Allow users to click table nodes in the visualizer to run a quick `SELECT * FROM table LIMIT 10` preview query directly in the Inspector Panel.
+
 

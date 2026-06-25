@@ -72,8 +72,28 @@
 
 ---
 
+## Implemented Checklists & Milestones (Session 3)
+
+### 12. Dynamic BigQuery Property Graph Schema Discovery Engine
+- **SQL Metadata Pipeline**: Implemented a robust dynamic graph discovery system in [backend/main.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/main.py#L408). It dynamically reads the connected tables of the active agent, calls the BigQuery client `get_dataset` API to resolve the dataset's regional location, and queries the region-specific `INFORMATION_SCHEMA.PROPERTY_GRAPHS` view.
+- **Automated Metadata Parser**: Extracts and parses the `property_graph_metadata_json` dictionary returned by BigQuery into standard `nodes` and `edges` graph objects.
+- **Hybrid Presets & Self-Healing Fallbacks**: Connects discovered nodes to our high-fidelity, hand-curated semantic database (`KNOWN_NODES`) to retain gorgeous icons, types, descriptions, and custom questions for flagship showcases, while dynamically generating clean fallbacks (symmetrical circular layout, auto-styled icons, and auto-generated query starters) for any custom properties graph.
+- **Try-Except Defensiveness**: Wrapped the entire database querying logic in a try-except block to gracefully fall back to local curated presets if the user's database is offline, in sandbox mode, or lacks necessary IAM permissions, ensuring a 100% uptime showcase.
+
+### 13. Dynamic Target & Symmetrical Alignment for Tour Step 19 (Thinking State)
+- **Thinking Bubble Integration**: Added `id="agent-thinking-bubble"` to the streaming "Agent is thinking..." loader bubble in [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L3350).
+- **Smooth Tooltip Transition**: Upgraded the Guided Tour tooltip calculator in [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L1583) to check the DOM dynamically. While the agent is streaming its response and the `show-thinking-btn` is not yet rendered, the tour targets `agent-thinking-bubble`, positioning the tooltip perfectly in the middle of the viewport pointing down at the loader. Once responding finishes, the tooltip automatically snaps down to point at the newly rendered `Show thinking` button, ensuring a flawless and natural flow.
+
+### 14. Hide Welcome Screen on Schema Drawer Expand
+- **Maximize Visualizer Canvas**: Integrated a state check in [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L3071). When `isSchemaExpanded` is `true` and the conversation is empty (`messages.length === 0`), the greeting header and query starter grid cards are completely hidden from view.
+- **Perfect Canvas Focus**: This allows the schema drawer to occupy the entire workspace height, giving the visualizer absolute focus without any vertical squishing or background clutter. Collapsing the drawer instantly snaps the welcome greeting and jumpstart cards back into view.
+
+---
+
 ## Next Session Plans
 
 1.  **Graph Query History Visualizer**: Highlight queried nodes in the graph based on the user's active conversation history.
 2.  **Custom Brand-Color Graph Propagations**: Connect the SVG flowing particles and halo glows directly to the active branding theme (`brandPrimaryColor`).
 3.  **Graph Agent Live Editor**: Build a developer portal allowing Customer Engineers to write custom graph schemas and questions directly in the browser.
+4.  **Automatic SQL Execution inside Visualizer**: Allow users to click table nodes in the visualizer to run a quick `SELECT * FROM table LIMIT 10` preview query directly in the Inspector Panel.
+

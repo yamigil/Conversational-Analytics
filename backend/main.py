@@ -405,6 +405,223 @@ def get_table_specific_suggestions(table_name: str) -> list:
         f"Can you show me the count of records grouped by the primary columns in {table_name}?"
     ]
 
+# Dictionary of known semantic node IDs and their curated premium configurations
+KNOWN_NODES = {
+    "customers": {
+        "label": "Customers",
+        "icon": "users",
+        "type": "customer",
+        "description": "Customer demographic details, CRM records, tier designations, and business indicators.",
+        "suggestions": [
+            "How many premium tier customers do we have?",
+            "What is the average customer lifetime value across our dealership?",
+            "Show me the distribution of customers by region and status."
+        ]
+    },
+    "sales": {
+        "label": "Sales",
+        "icon": "shopping-bag",
+        "type": "transaction",
+        "description": "Vehicle sales transactions, deal jackets, purchase types, and financing indicators.",
+        "suggestions": [
+            "What is our total sales revenue and gross profit margins this quarter?",
+            "Compare monthly vehicle sales volume between retail lease and finance types.",
+            "Show me the average finance and insurance (F&I) amount in our deal jackets."
+        ]
+    },
+    "service_visits": {
+        "label": "Service Visits",
+        "icon": "wrench",
+        "type": "event",
+        "description": "Vehicle maintenance logs, service tickets, diagnostic codes, and repair details.",
+        "suggestions": [
+            "What are the most common service diagnostic codes reported?",
+            "Show the monthly trend of repair service costs over the last year.",
+            "List vehicles that have had more than three service visits in 6 months."
+        ]
+    },
+    "web_events": {
+        "label": "Web Events",
+        "icon": "globe",
+        "type": "interaction",
+        "description": "Digital footprints, vehicle detail views, dealership site visits, and application logs.",
+        "suggestions": [
+            "Which vehicle pages generate the highest number of online detail views?",
+            "What is the daily trend of website visits and session duration?",
+            "List the most common web events triggered by lease holders."
+        ]
+    },
+    "vehicles": {
+        "label": "Vehicles",
+        "icon": "car",
+        "type": "asset",
+        "description": "Dealership vehicle inventory, make, model, trim levels, and purchase classifications.",
+        "suggestions": [
+            "What is the distribution of vehicle inventory by trim level and year?",
+            "Compare total service costs between lease and retail purchased vehicles.",
+            "Show the most popular vehicle models sold in the last 12 months."
+        ]
+    },
+    "deal_jackets": {
+        "label": "Deal Jackets",
+        "icon": "folder",
+        "type": "document",
+        "description": "F&I deal jackets, credit scores, loan amounts, interest rates, and approval statuses.",
+        "suggestions": [
+            "What is the average interest rate approved for credit scores above 750?",
+            "Show the monthly volume of deal jackets grouped by credit tier.",
+            "List all deal jackets currently in audit status."
+        ]
+    },
+    "users": {
+        "label": "Users",
+        "icon": "users",
+        "type": "customer",
+        "description": "Customer profiles, registrations, demographic locations, and traffic source channels.",
+        "suggestions": [
+            "How many new users registered last month by country?",
+            "What is the distribution of users by traffic source medium and age?",
+            "List the top 10 most loyal customers by order count."
+        ]
+    },
+    "orders": {
+        "label": "Orders",
+        "icon": "shopping-bag",
+        "type": "transaction",
+        "description": "Purchase transactions, shipping statuses, order items, and revenue statistics.",
+        "suggestions": [
+            "What is the average order value (AOV) for this year?",
+            "Compare monthly order volumes and total sales revenue across different countries.",
+            "Show the status distribution of orders (e.g. processing, shipped, returned)."
+        ]
+    },
+    "products": {
+        "label": "Products",
+        "icon": "package",
+        "type": "inventory",
+        "description": "E-commerce product catalog details, pricing history, inventory stock, and categories.",
+        "suggestions": [
+            "What are the top 5 best-selling product categories by total sales revenue?",
+            "List all products with a retail price greater than $150 and their categories.",
+            "Which product categories have the highest profit margins?"
+        ]
+    },
+    "brands": {
+        "label": "Brands",
+        "icon": "award",
+        "type": "vendor",
+        "description": "Brand manufacturers, manufacturer profiles, and brand-specific sales performance metrics.",
+        "suggestions": [
+            "What are the top 5 brand names by number of items sold?",
+            "Which brand has the highest average retail price in our catalog?",
+            "Show me the sales trend for products belonging to the brand 'Nike'."
+        ]
+    },
+    "stores": {
+        "label": "Stores",
+        "icon": "store",
+        "type": "warehouse",
+        "description": "Physical retail store locations, warehouses, regional stock levels, and store inventory distributions.",
+        "suggestions": [
+            "Which store warehouse currently holds the highest inventory value?",
+            "What is the total stock quantity of items distributed across our store locations?",
+            "Show me products with stock levels below 25 units in the Chicago warehouse."
+        ]
+    }
+}
+
+def discover_bq_graph_schema(project_id: str, dataset_id: str) -> Optional[dict]:
+    """Queries BigQuery INFORMATION_SCHEMA.PROPERTY_GRAPHS to dynamically discover the property graph schema."""
+    try:
+        from google.cloud import bigquery
+        bq_client = bigquery.Client(project=project_id)
+        
+        # 1. Fetch dataset location using API to ensure region compatibility
+        dataset = bq_client.get_dataset(f"{project_id}.{dataset_id}")
+        location = dataset.location
+        if not location:
+            return None
+            
+        # 2. Query regional PROPERTY_GRAPHS metadata view
+        graph_query = f"""
+        SELECT property_graph_name, property_graph_metadata_json
+        FROM `region-{location.lower()}.INFORMATION_SCHEMA.PROPERTY_GRAPHS`
+        WHERE property_graph_schema = '{dataset_id}'
+        LIMIT 1
+        """
+        
+        query_job = bq_client.query(graph_query)
+        rows = list(query_job)
+        if not rows:
+            logger.info(f"No BigQuery property graphs found in dataset '{dataset_id}'.")
+            return None
+            
+        row = rows[0]
+        metadata = row['property_graph_metadata_json']
+        
+        # 3. Parse nodeTables
+        nodes = []
+        node_suggestions = {}
+        for nt in metadata.get('nodeTables', []):
+            table_id = nt['name'].split('.')[-1]
+            label = table_id
+            if 'labelAndProperties' in nt and nt['labelAndProperties']:
+                label = nt['labelAndProperties'][0].get('label', label)
+                
+            known = KNOWN_NODES.get(table_id)
+            if known:
+                nodes.append({
+                    "id": table_id,
+                    "label": known["label"],
+                    "icon": known["icon"],
+                    "type": known["type"],
+                    "description": known["description"]
+                })
+                node_suggestions[table_id] = known["suggestions"]
+            else:
+                nodes.append({
+                    "id": table_id,
+                    "label": label.upper() + "S" if not label.endswith('s') else label.upper(),
+                    "icon": "package",
+                    "type": "entity",
+                    "description": f"BigQuery Graph Node: {label}"
+                })
+                node_suggestions[table_id] = [
+                    f"Can you give me a summary of the data in the {table_id} table?",
+                    f"What are the key metrics and columns available in {table_id}?",
+                    f"Show me the top 10 most recent records from {table_id}."
+                ]
+                
+        # 4. Parse edgeTables
+        edges = []
+        for et in metadata.get('edgeTables', []):
+            label = et['name']
+            if 'labelAndProperties' in et and et['labelAndProperties']:
+                label = et['labelAndProperties'][0].get('label', label)
+                
+            source_table = et.get('sourceNodeReference', {}).get('nodeTable', '')
+            dest_table = et.get('destinationNodeReference', {}).get('nodeTable', '')
+            
+            source_id = source_table.split('.')[-1]
+            dest_id = dest_table.split('.')[-1]
+            
+            edges.append({
+                "source": source_id,
+                "target": dest_id,
+                "label": label.upper()
+            })
+            
+        logger.info(f"Dynamically discovered BigQuery property graph '{row['property_graph_name']}' in dataset '{dataset_id}'.")
+        return {
+            "nodes": nodes,
+            "edges": edges,
+            "nodeSuggestions": node_suggestions
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to dynamically discover BigQuery property graph schema: {e}")
+        return None
+
 def enrich_agent_metadata(agent: dict) -> dict:
     """Enriches a data agent with dynamically generated suggested questions and welcome subtitles."""
     display_name = agent.get("displayName", "Data Agent")
@@ -537,91 +754,107 @@ def enrich_agent_metadata(agent: dict) -> dict:
     agent["isGraphAgent"] = is_graph_agent
     
     if is_graph_agent:
-        # Relational Graph Agents
-        if any(k in name_lower or k in desc_lower for k in ["penske", "customer 360", "customer360"]):
-            # Penske Property Graph
-            agent["graphData"] = {
-                "nodes": [
-                    {"id": "customers", "label": "Customers", "icon": "users", "type": "customer", "description": "Customer demographic details, CRM records, tier designations, and business indicators."},
-                    {"id": "sales", "label": "Sales", "icon": "shopping-bag", "type": "transaction", "description": "Vehicle sales transactions, deal jackets, purchase types, and financing indicators."},
-                    {"id": "service_histories", "label": "Service Histories", "icon": "wrench", "type": "event", "description": "Vehicle maintenance logs, service tickets, diagnostic codes, and repair details."},
-                    {"id": "web_events", "label": "Web Events", "icon": "globe", "type": "interaction", "description": "Digital footprints, vehicle detail views, dealership site visits, and application logs."}
-                ],
-                "edges": [
-                    {"source": "customers", "target": "sales", "label": "BUYS"},
-                    {"source": "customers", "target": "service_histories", "label": "SERVICED_BY"},
-                    {"source": "customers", "target": "web_events", "label": "TRIGGERS"}
-                ],
-                "nodeSuggestions": {
-                    "customers": [
-                        "How many premium tier customers do we have?",
-                        "What is the average customer lifetime value across our dealership?",
-                        "Show me the distribution of customers by region and status."
-                    ],
-                    "sales": [
-                        "What is our total sales revenue and gross profit margins this quarter?",
-                        "Compare monthly vehicle sales volume between retail lease and finance types.",
-                        "Show me the average finance and insurance (F&I) amount in our deal jackets."
-                    ],
-                    "service_histories": [
-                        "What are the most common service diagnostic codes reported?",
-                        "Show the monthly trend of repair service costs over the last year.",
-                        "List vehicles that have had more than three service visits in 6 months."
-                    ],
-                    "web_events": [
-                        "Which vehicle pages generate the highest number of online detail views?",
-                        "What is the daily trend of website visits and session duration?",
-                        "List the most common web events triggered by lease holders."
-                    ]
-                }
-            }
-            welcome_subtitle = "Explore the Penske Customer 360 Property Graph. Unify Sales, Willow Service History, F&I, and Web Events in a single consolidated view."
+        # 8a. Attempt to discover the graph schema dynamically from BigQuery
+        project_id = get_project_id()
+        dataset_id = None
+        if tables:
+            first_table = tables[0]
+            if "." in first_table:
+                dataset_id = first_table.split(".")[0]
+                
+        discovered_schema = None
+        if dataset_id:
+            discovered_schema = discover_bq_graph_schema(project_id, dataset_id)
+            
+        if discovered_schema:
+            agent["graphData"] = discovered_schema
+            welcome_subtitle = f"Explore your connected BigQuery Property Graph '{dataset_id}'. Hover and click nodes to discover relationships and ask questions!"
         else:
-            # Default E-commerce Graph
-            agent["graphData"] = {
-                "nodes": [
-                    {"id": "users", "label": "Users", "icon": "users", "type": "customer", "description": "Customer profiles, registrations, demographic locations, and traffic source channels."},
-                    {"id": "orders", "label": "Orders", "icon": "shopping-bag", "type": "transaction", "description": "Purchase transactions, shipping statuses, order items, and revenue statistics."},
-                    {"id": "products", "label": "Products", "icon": "package", "type": "inventory", "description": "E-commerce product catalog details, pricing history, inventory stock, and categories."},
-                    {"id": "brands", "label": "Brands", "icon": "award", "type": "vendor", "description": "Brand manufacturers, manufacturer profiles, and brand-specific sales performance metrics."},
-                    {"id": "stores", "label": "Stores", "icon": "store", "type": "warehouse", "description": "Physical retail store locations, warehouses, regional stock levels, and store inventory distributions."}
-                ],
-                "edges": [
-                    {"source": "users", "target": "orders", "label": "PLACES"},
-                    {"source": "orders", "target": "products", "label": "CONTAINS"},
-                    {"source": "products", "target": "brands", "label": "BELONGS_TO"},
-                    {"source": "products", "target": "stores", "label": "STOCKED_IN"}
-                ],
-                "nodeSuggestions": {
-                    "users": [
-                        "How many new users registered last month by country?",
-                        "What is the distribution of users by traffic source medium and age?",
-                        "List the top 10 most loyal customers by order count."
+            # 8b. Fallback to local curated presets if database is offline or schema not found
+            if any(k in name_lower or k in desc_lower for k in ["penske", "customer 360", "customer360"]):
+                # Penske Property Graph
+                agent["graphData"] = {
+                    "nodes": [
+                        {"id": "customers", "label": "Customers", "icon": "users", "type": "customer", "description": "Customer demographic details, CRM records, tier designations, and business indicators."},
+                        {"id": "sales", "label": "Sales", "icon": "shopping-bag", "type": "transaction", "description": "Vehicle sales transactions, deal jackets, purchase types, and financing indicators."},
+                        {"id": "service_histories", "label": "Service Histories", "icon": "wrench", "type": "event", "description": "Vehicle maintenance logs, service tickets, diagnostic codes, and repair details."},
+                        {"id": "web_events", "label": "Web Events", "icon": "globe", "type": "interaction", "description": "Digital footprints, vehicle detail views, dealership site visits, and application logs."}
                     ],
-                    "orders": [
-                        "What is the average order value (AOV) for this year?",
-                        "Compare monthly order volumes and total sales revenue across different countries.",
-                        "Show the status distribution of orders (e.g. processing, shipped, returned)."
+                    "edges": [
+                        {"source": "customers", "target": "sales", "label": "BUYS"},
+                        {"source": "customers", "target": "service_histories", "label": "SERVICED_BY"},
+                        {"source": "customers", "target": "web_events", "label": "TRIGGERS"}
                     ],
-                    "products": [
-                        "What are the top 5 best-selling product categories by total sales revenue?",
-                        "List all products with a retail price greater than $150 and their categories.",
-                        "Which product categories have the highest profit margins?"
-                    ],
-                    "brands": [
-                        "What are the top 5 brand names by number of items sold?",
-                        "Which brand has the highest average retail price in our catalog?",
-                        "Show me the sales trend for products belonging to the brand 'Nike'."
-                    ],
-                    "stores": [
-                        "Which store warehouse currently holds the highest inventory value?",
-                        "What is the total stock quantity of items distributed across our store locations?",
-                        "Show me products with stock levels below 25 units in the Chicago warehouse."
-                    ]
+                    "nodeSuggestions": {
+                        "customers": [
+                            "How many premium tier customers do we have?",
+                            "What is the average customer lifetime value across our dealership?",
+                            "Show me the distribution of customers by region and status."
+                        ],
+                        "sales": [
+                            "What is our total sales revenue and gross profit margins this quarter?",
+                            "Compare monthly vehicle sales volume between retail lease and finance types.",
+                            "Show me the average finance and insurance (F&I) amount in our deal jackets."
+                        ],
+                        "service_histories": [
+                            "What are the most common service diagnostic codes reported?",
+                            "Show the monthly trend of repair service costs over the last year.",
+                            "List vehicles that have had more than three service visits in 6 months."
+                        ],
+                        "web_events": [
+                            "Which vehicle pages generate the highest number of online detail views?",
+                            "What is the daily trend of website visits and session duration?",
+                            "List the most common web events triggered by lease holders."
+                        ]
+                    }
                 }
-            }
-            if not description:
-                welcome_subtitle = "Explore your connected BigQuery Graph database. Hover and click nodes to discover relationships and ask questions!"
+                welcome_subtitle = "Explore the Penske Customer 360 Property Graph. Unify Sales, Willow Service History, F&I, and Web Events in a single consolidated view."
+            else:
+                # Default E-commerce Graph
+                agent["graphData"] = {
+                    "nodes": [
+                        {"id": "users", "label": "Users", "icon": "users", "type": "customer", "description": "Customer profiles, registrations, demographic locations, and traffic source channels."},
+                        {"id": "orders", "label": "Orders", "icon": "shopping-bag", "type": "transaction", "description": "Purchase transactions, shipping statuses, order items, and revenue statistics."},
+                        {"id": "products", "label": "Products", "icon": "package", "type": "inventory", "description": "E-commerce product catalog details, pricing history, inventory stock, and categories."},
+                        {"id": "brands", "label": "Brands", "icon": "award", "type": "vendor", "description": "Brand manufacturers, manufacturer profiles, and brand-specific sales performance metrics."},
+                        {"id": "stores", "label": "Stores", "icon": "store", "type": "warehouse", "description": "Physical retail store locations, warehouses, regional stock levels, and store inventory distributions."}
+                    ],
+                    "edges": [
+                        {"source": "users", "target": "orders", "label": "PLACES"},
+                        {"source": "orders", "target": "products", "label": "CONTAINS"},
+                        {"source": "products", "target": "brands", "label": "BELONGS_TO"},
+                        {"source": "products", "target": "stores", "label": "STOCKED_IN"}
+                    ],
+                    "nodeSuggestions": {
+                        "users": [
+                            "How many new users registered last month by country?",
+                            "What is the distribution of users by traffic source medium and age?",
+                            "List the top 10 most loyal customers by order count."
+                        ],
+                        "orders": [
+                            "What is the average order value (AOV) for this year?",
+                            "Compare monthly order volumes and total sales revenue across different countries.",
+                            "Show the status distribution of orders (e.g. processing, shipped, returned)."
+                        ],
+                        "products": [
+                            "What are the top 5 best-selling product categories by total sales revenue?",
+                            "List all products with a retail price greater than $150 and their categories.",
+                            "Which product categories have the highest profit margins?"
+                        ],
+                        "brands": [
+                            "What are the top 5 brand names by number of items sold?",
+                            "Which brand has the highest average retail price in our catalog?",
+                            "Show me the sales trend for products belonging to the brand 'Nike'."
+                        ],
+                        "stores": [
+                            "Which store warehouse currently holds the highest inventory value?",
+                            "What is the total stock quantity of items distributed across our store locations?",
+                            "Show me products with stock levels below 25 units in the Chicago warehouse."
+                        ]
+                    }
+                }
+                if not description:
+                    welcome_subtitle = "Explore your connected BigQuery Graph database. Hover and click nodes to discover relationships and ask questions!"
             
     else:
         # Auto-generate Star Relational Schema for standard agents!

@@ -1580,7 +1580,11 @@ const App: React.FC = () => {
         return;
       }
 
-      const el = document.getElementById(targetId);
+      let activeTargetId = targetId;
+      if (tourStep === 19) {
+        activeTargetId = document.getElementById("show-thinking-btn") ? "show-thinking-btn" : "agent-thinking-bubble";
+      }
+      const el = document.getElementById(activeTargetId);
       if (!el) {
         setTimeout(() => updatePosition(shouldScroll), 100);
         return;
@@ -3069,8 +3073,8 @@ const App: React.FC = () => {
                   </div>
                 </div>
               ) : messages.length === 0 ? (
-                // Clean empty state with beautiful query starters
-                (() => {
+                // Clean empty state with beautiful query starters (hidden when schema is expanded to maximize canvas)
+                isSchemaExpanded ? null : (() => {
                   const activeAgentObj = selectedAgent ? agents.find(a => a.name === selectedAgent) : undefined;
 
                   return (
@@ -3347,7 +3351,7 @@ const App: React.FC = () => {
 
               {/* Loader Typing Bubble */}
               {isQuerying && streamingMessages.length === 0 && (
-                <div className="flex gap-4 max-w-[85%] self-start animate-slideIn">
+                <div id="agent-thinking-bubble" className="flex gap-4 max-w-[85%] self-start animate-slideIn">
                   <div className="w-9 h-9 rounded-full bg-white/5 border border-white/6 flex items-center justify-center font-heading font-semibold text-xs shrink-0 select-none">
                     {renderLogoSvg(appActiveBrandKey)}
                   </div>

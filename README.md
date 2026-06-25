@@ -90,12 +90,13 @@ Deploy the React static assets to Firebase's global edge CDN and automatically r
 
 1. **🎨 White-Label Brand Aesthetics**: A gorgeous, premium, dark-mode glassmorphic workspace that dynamically adapts to corporate branding profiles (such as Google Cloud, Home Depot, Target, and Tractor Supply Co.) in real-time.
 2. **💬 Conversational Data Analytics (CA)**: Translates natural language business questions into optimized BigQuery SQL queries securely, presenting answers, interactive data grids, and beautiful Vega charts instantly.
-3. **🗺️ Interactive & Adaptive BigQuery Graph Visualizer**: A gorgeous, hardware-accelerated 2D SVG graph canvas mapping BigQuery Graph Schemas. Features native `<animateMotion>` flow particles, zero-configuration dynamic circular layouts for custom schemas, semantic icon resolvers, and interactive inspectors with node-specific query suggestion injections.
-4. **🧭 Symmetrical Flat-Table Centering Layout**: For standard database agents, the visualizer centers table cards dynamically on the screen based on the number of objects, creating a perfectly balanced and high-fidelity representation of relational schemas.
-5. **🚪 Click-Outside Auto-Collapse**: Clicking anywhere outside the expanded schema drawer or the toggle button automatically collapses it, ensuring a fluid, modern, desktop-grade UX.
-6. **🧭 Viewport-Immune & Self-Healing Walkthrough**: A fluid, scroll-tracking interactive tour that smoothly guides users. Features automated self-healing state observers to prevent stuck states, ensuring a 100% flawless walkthrough.
-7. **🗺️ Interactive System Architecture Modal**: A responsive, animated 4-node data pipeline diagram (BigQuery Storage, Knowledge Catalog, Reasoning Engine, and User Interface) mapping out the entire system's structure.
-8. **📲 Mobile Experience Enabled**: The workspace is fully responsive and optimized for mobile viewports, enabling seamless chat interactions, settings configuration, and dashboard navigation on-the-go.
+3. **🗺️ Dynamic & Zero-Configuration BigQuery Graph Schema Discovery**: A state-of-the-art backend metadata engine that dynamically queries the BigQuery region-level `INFORMATION_SCHEMA.PROPERTY_GRAPHS` catalogs and database client APIs to discover property graph schemas (vertices, edges, and properties) dynamically in real-time, completely eliminating hardcoded schemas.
+4. **🎨 Interactive SVG Graph Schema Visualizer**: A gorgeous, hardware-accelerated 2D SVG graph canvas. Features native `<animateMotion>` flow particles, zero-configuration dynamic circular layouts for custom schemas, semantic icon resolvers, and interactive inspectors with node-specific query suggestion injections.
+5. **🧭 Symmetrical Flat-Table Centering Layout**: For standard database agents, the visualizer centers table cards dynamically on the screen based on the number of objects, creating a perfectly balanced and high-fidelity representation of relational schemas.
+6. **🚪 Click-Outside Auto-Collapse**: Clicking anywhere outside the expanded schema drawer or the toggle button automatically collapses it, ensuring a fluid, modern, desktop-grade UX.
+7. **🧭 Viewport-Immune & Self-Healing Walkthrough**: A fluid, scroll-tracking interactive tour that smoothly guides users. Features automated self-healing state observers to prevent stuck states, ensuring a 100% flawless walkthrough.
+8. **🗺️ Interactive System Architecture Modal**: A responsive, animated 4-node data pipeline diagram (BigQuery Storage, Knowledge Catalog, Reasoning Engine, and User Interface) mapping out the entire system's structure.
+9. **📲 Mobile Experience Enabled**: The workspace is fully responsive and optimized for mobile viewports, enabling seamless chat interactions, settings configuration, and dashboard navigation on-the-go.
 
 ---
 
@@ -104,6 +105,7 @@ Deploy the React static assets to Firebase's global edge CDN and automatically r
 For data agents connected to a **BigQuery Graph database**, the portal replaces the standard welcoming text with an immersive, interactive 2D database relationship map:
 
 ### Key Features:
+*   **Real-Time Database Schema Discovery**: Connects to the active BigQuery project using gcloud Application Default Credentials (ADC) and the Google Cloud BigQuery client to fetch dataset location APIs and regional SQL metadata. Automatically parses the property graph's parsed JSON metadata (nodes, edges, labels, keys) dynamically, styling them and loading them into the visualizer instantly. Falls back to local curated presets if the database is offline or sandbox mode is active.
 *   **Automatic Graph Separation**: Automatically detects whether an agent is a property graph agent or a relational flat-table agent (matching keywords like `"graph"`, `"penske"`, or `"customer 360"`), ensuring the correct visual representation is displayed instantly.
 *   **Hardware-Accelerated Flow Particles**: Uses native SVG `<animateMotion>` elements to run smooth 60fps flowing energy particles along connection tracks, indicating the direction of database relationships without consuming any JavaScript main thread cycles.
 *   **Zero-Configuration Symmetrical Layouts**:

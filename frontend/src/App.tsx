@@ -2735,8 +2735,8 @@ const App: React.FC = () => {
                             }}
                             className="w-full py-2 px-3 bg-slate-950 border border-white/8 rounded-lg text-xs text-slate-200 focus:border-brand-primary outline-none cursor-pointer appearance-none"
                           >
-                            <option value="all">All Common Regions (Scan All)</option>
-                            <option value="global">Global (Default)</option>
+                            <option value="all">All Common Regions (Default)</option>
+                            <option value="global">Global</option>
                             <option value="us-central1">us-central1 (Iowa)</option>
                             <option value="europe-west1">europe-west1 (Belgium)</option>
                             <option value="us">us (US Multi-region)</option>
@@ -3644,8 +3644,8 @@ const App: React.FC = () => {
                           }}
                           className="w-full py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 outline-none focus:border-brand-primary/50 cursor-pointer appearance-none"
                         >
-                          <option value="all">All Common Regions (Scan All)</option>
-                          <option value="global">Global (Default)</option>
+                          <option value="all">All Common Regions (Default)</option>
+                          <option value="global">Global</option>
                           <option value="us-central1">us-central1 (Iowa)</option>
                           <option value="europe-west1">europe-west1 (Belgium)</option>
                           <option value="us">us (US Multi-region)</option>

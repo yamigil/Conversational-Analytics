@@ -679,14 +679,14 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   }
 
   return (
-    <div className="w-full flex flex-col gap-6 items-center py-2 select-none max-w-7xl mx-auto animate-fadeIn">
+    <div className="w-full flex flex-col gap-6 items-center pt-0 pb-2 select-none max-w-7xl mx-auto animate-fadeIn">
       {/* 1. Interactive Animated SVG Graph Canvas */}
-      <div className="relative w-full bg-slate-950/60 border border-white/10 rounded-3xl p-4 backdrop-blur-md shadow-2xl flex items-center justify-center overflow-hidden aspect-[16/10] md:aspect-[16/9.2] w-full">
+      <div className="relative w-full bg-slate-950/60 border border-white/10 rounded-3xl p-4 backdrop-blur-md shadow-2xl flex items-center justify-center overflow-hidden aspect-[16/9] md:aspect-[2/1] w-full">
         {/* Grid background */}
         <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.025)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
         
         <svg 
-          viewBox="0 0 800 460" 
+          viewBox="0 30 800 400" 
           className="w-full h-full overflow-visible cursor-default"
           onClick={() => {
             setSelectedNode(null);

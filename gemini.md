@@ -120,8 +120,8 @@
 - **UI Label Corrections**: Fixed a confusing text label in the Connection Details modal where the "Global" region was falsely marked as "(Default)". The labels were updated to correctly reflect the true underlying application state, which defaults to "All Common Regions (Default)".
 - **Guided Tour Text Refinement**: Updated the suggested query text in Tour Step 18 to a generic ("what can you do for me?") prompt to ensure it elegantly matches any conversational agent.
 - **Thinking Process Resiliency**: Hardened the rendering logic in the `MessageThinkingBlock` component to guarantee the "Show thinking" button remains interactive throughout Tour Step 19, even if simple capabilities queries bypass SQL generation entirely.
-- **Graph Container Optimization**: Minimized the vertical top padding in the schema drawer container to perfectly align the Interactive SVG Graph Visualizer higher up in the UI, preventing unnecessary scroll operations on standard viewports.
 - **Auto-Closing Schema Panels**: Engineered a seamless UX flow where clicking any suggested query card within the schema visualizers (both graph and flat-table) instantly auto-collapses the schema drawer, keeping the active chat interaction in direct focus.
+- **Graph Container Optimization**: Minimized the vertical top padding in the schema drawer container (`pt-0`, `pb-2`) and drastically improved the SVG Graph Canvas viewport aspect ratio (`2/1` and cropped `viewBox="0 30 800 400"`) to perfectly align the Interactive SVG Graph Visualizer higher up in the UI, eliminating completely the large empty dead space and preventing unnecessary scroll operations on standard viewports.
 
 ## Next Session Plans
 

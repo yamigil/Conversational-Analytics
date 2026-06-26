@@ -382,7 +382,7 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
                     dataset_id = parts[0]
                 
         # 100% Dynamic, Zero-Hardcode Database Graph Scan Fallback
-        if not dataset_id:
+        if not dataset_id and not skip_db_scan:
             active_project = get_project_id()
             # Scan the active BigQuery project for any Property Graphs!
             discovered_graphs = discover_project_graphs(active_project)
@@ -417,7 +417,7 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
         if discovered_schema:
             agent["graphData"] = discovered_schema
             welcome_subtitle = f"Explore your connected BigQuery Property Graph '{dataset_id}'. Hover and click nodes to discover relationships and ask questions!"
-        else:
+        elif not skip_db_scan:
             # Dynamic Self-Generated Fallback Graph Schema (100% generic, no hardcoding!)
             fallback_nodes = []
             fallback_edges = []

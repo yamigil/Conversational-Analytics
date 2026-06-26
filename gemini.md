@@ -116,6 +116,8 @@
 - **True DB Scan Bypass**: Corrected the logic in `schema_discovery.py` to completely bypass the slow BigQuery metadata `discover_project_graphs` scan and generic fallback graph generation when `skip_db_scan` is True. This reduced the initial `/api/agents` payload latency from multiple seconds to **32 milliseconds**.
 - **Instant Frontend Dropdown**: Validated that the UI dropdown instantly populates with agents on load (under 500ms), eliminating the "grayed out" blocking state.
 - **Production Cleanups**: Cleaned up the app by stripping all continuous file-system writes (`agent_debug.json`) on the backend API routes. Removed all noisy React frontend DOM telemetry calls to the `/api/debug/log` endpoint and completely removed the endpoint. Cleaned up multiple untracked test CSV files.
+- **Manual Agent Selection**: Removed legacy auto-select logic that forcefully loaded the first agent in the list. The portal now defaults to an empty state, requiring users to explicitly select their desired agent from the dropdown menu (unless one was already cached in sessionStorage).
+- **UI Label Corrections**: Fixed a confusing text label in the Connection Details modal where the "Global" region was falsely marked as "(Default)". The labels were updated to correctly reflect the true underlying application state, which defaults to "All Common Regions (Default)".
 
 ## Next Session Plans
 

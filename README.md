@@ -97,7 +97,7 @@ Deploy the React static assets to Firebase's global edge CDN and automatically r
 7. **🧭 Viewport-Immune & Self-Healing Walkthrough**: A fluid, scroll-tracking interactive tour that smoothly guides users. Features automated self-healing state observers to prevent stuck states, ensuring a 100% flawless walkthrough.
 8. **🗺️ Interactive System Architecture Modal**: A responsive, animated 4-node data pipeline diagram (BigQuery Storage, Knowledge Catalog, Reasoning Engine, and User Interface) mapping out the entire system's structure.
 9. **📲 Mobile Experience Enabled**: The workspace is fully responsive and optimized for mobile viewports, enabling seamless chat interactions, settings configuration, and dashboard navigation on-the-go.
-10. **🚀 Production-Grade Optimizations**: All unnecessary continuous disk-IO writes and redundant DOM telemetry debug logs were surgically removed. Blazing fast lazy-loading logic ensures agent metadata populates the frontend instantly (sub-50ms).
+10. **🚀 Production-Grade Optimizations**: All unnecessary continuous disk-IO writes and redundant DOM telemetry debug logs were surgically removed. Blazing fast lazy-loading logic ensures agent metadata populates the frontend instantly (sub-50ms), and users are presented with a clean, unopinionated empty state requiring manual agent selection.
 
 ---
 

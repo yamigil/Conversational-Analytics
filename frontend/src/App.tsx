@@ -1344,18 +1344,17 @@ const App: React.FC = () => {
           }
         }
 
-        // Restore active agent from session storage or fallback to auto-selecting the first agent
+        // Restore active agent from session storage. Do not auto-select if none exists.
         const savedAgent = sessionStorage.getItem("activeAgentName");
-        const activeAgentName = (savedAgent && data.some((a: Agent) => a.name === savedAgent)) ? savedAgent : (data.length > 0 ? data[0].name : "");
+        const activeAgentName = (savedAgent && data.some((a: Agent) => a.name === savedAgent)) ? savedAgent : "";
         
         if (activeAgentName) {
           setSelectedAgent(activeAgentName);
-          if (!savedAgent && data.length > 0) {
-            sessionStorage.setItem("activeAgentName", activeAgentName);
-          }
           fetchConversations(activeAgentName);
           // Trigger lazy loading of the graph schema for the resolved active agent!
           fetchAgentSchema(activeAgentName, data);
+        } else {
+          setSelectedAgent("");
         }
       } else {
         setConnectionStatus("error");

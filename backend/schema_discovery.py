@@ -365,12 +365,12 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
     agent["isGraphAgent"] = is_graph_agent
     
     if is_graph_agent:
+        project_id = None
+        dataset_id = None
         if skip_db_scan:
             agent["graphData"] = None
             welcome_subtitle = f"Explore your connected BigQuery Property Graph dynamically. Hover and click nodes to discover relationships."
         else:
-            project_id = None
-            dataset_id = None
             if tables:
                 first_table = tables[0]
                 parts = first_table.split(".")

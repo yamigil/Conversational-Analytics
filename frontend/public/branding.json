@@ -1,53 +1,53 @@
 {
   "activeBrand": "penske_automotive_group_official_logo",
   "brands": {
-    "tractor_supply_company_official_logo": {
-      "name": "Tractor Supply",
-      "welcomeMessage": "Welcome to Tractor Supply Analytics. Let's analyze crop yields, equipment status, and parts distribution.",
-      "secondaryColor": "48, 100%, 50%",
-      "logoUrl": "",
-      "primaryColor": "120, 100%, 25%",
-      "logoText": "Tractor Supply",
-      "logoSvg": "<img src=\"https://upload.wikimedia.org/wikipedia/commons/8/86/TractorSupplyCompanylogo.svg\" alt=\"Tractor Supply Company Official Logo\" class=\"w-full h-full object-contain\" />",
-      "backgroundColorEnd": "#020802",
-      "backgroundColorStart": "#051205"
-    },
     "penske_automotive_group_official_logo": {
       "logoSvg": "<img src=\"https://upload.wikimedia.org/wikipedia/en/8/88/Penske_Automotive_logo.png\" alt=\"Penske Automotive Group Official Logo\" class=\"w-full h-full object-contain\" />",
-      "name": "Penske Automotive",
       "gcpLocation": "all",
-      "secondaryColor": "114, 85%, 55%",
-      "logoUrl": "",
+      "backgroundColorStart": "#0e0c14",
       "welcomeMessage": "Welcome to Penske Automotive Analytics Hub. Ask me anything about your analytics and data queries.",
+      "backgroundColorEnd": "#07060a",
+      "logoUrl": "",
+      "name": "Penske Automotive",
+      "gcpProjectId": "gilbertos-project-340619",
       "primaryColor": "294, 85%, 60%",
       "logoText": "Penske Automotive",
-      "backgroundColorStart": "#0e0c14",
-      "backgroundColorEnd": "#07060a",
-      "gcpProjectId": "gilbertos-project-340619"
+      "secondaryColor": "114, 85%, 55%"
+    },
+    "tractor_supply_company_official_logo": {
+      "logoSvg": "<img src=\"https://upload.wikimedia.org/wikipedia/commons/8/86/TractorSupplyCompanylogo.svg\" alt=\"Tractor Supply Company Official Logo\" class=\"w-full h-full object-contain\" />",
+      "backgroundColorStart": "#051205",
+      "welcomeMessage": "Welcome to Tractor Supply Analytics. Let's analyze crop yields, equipment status, and parts distribution.",
+      "backgroundColorEnd": "#020802",
+      "logoUrl": "",
+      "name": "Tractor Supply",
+      "primaryColor": "120, 100%, 25%",
+      "logoText": "Tractor Supply",
+      "secondaryColor": "48, 100%, 50%"
     },
     "default": {
       "logoSvg": "<img src='/google_cloud_logo.svg' class='w-full h-full object-contain' />",
-      "name": "Google Cloud",
       "gcpLocation": "global",
-      "secondaryColor": "142, 70%, 45%",
-      "logoUrl": "",
+      "backgroundColorStart": "#0b0f19",
       "welcomeMessage": "Welcome to your data assistant. How can I help you analyze your databases today?",
+      "backgroundColorEnd": "#1a2333",
+      "logoUrl": "",
+      "name": "Google Cloud",
+      "gcpProjectId": "gilbertos-project-340619",
       "primaryColor": "217, 89%, 61%",
       "logoText": "Google Cloud",
-      "backgroundColorStart": "#0b0f19",
-      "backgroundColorEnd": "#1a2333",
-      "gcpProjectId": "gilbertos-project-340619"
+      "secondaryColor": "142, 70%, 45%"
     },
     "ulta_beauty_official_logo": {
-      "name": "Ulta",
+      "logoSvg": "<img src=\"https://upload.wikimedia.org/wikipedia/commons/9/9e/Ulta_Beauty_logo.svg\" alt=\"Ulta Beauty Official Logo\" class=\"w-full h-full object-contain\" />",
+      "backgroundColorStart": "#0b0f13",
       "welcomeMessage": "Welcome to Ulta Analytics Hub. Ask me anything about your analytics and data queries.",
-      "secondaryColor": "338, 85%, 55%",
+      "backgroundColorEnd": "#05080a",
       "logoUrl": "",
+      "name": "Ulta",
       "primaryColor": "158, 85%, 60%",
       "logoText": "Ulta",
-      "logoSvg": "<img src=\"https://upload.wikimedia.org/wikipedia/commons/9/9e/Ulta_Beauty_logo.svg\" alt=\"Ulta Beauty Official Logo\" class=\"w-full h-full object-contain\" />",
-      "backgroundColorEnd": "#05080a",
-      "backgroundColorStart": "#0b0f13"
+      "secondaryColor": "338, 85%, 55%"
     }
   }
 }

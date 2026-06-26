@@ -50,7 +50,8 @@ This application is fully containerized and configured for modern, serverless cl
 ### Option A: Unified Cloud Run Container (Recommended 🏆)
 Deploy the entire application (frontend and backend served together) as a single containerized service:
 
-1. **Deploy to Cloud Run**:
+1. **Deploy to Cloud Run with Dedicated Service Account (Least Privilege)**:
+   We highly recommend deploying the service using a dedicated, custom service account (e.g. `demoportal@...`) rather than the default compute engine service account to adhere to Google Cloud security best practices:
    ```bash
    gcloud run deploy ca-analytics-portal \
        --source . \
@@ -58,14 +59,20 @@ Deploy the entire application (frontend and backend served together) as a single
        --region us-central1 \
        --allow-unauthenticated \
        --port 8000 \
-       --min-instances 1
+       --min-instances 1 \
+       --service-account="demoportal@YOUR_GCP_PROJECT_ID.iam.gserviceaccount.com"
    ```
    *Note: Setting `--min-instances 1` keeps at least one container instance warm 24/7 to completely eliminate cold-start latency, ensuring sub-second initial page load times.*
 
-2. **Grant IAM Permissions**:
-   Go to the **GCP IAM Console** and grant the Cloud Run Default Service Account (`<project-number>-compute@developer.gserviceaccount.com`) the following roles in your target project:
-   * **Gemini for Google Cloud User** (required for conversation chat sessions)
-   * **Discovery Engine Viewer** (required for Catalog Finder data store searches)
+2. **Grant Minimal IAM Permissions**:
+   Go to the **GCP IAM Console** and grant the dedicated service account the following precise roles in your target project:
+   * **Gemini for Google Cloud User** (`roles/cloudaicompanion.user`) — *Required to create conversation sessions and stream chats*
+   * **Gemini Data Analytics Data Agent User** (`roles/geminidataanalytics.dataAgentUser`) — *Required to discover and query data agents*
+   * **BigQuery User** (`roles/bigquery.user`) — *Required to execute BQ query jobs*
+   * **BigQuery Data Editor** (`roles/bigquery.dataEditor`) — *Required to write telemetry logs and read schemas*
+   * **Discovery Engine Viewer** (`roles/discoveryengine.viewer`) — *Required for Catalog Finder data store searches*
+   * **Cloud Datastore User** (`roles/datastore.user`) — *Required to read/write Firestore audit logs and cache*
+
 
 
 

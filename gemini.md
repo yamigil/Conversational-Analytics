@@ -129,4 +129,28 @@
 2.  **Custom Brand-Color Graph Propagations**: Connect the SVG flowing particles and halo glows directly to the active branding theme (`brandPrimaryColor`).
 3.  **Graph Agent Live Editor**: Build a developer portal allowing Customer Engineers to write custom graph schemas and questions directly in the browser.
 
+---
+
+## Implemented Checklists & Milestones (Session 56 / Checkpoint 56)
+
+### 19. 100% Live & Dynamic Conversational Execution
+- **Removed Hardcoded Mock Showcases**: Completely removed the hardcoded mock stream generator and mock check in [backend/routers/chat.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/routers/chat.py#L509). The `Penske Customer 360` agent is now 100% live and dynamic, executing real `MATCH` graph queries in real-time.
+- **Live Stream Chunk Unwrapping**: Fixed a JSON payload unwrapping bug where the live Conversational Analytics API streamed chunks wrapped in a `"message"` key (e.g. `{"message": {"systemMessage": ...}}`), which was causing the frontend to silently discard them and render empty bubbles. The backend now surgically extracts and yields the inner message at the root level for flawless frontend rendering.
+
+### 20. Dynamic Location & Region Resolution for Agents
+- **Fixed Regional Agent 403 Failures**: Discovered that hardcoding `loc = "global"` inside the conversation creation and listing methods was causing cross-region API mismatches (e.g., trying to pair a `us` region agent like the `Marketing Agent` with a `global` conversation).
+- **Dynamic Endpoint Routing**: Upgraded [backend/ca_client.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/ca_client.py#L108-L125) to dynamically extract the agent's location from its resource name path and initialize the matching regional client (`DataChatServiceClient`), eliminating all `403 Permission Denied` errors.
+
+### 21. Production-Local Parity & Least-Privilege Security Architecture
+- **Local IAM Assessment & Repair**: Identified that the local service account key (`demoportal@gilbertos-project-340619.iam.gserviceaccount.com`) was missing the required `roles/cloudaicompanion.user` (Gemini for Google Cloud User) and `roles/bigquery.dataEditor` roles. Executed `gcloud` commands to grant them, enabling full local conversation creation and telemetry logging capabilities.
+- **Production Service Account Hardening**: Switched the production Cloud Run service `ca-analytics-portal` to run under the dedicated, secure `demoportal` service account instead of the default compute engine service account, achieving absolute local-to-production parity.
+- **Cleaned Up Redundancies**: Removed `BigQuery Data Viewer` in favor of `BigQuery Data Editor`, while retaining `BigQuery User` for query job scheduling, ensuring a perfect least-privilege configuration.
+
+### 22. SVG Headroom Expansion & Satellite Clipping Fix
+- **Prevented Headroom Clipping**: Solved a bug in the 2D SVG visualizer in [frontend/src/components/GraphVisualizer.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/components/GraphVisualizer.tsx#L637) where the top orbiting satellite of the `CUSTOMER` node (reaching `y = -8`) and the bottom satellites of the lower nodes were getting clipped by the canvas boundaries.
+- **Adjusted Viewbox Coordinates**: Expanded the SVG canvas coordinate viewport from `viewBox="0 30 800 400"` to **`viewBox="0 -30 800 505"`**, giving the canvas 60px of vertical headroom and 45px of footroom. Orbiting satellites now float beautifully on all standard viewports.
+- **Vite Compilation**: Successfully compiled the updated frontend React assets and committed the rebuilt chunks to the repository.
+- **Fixed Branding Import Warnings**: Fixed a FastAPI warning in [backend/routers/branding.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/routers/branding.py#L19) where `FRONTEND_DIR` was referenced but not imported.
+
+
 

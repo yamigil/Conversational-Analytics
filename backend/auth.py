@@ -5,6 +5,11 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import firebase_admin
 from firebase_admin import credentials, auth
 from dotenv import load_dotenv
+import json
+from typing import Optional
+from fastapi import Header
+from config import get_project_id, BRANDING_FILE
+from ca_client import ConversationalAnalyticsClient
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -124,3 +129,47 @@ def get_current_user(authorization: HTTPAuthorizationCredentials = Depends(secur
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+def get_location() -> str:
+    # 1. First, check if a location is defined inside the branding.json settings!
+    if os.path.exists(BRANDING_FILE):
+        try:
+            with open(BRANDING_FILE, "r") as f:
+                branding_data = json.load(f)
+                active_brand = branding_data.get("activeBrand", "default")
+                brand_settings = branding_data.get("brands", {}).get(active_brand, {})
+                location = brand_settings.get("gcpLocation")
+                if location:
+                    logger.info(f"Loaded GCP Location from branding settings: {location}")
+                    return location
+        except Exception as e:
+            logger.warning(f"Could not load location from branding settings: {e}")
+
+    # 2. Explicitly configured in env/.env or default
+    return os.getenv("GCP_LOCATION") or "global"
+
+def get_analytics_client(
+    x_gcp_user_token: Optional[str] = Header(None),
+    x_gcp_project_id: Optional[str] = Header(None),
+    x_gcp_location: Optional[str] = Header(None)
+) -> ConversationalAnalyticsClient:
+    target_project = x_gcp_project_id or get_project_id()
+    target_location = x_gcp_location or get_location()
+    
+    if x_gcp_user_token:
+        try:
+            logger.info(f"Initializing ConversationalAnalyticsClient using End-User SSO Credentials for project: {target_project}, location: {target_location}")
+            logger.info(f"SSO Token Diagnostic: prefix={x_gcp_user_token[:15]}..., length={len(x_gcp_user_token)}")
+            return ConversationalAnalyticsClient(target_project, user_token=x_gcp_user_token, location=target_location)
+        except Exception as e:
+            logger.error(f"Failed to initialize ConversationalAnalyticsClient with user token: {e}. Falling back to Service Account.")
+    
+    default_project = get_project_id()
+    default_location = get_location()
+    if target_project != default_project or target_location != default_location:
+        try:
+            return ConversationalAnalyticsClient(target_project, location=target_location)
+        except Exception as e:
+            logger.error(f"Failed to initialize Service Account client for project {target_project}, location {target_location}: {e}")
+    # Always return a client for the freshly resolved default project and location
+    return ConversationalAnalyticsClient(default_project, location=default_location)

@@ -14,6 +14,7 @@ from typing import Optional
 from datetime import datetime, timezone
 from firebase_admin import firestore
 from google.cloud import bigquery
+from config import get_project_id
 
 from ca_client import ConversationalAnalyticsClient
 from auth import get_current_user
@@ -115,3 +116,8 @@ app.include_router(chat.router)
 app.include_router(branding.router)
 app.include_router(telemetry.router)
 
+FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+if os.path.exists(FRONTEND_DIR):
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+else:
+    logger.warning(f"Static directory not found: {FRONTEND_DIR}. Create it to serve the frontend.")

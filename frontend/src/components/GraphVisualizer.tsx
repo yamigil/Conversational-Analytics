@@ -188,7 +188,7 @@ const getInstanceSuggestions = (nodeId: string, row: any): string[] => {
   ];
 };
 
-const getLocalMockSatellites = (nodeId: string): any[] => {
+const getLocalMockSatellites = (): any[] => {
   return [
     { "id": 1, "status": "ACTIVE", "value": "Instance 1" },
     { "id": 2, "status": "ACTIVE", "value": "Instance 2" },
@@ -907,7 +907,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                 if (previewData && previewData.rows && previewData.rows.length > 0) {
                   satellites = previewData.rows.slice(0, 3);
                 } else {
-                  satellites = getLocalMockSatellites(node.id);
+                  satellites = getLocalMockSatellites();
                 }
               }
 

@@ -12,8 +12,9 @@ from firebase_admin import firestore
 from google.cloud import bigquery
 from ca_client import ConversationalAnalyticsClient
 from auth import get_current_user, get_analytics_client
+from models import *
 from google.api_core import exceptions as google_exceptions
-from schema_discovery import get_schema_summary
+
 from bq_client import get_live_table_preview
 from config import logger, get_project_id, DELETED_CONVOS_FILE, get_deleted_conversations, add_deleted_conversation, BRANDING_FILE
 import time
@@ -618,8 +619,3 @@ def save_branding(data: dict = Body(...), user: dict = Depends(get_current_user)
 
 
 
-# Mount Static Files (placed at the bottom so it doesn't mask API routes)
-if os.path.exists(FRONTEND_DIR):
-    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
-else:
-    logger.warning(f"Static directory not found: {FRONTEND_DIR}. Create it to serve the frontend.")

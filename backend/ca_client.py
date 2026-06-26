@@ -59,8 +59,8 @@ class ConversationalAnalyticsClient:
         for loc in target_locations:
             parent = f"projects/{self.project_id}/locations/{loc}"
             try:
-                agent_client = self._get_agent_client("global")
-                logger.info(f"Listing accessible data agents with parent={parent} using global client")
+                agent_client = self._get_agent_client(loc)
+                logger.info(f"Listing accessible data agents with parent={parent} using client for {loc}")
                 request = geminidataanalytics.ListAccessibleDataAgentsRequest(parent=parent)
                 agents = agent_client.list_accessible_data_agents(request=request)
                 
@@ -80,7 +80,7 @@ class ConversationalAnalyticsClient:
                     continue
                 
                 try:
-                    agent_client = self._get_agent_client("global")
+                    agent_client = self._get_agent_client(loc)
                     request = geminidataanalytics.ListDataAgentsRequest(parent=parent)
                     agents = agent_client.list_data_agents(request=request)
                     for agent in agents:

@@ -18,6 +18,7 @@ from google.api_core import exceptions as google_exceptions
 from bq_client import get_live_table_preview
 from config import logger, get_project_id, DELETED_CONVOS_FILE, get_deleted_conversations, add_deleted_conversation, BRANDING_FILE
 import time
+from schema_discovery import enrich_agent_metadata
 
 router = APIRouter()
 
@@ -43,7 +44,6 @@ def get_agent_schema(agent_name: str, user: dict = Depends(get_current_user), cl
         if not agent:
             raise HTTPException(status_code=404, detail=f"Agent '{agent_name}' not found.")
             
-        from schema_discovery import enrich_agent_metadata
         enriched = enrich_agent_metadata(agent, skip_db_scan=False)
         return enriched
     except Exception as e:

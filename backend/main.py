@@ -303,15 +303,7 @@ def get_agents(user: dict = Depends(get_current_user), client: ConversationalAna
     try:
         agents = client.list_agents()
         
-        # Write raw agents metadata to a debug JSON file for inspection
-        try:
-            debug_path = os.path.join(os.path.dirname(__file__), "agent_debug.json")
-            with open(debug_path, "w") as f:
-                import json
-                json.dump(agents, f, indent=2)
-            logger.info(f"Successfully wrote agent debug metadata to {debug_path}")
-        except Exception as debug_err:
-            logger.warning(f"Could not write agent debug file: {debug_err}")
+
             
         enriched = [enrich_agent_metadata(agent, skip_db_scan=True) for agent in agents]
         return enriched
@@ -1592,10 +1584,7 @@ def save_branding(data: dict = Body(...), user: dict = Depends(get_current_user)
         logger.error(f"Error saving branding: {e}")
         raise HTTPException(status_code=500, detail="Failed to save branding configurations.")
 
-@app.post("/api/debug/log")
-def debug_log(data: dict = Body(...)):
-    logger.info(f"FRONTEND DIAGNOSTIC LOG: {json.dumps(data)}")
-    return {"status": "success"}
+
 
 # Mount Static Files (placed at the bottom so it doesn't mask API routes)
 if os.path.exists(FRONTEND_DIR):

@@ -1333,16 +1333,6 @@ const App: React.FC = () => {
       if (res.ok) {
         const data = await res.json();
         
-        fetch("/api/debug/log", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            event: "fetchAgents_success",
-            agentsCount: data.length,
-            agentsList: data.map((a: any) => ({ name: a.name, displayName: a.displayName })),
-            sessionStorageAgent: sessionStorage.getItem("activeAgentName")
-          })
-        }).catch(() => {});
 
         setAgents(data);
         setConnectionStatus("online");
@@ -1368,26 +1358,9 @@ const App: React.FC = () => {
           fetchAgentSchema(activeAgentName, data);
         }
       } else {
-        fetch("/api/debug/log", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            event: "fetchAgents_response_not_ok",
-            status: res.status,
-            statusText: res.statusText
-          })
-        }).catch(() => {});
         setConnectionStatus("error");
       }
     } catch (e: any) {
-      fetch("/api/debug/log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          event: "fetchAgents_exception",
-          error: e.message || String(e)
-        })
-      }).catch(() => {});
       console.error("Error loading agent list:", e);
       setConnectionStatus("error");
     }
@@ -1478,88 +1451,6 @@ const App: React.FC = () => {
       init();
     }
   }, [user]);
-
-  // Hook global window errors and promise rejections for remote diagnostics
-  useEffect(() => {
-    const handleError = (error: any) => {
-      fetch("/api/debug/log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          event: "window_error",
-          message: error.message,
-          filename: error.filename,
-          lineno: error.lineno,
-          colno: error.colno,
-          stack: error.error?.stack
-        })
-      }).catch(() => {});
-    };
-    const handleRejection = (event: PromiseRejectionEvent) => {
-      fetch("/api/debug/log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          event: "unhandled_promise_rejection",
-          reason: String(event.reason)
-        })
-      }).catch(() => {});
-    };
-    window.addEventListener("error", handleError);
-    window.addEventListener("unhandledrejection", handleRejection);
-    return () => {
-      window.removeEventListener("error", handleError);
-      window.removeEventListener("unhandledrejection", handleRejection);
-    };
-  }, []);
-
-  // Redirect console.error to diagnostics endpoint
-  useEffect(() => {
-    const originalConsoleError = console.error;
-    console.error = (...args: any[]) => {
-      originalConsoleError.apply(console, args);
-      fetch("/api/debug/log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          event: "console_error",
-          message: args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(" ")
-        })
-      }).catch(() => {});
-    };
-    return () => {
-      console.error = originalConsoleError;
-    };
-  }, []);
-
-  // Inspect the DOM select element options and log them
-  useEffect(() => {
-    // Wait a brief moment to ensure React has finished rendering the options
-    const timer = setTimeout(() => {
-      const select = document.querySelector("#agent-select-container select") as HTMLSelectElement | null;
-      if (select) {
-        const options = Array.from(select.options).map(o => ({ value: o.value, text: o.text, disabled: o.disabled }));
-        fetch("/api/debug/log", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            event: "dom_select_options",
-            optionsCount: options.length,
-            options: options
-          })
-        }).catch(() => {});
-      } else {
-        fetch("/api/debug/log", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            event: "dom_select_not_found"
-          })
-        }).catch(() => {});
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [agents]);
 
 
 

@@ -310,6 +310,8 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
             welcome_subtitle = "Ask any analytical question about your business data, cost trends, or performance."
             
     # 8. Detect and Inject Graph Database Schema if it is a Graph Agent
+    name_lower = agent.get("displayName", "").lower()
+    desc_lower = agent.get("description", "").lower()
     is_graph_agent = (
         "graph" in name_lower or 
         "graph" in desc_lower or 

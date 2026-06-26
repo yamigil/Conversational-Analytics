@@ -372,14 +372,14 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
             project_id = None
             dataset_id = None
             if tables:
-            first_table = tables[0]
-            parts = first_table.split(".")
-            if len(parts) == 3:
-                project_id = parts[0]
-                dataset_id = parts[1]
-            elif len(parts) == 2:
-                project_id = get_project_id()
-                dataset_id = parts[0]
+                first_table = tables[0]
+                parts = first_table.split(".")
+                if len(parts) == 3:
+                    project_id = parts[0]
+                    dataset_id = parts[1]
+                elif len(parts) == 2:
+                    project_id = get_project_id()
+                    dataset_id = parts[0]
                 
         # 100% Dynamic, Zero-Hardcode Database Graph Scan Fallback
         if not dataset_id:

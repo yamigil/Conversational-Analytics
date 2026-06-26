@@ -119,6 +119,14 @@ For data agents connected to a **BigQuery Graph database**, the portal replaces 
 *   **On-Demand Blazing Fast Loading**: By bypassing database discovery operations in initial API calls and moving them to asynchronous on-demand schema routes, agent lists load into the dropdown natively in under 35 milliseconds.
 
 ---
+
+## Recent Updates & Fixes
+* **Modular Architecture**: Re-architected `main.py` into modular route handlers (`chat`, `agents`, `telemetry`, `gcp`, etc.) to improve long-term maintainability.
+* **Vertex AI API Strict Location Routing**: Re-mapped data agent API queries to properly inject the dynamic region locations (e.g. `us`, `europe-west4`) during GCP API initialization to prevent "GCP Connection Offline" 403/400 Vertex AI rejection errors.
+* **TypeScript & GitHub Actions Resilience**: Stripped unused variables out of the Graph Visualizer React TSX nodes, preventing strict CI/CD TS compilers from blocking branch merges.
+* **Property Graph Schema Discovery Hotfix**: Refactored `schema_discovery.py` to prevent backend `NameError` crashes when generating fallback discovery nodes on missing graph connections.
+
+---
 *Active Telemetry Stream: `G-C0VB9XKP7E`*
 
 

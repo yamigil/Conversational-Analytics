@@ -189,61 +189,10 @@ const getInstanceSuggestions = (nodeId: string, row: any): string[] => {
 };
 
 const getLocalMockSatellites = (nodeId: string): any[] => {
-  const cleanId = nodeId.toLowerCase().trim();
-  
-  if (cleanId === "customers" || cleanId === "users") {
-    return [
-      { "customer_id": 1001, "name": "Gilbert Gomez", "email": "gilgtz@penske.com", "phone_number": "+1 (248) 555-0199", "state": "MI" },
-      { "customer_id": 1002, "name": "Sarah Connor", "email": "sconnor@resistance.net", "phone_number": "+1 (310) 555-0182", "state": "CA" },
-      { "customer_id": 1003, "name": "Elena Rostova", "email": "elena.r@lexus.co.jp", "phone_number": "+81 3-5555-0123", "state": "Tokyo" }
-    ];
-  }
-  if (cleanId === "orders") {
-    return [
-      { "order_id": 12501, "status": "Shipped", "created_at": "2026-06-23T14:32:00Z", "num_of_item": 2, "value": "$119.00" },
-      { "order_id": 12502, "status": "Complete", "created_at": "2026-06-23T15:10:00Z", "num_of_item": 1, "value": "$59.50" },
-      { "order_id": 12503, "status": "Processing", "created_at": "2026-06-24T08:45:00Z", "num_of_item": 3, "value": "$238.00" }
-    ];
-  }
-  if (cleanId === "products") {
-    return [
-      { "id": 101, "name": "Slim Fit Denim Jeans", "category": "Jeans", "brand": "Levi's", "retail_price": 59.50, "department": "Men" },
-      { "id": 102, "name": "Run Free Sneakers", "category": "Active", "brand": "Nike", "retail_price": 120.00, "department": "Women" },
-      { "id": 103, "name": "Classic Leather Belt", "category": "Accessories", "brand": "Calvin Klein", "retail_price": 38.00, "department": "Unisex" }
-    ];
-  }
-  if (cleanId === "vehicles") {
-    return [
-      { "vehicle_id": "V1", "vin": "1FTFW1RG5LFA00001", "make": "Toyota", "model": "Tacoma", "year": 2021, "trim": "TRD Pro", "acquisition_type": "Lease" },
-      { "vehicle_id": "V2", "vin": "5YJ3E1EB8LF000002", "make": "Toyota", "model": "Tundra", "year": 2022, "trim": "Limited", "acquisition_type": "Purchase" },
-      { "vehicle_id": "V3", "vin": "1GNSKCKD2LR000003", "make": "Lexus", "model": "RX 350", "year": 2023, "trim": "F Sport", "acquisition_type": "Purchase" }
-    ];
-  }
-  if (cleanId === "service_visits") {
-    return [
-      { "visit_id": "RO101", "vehicle_id": "V1", "date": "2026-04-15", "repair_order_no": "RO-88291", "mileage": 45120, "cost": "$324.50", "status": "COMPLETED" },
-      { "visit_id": "RO102", "vehicle_id": "V2", "date": "2026-05-10", "repair_order_no": "RO-88402", "mileage": 28900, "cost": "$150.00", "status": "COMPLETED" },
-      { "visit_id": "RO103", "vehicle_id": "V1", "date": "2026-06-01", "repair_order_no": "RO-88941", "mileage": 48200, "cost": "$890.75", "status": "COMPLETED" }
-    ];
-  }
-  if (cleanId === "deal_jackets") {
-    return [
-      { "deal_id": "D2001", "customer_id": 1001, "date": "2026-01-10", "finance_company": "Toyota Financial Services", "credit_score": 785, "loan_amount": "$42,500.00", "audit_status": "PASSED" },
-      { "deal_id": "D2002", "customer_id": 1002, "date": "2026-02-14", "finance_company": "Chase Auto", "credit_score": 680, "loan_amount": "$31,000.00", "audit_status": "WARNING" },
-      { "deal_id": "D2003", "customer_id": 1003, "date": "2026-03-22", "finance_company": "Ally Financial", "credit_score": 740, "loan_amount": "$52,000.00", "audit_status": "PASSED" }
-    ];
-  }
-  if (cleanId === "web_events") {
-    return [
-      { "event_id": "E901", "customer_id": 1001, "timestamp": "2026-06-24T10:12:00Z", "event_name": "trade_in_estimate", "page_path": "/vehicles/trade-in", "source": "Google" },
-      { "event_id": "E902", "customer_id": 1001, "timestamp": "2026-06-24T10:15:00Z", "event_name": "build_and_price", "page_path": "/tacoma/build", "source": "Direct" },
-      { "event_id": "E903", "customer_id": 1002, "timestamp": "2026-06-24T10:20:00Z", "event_name": "view_accessory", "page_path": "/tacoma/accessories", "source": "Facebook" }
-    ];
-  }
   return [
-    { "id": 1, "status": "ACTIVE", "created_at": "2026-06-24", "value": "Instance 1" },
-    { "id": 2, "status": "ACTIVE", "created_at": "2026-06-24", "value": "Instance 2" },
-    { "id": 3, "status": "PENDING", "created_at": "2026-06-24", "value": "Instance 3" }
+    { "id": 1, "status": "ACTIVE", "value": "Instance 1" },
+    { "id": 2, "status": "ACTIVE", "value": "Instance 2" },
+    { "id": 3, "status": "PENDING", "value": "Instance 3" }
   ];
 };
 

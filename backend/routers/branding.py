@@ -16,7 +16,7 @@ from models import *
 from google.api_core import exceptions as google_exceptions
 
 from bq_client import get_live_table_preview
-from config import logger, get_project_id, DELETED_CONVOS_FILE, get_deleted_conversations, add_deleted_conversation, BRANDING_FILE
+from config import logger, get_project_id, DELETED_CONVOS_FILE, get_deleted_conversations, add_deleted_conversation, BRANDING_FILE, FRONTEND_DIR
 import time
 
 router = APIRouter()

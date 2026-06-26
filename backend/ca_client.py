@@ -108,8 +108,8 @@ class ConversationalAnalyticsClient:
 
     def create_conversation(self, agent_name: str):
         """Creates a new conversation reference with a specific agent."""
-        # Conversations are always stored in 'global' region to ensure stability and compatibility with all agent locations
-        loc = "global"
+        # Resolve location dynamically based on the agent's region to prevent cross-region API failures
+        loc = self._get_location_from_name(agent_name)
         parent = f"projects/{self.project_id}/locations/{loc}"
         
         conversation = geminidataanalytics.Conversation()
@@ -125,8 +125,8 @@ class ConversationalAnalyticsClient:
 
     def list_conversations(self, agent_name: str = None):
         """Lists active conversations, optionally filtering by agent."""
-        # Since conversations are always created in 'global' region, we list them from global parent
-        loc = "global"
+        # List conversations from the agent's region to match their creation location
+        loc = self._get_location_from_name(agent_name) if agent_name else "global"
         parent = f"projects/{self.project_id}/locations/{loc}"
         
         request = geminidataanalytics.ListConversationsRequest(

@@ -287,42 +287,7 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
             unique_suggestions.append(s)
     suggestions = unique_suggestions[:3]
     
-    # 4. Fallback: Dynamic keyword-based default presets (no hardcoding of private names!)
-    name_lower = display_name.lower()
-    desc_lower = description.lower()
-    
-    if len(suggestions) < 3:
-        preset_suggestions = []
-        
-        # A. Marketing / Advertising
-        if any(k in name_lower or k in desc_lower for k in ["marketing", "ga4", "sa360", "advertising"]):
-            preset_suggestions = [
-                f"What are the top-performing advertising campaigns by conversion volume in {display_name}?",
-                "Show me the monthly trend of cost and clicks for our channels.",
-                "Compare campaign performance and ROI across different locations."
-            ]
-        # B. Automotive / Fleet / Customer 360
-        elif any(k in name_lower or k in desc_lower for k in ["automotive", "car", "fleet", "vehicle", "customer"]):
-            preset_suggestions = [
-                "What is the distribution of our customer records and profiles?",
-                "Compare the pricing, cost, and finance volumes for our records.",
-                "Show me the most common activity types or service trends."
-            ]
-        # C. E-commerce / Retail
-        elif any(k in name_lower or k in desc_lower for k in ["ecommerce", "retail", "shop", "sales", "store"]):
-            preset_suggestions = [
-                "Show me the monthly trend of revenue and transaction volume.",
-                "What are the top best-selling product brands or categories?",
-                "What is the average order value (AOV) for each month?"
-            ]
-            
-        if preset_suggestions:
-            for ps in preset_suggestions:
-                if ps not in suggestions:
-                    suggestions.append(ps)
-            suggestions = suggestions[:3]
-        
-    # 5. Double Fallback: Custom table-based queries for custom agents
+    # 4. Fallback: Custom table-based queries for custom agents
     if len(suggestions) < 3 and tables:
         primary_table = tables[0].split(".")[-1]
         table_suggestions = [
@@ -333,18 +298,6 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
         for ts in table_suggestions:
             if ts not in suggestions:
                 suggestions.append(ts)
-        suggestions = suggestions[:3]
-        
-    # 6. Triple Fallback: Generic presets as last resort
-    if len(suggestions) < 3:
-        preset_suggestions = [
-            "Show me the monthly trend of cost and revenue for this year.",
-            "What are the top 5 brands by number of items sold?",
-            "What is the average order value (AOV) for each month?"
-        ]
-        for ps in preset_suggestions:
-            if ps not in suggestions:
-                suggestions.append(ps)
         suggestions = suggestions[:3]
             
     # 7. Generate a beautiful, custom welcome subtitle dynamically

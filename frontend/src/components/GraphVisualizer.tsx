@@ -212,7 +212,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   const [selectedInstance, setSelectedInstance] = useState<any | null>(null);
   
   const [activeTab, setActiveTab] = useState<"queries" | "preview">("queries");
-  const [previewData, setPreviewData] = useState<{ columns: string[], rows: any[] } | null>(null);
+  const [previewData, setPreviewData] = useState<{ columns: string[], rows: any[], recordSuggestions?: string[][] } | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState<boolean>(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
 
@@ -1123,20 +1123,27 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     <span className="text-[10px] font-bold uppercase tracking-widest text-white">Suggested Record Insights</span>
                   </div>
                   <div className="flex flex-col gap-2 max-h-[145px] overflow-y-auto pr-1">
-                    {getInstanceSuggestions(selectedNode, selectedInstance).map((suggestion, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => onSelectSuggestion(suggestion)}
-                        className="p-2.5 bg-white/4 border border-white/6 hover:bg-white/8 rounded-xl text-left text-[11px] text-slate-200 font-semibold transition cursor-pointer flex items-center justify-between group"
-                      >
-                        <span className="group-hover:text-white transition duration-150 leading-relaxed pr-2">{suggestion}</span>
-                        <ChevronRight 
-                          size={12} 
-                          className="shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5"
-                          style={{ color: activeNodeColor }}
-                        />
-                      </button>
-                    ))}
+                    {(() => {
+                      const instanceIdx = previewData?.rows?.indexOf(selectedInstance);
+                      const suggestionsList = (instanceIdx !== undefined && instanceIdx !== -1 && previewData?.recordSuggestions?.[instanceIdx] && previewData.recordSuggestions[instanceIdx].length > 0)
+                        ? previewData.recordSuggestions[instanceIdx]
+                        : getInstanceSuggestions(selectedNode, selectedInstance);
+                      
+                      return suggestionsList.map((suggestion, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => onSelectSuggestion(suggestion)}
+                          className="p-2.5 bg-white/4 border border-white/6 hover:bg-white/8 rounded-xl text-left text-[11px] text-slate-200 font-semibold transition cursor-pointer flex items-center justify-between group"
+                        >
+                          <span className="group-hover:text-white transition duration-150 leading-relaxed pr-2">{suggestion}</span>
+                          <ChevronRight 
+                            size={12} 
+                            className="shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5"
+                            style={{ color: activeNodeColor }}
+                          />
+                        </button>
+                      ));
+                    })()}
                   </div>
                 </div>
               </>

@@ -145,6 +145,67 @@ def discover_project_graphs(project_id: str, user_token: Optional[str] = None) -
         logger.error(f"Error scanning project property graphs: {e}")
         return []
 
+def generate_graph_node_suggestions(nodes: list, edges: list) -> dict:
+    """Uses Gemini to dynamically generate 3 premium, highly-analytical, and domain-specific
+    query suggestions for each node in a property graph, based on the entire graph's structure.
+    """
+    import json
+    from gemini_client import call_gemini
+    
+    # Prepare a compact representation of the graph for the prompt
+    nodes_summary = []
+    for n in nodes:
+        nodes_summary.append({
+            "id": n["id"],
+            "label": n["label"],
+            "description": n["description"]
+        })
+        
+    edges_summary = []
+    for e in edges:
+        edges_summary.append({
+            "source": e["source"],
+            "target": e["target"],
+            "label": e["label"]
+        })
+        
+    system_instruction = (
+        "You are an expert database analyst. Generate highly-customized, creative, and domain-specific "
+        "business query suggestions (query starters) for a data portal based on the provided BigQuery Property Graph schema. "
+        "For each node in the graph, generate exactly 3 suggested questions that a business user or analyst would want to ask. "
+        "The questions should be natural language questions, highly relevant to the domain of the data, and should leverage "
+        "the relationships and connections in the graph (e.g. joining nodes, aggregating metrics, filtering by properties). "
+        "\nReturn the result ONLY as a raw JSON object mapping each node ID to a list of exactly 3 questions. "
+        "Do not include any markdown formatting or backticks in your response. Example output format:\n"
+        "{\n"
+        "  \"node_id_1\": [\"Question 1?\", \"Question 2?\", \"Question 3?\"],\n"
+        "  \"node_id_2\": [\"Question 1?\", \"Question 2?\", \"Question 3?\"]\n"
+        "}"
+    )
+    
+    prompt = (
+        f"Here is the BigQuery Property Graph schema:\n"
+        f"Nodes:\n{json.dumps(nodes_summary, indent=2)}\n\n"
+        f"Edges (Connections):\n{json.dumps(edges_summary, indent=2)}\n"
+    )
+    
+    try:
+        raw_json = call_gemini(prompt, system_instruction, response_mime_type="application/json", temperature=0.3)
+        if raw_json:
+            cleaned = raw_json.strip()
+            if cleaned.startswith("```json"):
+                cleaned = cleaned[7:]
+            if cleaned.endswith("```"):
+                cleaned = cleaned[:-3]
+            parsed = json.loads(cleaned.strip())
+            if isinstance(parsed, dict):
+                logger.info(f"Successfully generated custom graph suggestions via Gemini for nodes: {list(parsed.keys())}")
+                # Ensure all keys are strings and values are lists of strings
+                return {str(k): [str(v) for v in val] for k, val in parsed.items() if isinstance(val, list)}
+    except Exception as ex:
+        logger.warning(f"Failed to generate custom graph suggestions with Gemini: {ex}. Using generic fallbacks.")
+    return {}
+
 def discover_bq_graph_schema(project_id: str, dataset_id: str) -> Optional[dict]:
     """Queries BigQuery INFORMATION_SCHEMA.PROPERTY_GRAPHS to dynamically discover the property graph schema.
     Uses an in-memory cache to ensure sub-millisecond response times for subsequent calls.
@@ -184,7 +245,6 @@ def discover_bq_graph_schema(project_id: str, dataset_id: str) -> Optional[dict]
         
         # 3. Parse nodeTables dynamically without any hardcoding
         nodes = []
-        node_suggestions = {}
         for nt in metadata.get('nodeTables', []):
             table_id = nt['name'].split('.')[-1]
             label = table_id
@@ -204,12 +264,6 @@ def discover_bq_graph_schema(project_id: str, dataset_id: str) -> Optional[dict]
                 "description": f"Dynamic property graph node representing {clean_label.lower()} entities connected across your BigQuery dataset."
             })
             
-            node_suggestions[table_id] = [
-                f"What are the most common relationships and connections starting from {clean_label.lower()}?",
-                f"Can you summarize the top 10 attributes and key columns inside the {clean_label.lower()} table?",
-                f"Show me the latest activity trends and records in {clean_label.lower()}."
-            ]
-                
         # 4. Parse edgeTables
         edges = []
         for et in metadata.get('edgeTables', []):
@@ -228,6 +282,20 @@ def discover_bq_graph_schema(project_id: str, dataset_id: str) -> Optional[dict]
                 "target": dest_id,
                 "label": label.upper()
             })
+            
+        # 5. Generate node suggestions (Try Gemini first, fallback to generic templates)
+        node_suggestions = generate_graph_node_suggestions(nodes, edges)
+        
+        # Ensure every node has suggestions (in case Gemini missed some or failed)
+        for n in nodes:
+            table_id = n["id"]
+            if table_id not in node_suggestions or len(node_suggestions[table_id]) < 3:
+                clean_label = n["label"].replace("_", " ").title()
+                node_suggestions[table_id] = [
+                    f"What are the most common relationships and connections starting from {clean_label.lower()}?",
+                    f"Can you summarize the top 10 attributes and key columns inside the {clean_label.lower()} table?",
+                    f"Show me the latest activity trends and records in {clean_label.lower()}."
+                ]
             
         res = {
             "nodes": nodes,

@@ -51,6 +51,55 @@ def get_agent_schema(agent_name: str, user: dict = Depends(get_current_user), cl
 
 
 
+def generate_record_suggestions(table_name: str, rows: list) -> list:
+    """Uses Gemini to dynamically generate 3 personalized, context-aware business questions
+    for each specific record row in the preview data.
+    """
+    if not rows:
+        return []
+        
+    from gemini_client import call_gemini
+    
+    system_instruction = (
+        "You are an expert database analyst. Generate highly-personalized, context-aware, and domain-specific "
+        "business query suggestions (query starters) for specific database record instances. "
+        "You will be provided with a table name and a list of specific record rows. "
+        "For each record row, generate exactly 3 suggested questions. "
+        "CRITICAL: The questions MUST be highly personalized to the specific record. You MUST explicitly reference "
+        "the actual values of the columns in the questions (e.g., use the actual name, ID, category, or status in the text) "
+        "so the user feels the questions are written specifically for that record. "
+        "The questions should ask about the record's connections, history, aggregations, or details. "
+        "\nReturn the result ONLY as a raw JSON array of lists, where each list contains exactly 3 questions corresponding to the row index. "
+        "Do not include any markdown formatting or backticks in your response. Example output format:\n"
+        "[\n"
+        "  [\"Question 1 for Row 0?\", \"Question 2 for Row 0?\", \"Question 3 for Row 0?\"],\n"
+        "  [\"Question 1 for Row 1?\", \"Question 2 for Row 1?\", \"Question 3 for Row 1?\"]\n"
+        "]"
+    )
+    
+    prompt = (
+        f"Table Name: {table_name}\n"
+        f"Records (Rows):\n{json.dumps(rows, indent=2)}\n"
+    )
+    
+    try:
+        raw_json = call_gemini(prompt, system_instruction, response_mime_type="application/json", temperature=0.3)
+        if raw_json:
+            cleaned = raw_json.strip()
+            if cleaned.startswith("```json"):
+                cleaned = cleaned[7:]
+            if cleaned.endswith("```"):
+                cleaned = cleaned[:-3]
+            parsed = json.loads(cleaned.strip())
+            if isinstance(parsed, list) and len(parsed) == len(rows):
+                logger.info(f"Successfully generated custom record suggestions via Gemini for {len(rows)} rows of table '{table_name}'")
+                return parsed
+    except Exception as ex:
+        logger.warning(f"Failed to generate custom record suggestions with Gemini: {ex}")
+    
+    return [[] for _ in rows]
+
+
 @router.get("/api/preview")
 def get_table_preview(
     table_name: str,
@@ -115,5 +164,16 @@ def get_table_preview(
         )
         
     # 3. Call our clean, modular live BigQuery preview function (timeout-enforced, 100% live!)
-    return get_live_table_preview(project_id, dataset_id, clean_name, user_token=x_gcp_user_token)
+    preview_data = get_live_table_preview(project_id, dataset_id, clean_name, user_token=x_gcp_user_token)
+    
+    # 4. Generate AI-powered record suggestions in the background/inline
+    if isinstance(preview_data, dict) and "rows" in preview_data:
+        rows = preview_data["rows"]
+        # Limit to first 3 rows (since the frontend only renders up to 3 satellites)
+        target_rows = rows[:3]
+        suggestions = generate_record_suggestions(clean_name, target_rows)
+        # Pad with empty lists if there are more rows in the preview than target_rows
+        preview_data["recordSuggestions"] = suggestions + [[] for _ in range(len(rows) - len(suggestions))]
+        
+    return preview_data
 

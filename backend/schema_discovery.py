@@ -312,11 +312,28 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
     # 8. Detect and Inject Graph Database Schema if it is a Graph Agent
     name_lower = agent.get("displayName", "").lower()
     desc_lower = agent.get("description", "").lower()
+    
+    # Base keyword detection
     is_graph_agent = (
         "graph" in name_lower or 
         "graph" in desc_lower or 
         any(k in name_lower or k in desc_lower for k in ["customer-360", "customer360", "c360", "customer 360"])
     )
+    
+    # Dynamic Graph Detection: if not detected by keywords, check if there is a property graph
+    # in the project whose dataset or graph name matches the agent's name/keywords.
+    if not is_graph_agent and not skip_db_scan:
+        active_project = get_project_id()
+        discovered_graphs = discover_project_graphs(active_project)
+        for g in discovered_graphs:
+            g_dataset = g["dataset_id"].lower()
+            g_name = g["graph_name"].lower()
+            # If the agent name matches the dataset or graph name, it's a graph agent!
+            if name_lower == g_dataset or name_lower == g_name or g_dataset in name_lower or g_name in name_lower:
+                is_graph_agent = True
+                logger.info(f"Dynamically classified Agent '{display_name}' as a Graph Agent because it matches discovered graph '{g_dataset}.{g_name}'")
+                break
+                
     agent["isGraphAgent"] = is_graph_agent
     
     if is_graph_agent:

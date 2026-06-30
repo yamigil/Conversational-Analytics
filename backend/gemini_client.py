@@ -11,12 +11,13 @@ def call_gemini(prompt: str, system_instruction: str = None, response_mime_type:
         credentials, project = google.auth.default(scopes=['https://www.googleapis.com/auth/cloud-platform'])
         session = AuthorizedSession(credentials)
         
-        # Use gemini-1.5-flash for fast and cost-effective generation
-        url = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{project}/locations/us-central1/publishers/google/models/gemini-1.5-flash:generateContent"
+        # Use gemini-2.5-flash (the stable foundation model available in this project)
+        url = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{project}/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent"
         
         parts = [{"text": prompt}]
         payload = {
-            "contents": [{"parts": parts}],
+            # gemini-2.5-flash strictly requires the 'role' field in content objects
+            "contents": [{"role": "user", "parts": parts}],
             "generationConfig": {
                 "temperature": temperature
             }

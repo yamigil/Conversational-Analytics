@@ -67,7 +67,7 @@ def generate_branding(req: GenerateBrandingRequest, user: dict = Depends(get_cur
 
         credentials, project = google.auth.default(scopes=['https://www.googleapis.com/auth/cloud-platform'])
         session = AuthorizedSession(credentials)
-        url = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{project}/locations/us-central1/publishers/google/models/gemini-1.5-flash:generateContent"
+        url = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{project}/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent"
         
         prompt_text = f"Generate a theme configuration for: {req.prompt}"
         if req.logo_svg_content:
@@ -87,7 +87,7 @@ def generate_branding(req: GenerateBrandingRequest, user: dict = Depends(get_cur
             })
             
         payload = {
-            "contents": [{"parts": parts}],
+            "contents": [{"role": "user", "parts": parts}],
             "generationConfig": {
                 "responseMimeType": "application/json",
                 "temperature": 0.2

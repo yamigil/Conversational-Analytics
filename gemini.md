@@ -152,5 +152,25 @@
 - **Vite Compilation**: Successfully compiled the updated frontend React assets and committed the rebuilt chunks to the repository.
 - **Fixed Branding Import Warnings**: Fixed a FastAPI warning in [backend/routers/branding.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/routers/branding.py#L19) where `FRONTEND_DIR` was referenced but not imported.
 
+---
 
+## Implemented Checklists & Milestones (Session 58 / Checkpoint 58)
 
+### 23. Vertex AI Gemini 2.5 Flash Upgrade & Payload Hardening
+- **Discovered Model Availability Mismatch**: Identified that calling the older `gemini-1.5-flash` model on Vertex AI returned a `404 Not Found` error in this project. Developed a diagnostic test script (`test_vertex_models.py`) to probe multiple models and regions.
+- **Upgraded to Gemini 2.5 Flash**: Discovered that the project has active access to the newer **`gemini-2.5-flash`** model. Upgraded both the core suggestion engine ([backend/gemini_client.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/gemini_client.py)) and the branding generator ([backend/routers/branding.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/routers/branding.py)) to target `gemini-2.5-flash`.
+- **Hardened Payload Structure**: Fixed a `400 Bad Request` payload error by adding the strictly required `"role": "user"` field in the `contents` list of the Vertex AI request payload, which is mandatory for Gemini 2.5 models.
+- **Activated AI-Powered Branding**: By resolving the Vertex AI model and payload issues, the branding generator now successfully runs via generative AI instead of silently falling back to the rules-based generator!
+
+### 24. IAM Role Propagation & Verification
+- **Resolved 403 Permission Denied**: Verified the successful propagation of the `Vertex AI User` (`roles/aiplatform.user`) role on the local/production service account (`demoportal@gilbertos-project-340619.iam.gserviceaccount.com`), enabling full authorized access to Vertex AI.
+- **Verified Localhost and Production Parity**: 
+  - Ran automated background tests proving that the backend successfully generates rich, domain-specific questions for property graphs (e.g. `item`, `location`, `itemlocation` in the `restaurant` agent).
+  - Committed and pushed all changes to the `showcase` and `main` branches, triggering GitHub Actions to build and deploy the updates to Cloud Run.
+  - Verified that the record-level satellite suggestions (which are not cached) began working **instantly and live** on both localhost and production, generating highly-personalized questions for individual records (e.g. `"Chicken Breast"`).
+  - Documented that the main node suggestions remain cached in the running local server until it is restarted, while the newly deployed production portals show them immediately.
+
+## Next Session Plans
+1. **Frontend Click Interception / Dropdown Focus Fix**: Investigate and resolve the event-handling bug where the first click on a suggested query card is intercepted by `handleClickOutside` if a dropdown is open, requiring a second click to submit.
+2. **Graph Query History Visualizer**: Highlight queried nodes and connection edges in the graph based on the user's active conversation history.
+3. **Custom Brand-Color Graph Propagations**: Connect the SVG flowing particles and halo glows directly to the active branding theme (`brandPrimaryColor`).

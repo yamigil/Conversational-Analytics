@@ -128,6 +128,8 @@ For data agents connected to a **BigQuery Graph database**, the portal replaces 
 ---
 
 ## Recent Updates & Fixes
+* **Vertex AI Gemini 2.5 Flash Upgrade**: Upgraded the core suggestion engine and branding generator from `gemini-1.5-flash` to `gemini-2.5-flash` to match the model availability of the project, resolving a 404 error.
+* **Strict Payload Hardening**: Added the mandatory `"role": "user"` field to the Vertex AI request payloads, resolving a 400 Bad Request error.
 * **Modular Architecture**: Re-architected `main.py` into modular route handlers (`chat`, `agents`, `telemetry`, `gcp`, etc.) to improve long-term maintainability.
 * **Vertex AI API Strict Location Routing**: Re-mapped data agent API queries to properly inject the dynamic region locations (e.g. `us`, `europe-west4`) during GCP API initialization to prevent "GCP Connection Offline" 403/400 Vertex AI rejection errors.
 * **TypeScript & GitHub Actions Resilience**: Stripped unused variables out of the Graph Visualizer React TSX nodes, preventing strict CI/CD TS compilers from blocking branch merges.
@@ -135,6 +137,7 @@ For data agents connected to a **BigQuery Graph database**, the portal replaces 
 
 ---
 *Active Telemetry Stream: `G-C0VB9XKP7E`*
+
 
 
 

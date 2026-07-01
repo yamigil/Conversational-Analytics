@@ -234,10 +234,10 @@ def generate_greeting(req: GenerateGreetingRequest, user: dict = Depends(get_cur
     try:
         credentials, project = google.auth.default(scopes=['https://www.googleapis.com/auth/cloud-platform'])
         session = AuthorizedSession(credentials)
-        url = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{project}/locations/us-central1/publishers/google/models/gemini-1.5-flash:generateContent"
+        url = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{project}/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent"
         
         payload = {
-            "contents": [{"parts": [{"text": f"Write a greeting for the brand: {req.brand_name}"}]}],
+            "contents": [{"role": "user", "parts": [{"text": f"Write a greeting for the brand: {req.brand_name}"}]}],
             "generationConfig": {
                 "temperature": 0.5
             },

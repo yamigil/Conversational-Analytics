@@ -71,6 +71,16 @@ interface ChatMessage {
   isStreaming?: boolean;
 }
 
+interface ConfirmModalState {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  confirmText?: string;
+  cancelText?: string;
+  isDanger?: boolean;
+}
+
 // React Component to Render Vega Charts
 // Markdown bullet normalizer
 const formatMarkdown = (text: string): string => {
@@ -973,6 +983,23 @@ const App: React.FC = () => {
   const [showConnDropdown, setShowConnDropdown] = useState(false);
   const [deletingConvoName, setDeletingConvoName] = useState<string | null>(null);
   const [isCreatingConvo, setIsCreatingConvo] = useState(false);
+  
+  const [confirmModal, setConfirmModal] = useState<ConfirmModalState>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    confirmText: "Confirm",
+    cancelText: "Cancel",
+    isDanger: false
+  });
+
+  const showConfirm = (options: Omit<ConfirmModalState, "isOpen">) => {
+    setConfirmModal({
+      isOpen: true,
+      ...options
+    });
+  };
   
   // Dynamic GCP Projects States
   const [gcpProjects, setGcpProjects] = useState<{ projectId: string; name: string }[]>([]);
@@ -1908,38 +1935,46 @@ const App: React.FC = () => {
     setIsSidebarOpen(false);
   };
 
-  const handleDeleteConvo = async (e: React.MouseEvent, convoName: string) => {
+  const handleDeleteConvo = (e: React.MouseEvent, convoName: string) => {
     e.stopPropagation();
-    if (!confirm("Are you sure you want to delete this conversation?")) return;
-
-    setDeletingConvoName(convoName);
-    try {
-      const res = await authenticatedFetch(`/api/conversations/${encodeURIComponent(convoName)}`, {
-        method: "DELETE"
-      });
-      if (res.ok) {
-        if (selectedConvo === convoName) {
-          const remaining = conversations.filter(c => c.name !== convoName);
-          if (remaining.length > 0) {
-            setSelectedConvo(remaining[0].name);
-            fetchMessages(remaining[0].name);
+    
+    showConfirm({
+      title: "Delete Conversation",
+      message: "Are you sure you want to permanently delete this conversation and its complete chat history? This action cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      isDanger: true,
+      onConfirm: async () => {
+        setDeletingConvoName(convoName);
+        try {
+          const res = await authenticatedFetch(`/api/conversations/${encodeURIComponent(convoName)}`, {
+            method: "DELETE"
+          });
+          if (res.ok) {
+            if (selectedConvo === convoName) {
+              const remaining = conversations.filter(c => c.name !== convoName);
+              if (remaining.length > 0) {
+                setSelectedConvo(remaining[0].name);
+                fetchMessages(remaining[0].name);
+              } else {
+                setSelectedConvo("");
+                setMessages([]);
+              }
+            }
+            if (selectedAgent) {
+              await fetchConversations(selectedAgent, undefined, true);
+            }
           } else {
-            setSelectedConvo("");
-            setMessages([]);
+            alert("Failed to delete conversation.");
           }
+        } catch (e) {
+          console.error(e);
+          alert("Failed to delete conversation.");
+        } finally {
+          setDeletingConvoName(null);
         }
-        if (selectedAgent) {
-          await fetchConversations(selectedAgent, undefined, true);
-        }
-      } else {
-        alert("Failed to delete conversation.");
       }
-    } catch (e) {
-      console.error(e);
-      alert("Failed to delete conversation.");
-    } finally {
-      setDeletingConvoName(null);
-    }
+    });
   };
 
   const handleStartNewConvo = async () => {
@@ -2392,56 +2427,61 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeleteBrand = async () => {
+  const handleDeleteBrand = () => {
     if (!branding) return;
     if (activeBrandKey === "default") {
       alert("The default Google Cloud theme cannot be deleted.");
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to delete the theme "${branding.brands[activeBrandKey]?.name}"?`)) {
-      return;
-    }
+    showConfirm({
+      title: "Delete Custom Theme",
+      message: `Are you sure you want to permanently delete the custom theme "${branding.brands[activeBrandKey]?.name}"? This action cannot be undone.`,
+      confirmText: "Delete Theme",
+      cancelText: "Cancel",
+      isDanger: true,
+      onConfirm: async () => {
+        const updatedBrands = { ...branding.brands };
+        delete updatedBrands[activeBrandKey];
 
-    const updatedBrands = { ...branding.brands };
-    delete updatedBrands[activeBrandKey];
+        const updated: BrandingData = {
+          activeBrand: "default",
+          brands: updatedBrands
+        };
 
-    const updated: BrandingData = {
-      activeBrand: "default",
-      brands: updatedBrands
-    };
+        try {
+          const res = await authenticatedFetch("/api/branding", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updated)
+          });
 
-    try {
-      const res = await authenticatedFetch("/api/branding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updated)
-      });
+          if (res.ok) {
+            setBranding(updated);
+            setActiveBrandKey("default");
+            setAppActiveBrandKey("default");
+            localStorage.setItem("ca_active_brand", "default");
+            const defaultBrand = updated.brands["default"];
+            setBrandName(defaultBrand.name);
+            setBrandPrimary(defaultBrand.primaryColor);
+            setBrandSecondary(defaultBrand.secondaryColor);
+            setBrandBgStart(defaultBrand.backgroundColorStart);
+            setBrandBgEnd(defaultBrand.backgroundColorEnd);
+            setBrandLogoText(defaultBrand.logoText);
+            setBrandWelcome(defaultBrand.welcomeMessage);
+            setBrandLogoSvg(defaultBrand.logoSvg || "");
+            applyBrandingCSS(defaultBrand);
 
-      if (res.ok) {
-        setBranding(updated);
-        setActiveBrandKey("default");
-        setAppActiveBrandKey("default");
-        localStorage.setItem("ca_active_brand", "default");
-        const defaultBrand = updated.brands["default"];
-        setBrandName(defaultBrand.name);
-        setBrandPrimary(defaultBrand.primaryColor);
-        setBrandSecondary(defaultBrand.secondaryColor);
-        setBrandBgStart(defaultBrand.backgroundColorStart);
-        setBrandBgEnd(defaultBrand.backgroundColorEnd);
-        setBrandLogoText(defaultBrand.logoText);
-        setBrandWelcome(defaultBrand.welcomeMessage);
-        setBrandLogoSvg(defaultBrand.logoSvg || "");
-        applyBrandingCSS(defaultBrand);
-
-        setSettingsSaveResult("Theme deleted successfully!");
-        setTimeout(() => setSettingsSaveResult(""), 3000);
-      } else {
-        throw new Error("API call returned failure");
+            setSettingsSaveResult("Theme deleted successfully!");
+            setTimeout(() => setSettingsSaveResult(""), 3000);
+          } else {
+            throw new Error("API call returned failure");
+          }
+        } catch (e: any) {
+          setSettingsSaveResult(`Error deleting theme: ${e.message}`);
+        }
       }
-    } catch (e: any) {
-      setSettingsSaveResult(`Error deleting theme: ${e.message}`);
-    }
+    });
   };
 
 
@@ -4300,6 +4340,48 @@ const App: React.FC = () => {
                   ⚙️
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Custom Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-slate-900/90 border border-white/10 rounded-3xl max-w-md w-full p-6 shadow-2xl shadow-black/80 flex flex-col gap-5 animate-zoomIn">
+            <div className="flex gap-4 items-start">
+              <div className={`p-3 rounded-2xl shrink-0 ${confirmModal.isDanger ? 'bg-red-500/10 text-red-400' : 'bg-brand-primary/10 text-brand-primary'}`}>
+                <AlertTriangle size={24} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <h3 className="text-base font-bold text-white tracking-wide">
+                  {confirmModal.title}
+                </h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  {confirmModal.message}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 justify-end mt-2">
+              <button
+                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-white/5 border border-white/6 hover:bg-white/10 rounded-xl transition cursor-pointer"
+              >
+                {confirmModal.cancelText || "Cancel"}
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                  confirmModal.onConfirm();
+                }}
+                className={`px-5 py-2 text-xs font-semibold rounded-xl text-white transition cursor-pointer ${
+                  confirmModal.isDanger 
+                    ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 shadow-md shadow-red-950/30' 
+                    : 'bg-brand-primary hover:bg-brand-primary/95 shadow-md shadow-brand-primary/10'
+                }`}
+              >
+                {confirmModal.confirmText || "Confirm"}
+              </button>
             </div>
           </div>
         </div>

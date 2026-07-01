@@ -203,10 +203,14 @@
 - **Forced Action Steps (Disabled Next Button)**: Excluded steps 16 (Clean Slate), 17 (Show Schema), and 19 (Show Thinking) from rendering the `Next` button inside [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L4281). Users are now forced to click the targeted buttons (+, Show Schema, Show thinking) to advance the walkthrough, avoiding out-of-order flows.
 - **Dynamic Action Prompts**: Replaced the Next button on these steps with pulsing action reminders (e.g. `"Click + button"`, `"Click 'Show Schema'"`, `"Click 'Show thinking'"`), clarifying the required user action.
 
+### 31. Step 17 (Show Schema) Tour Advance Fix
+- **Click Event Hook**: Added a tour step advancement check to the `onClick` handler of the `toggle-schema-btn` inside [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L3122). Clicking the "Show Schema" button during Step 17 now correctly advances the onboarding tour to Step 18 ("Demo: Ask a Question") as expected, rather than remaining stuck on the schema toggle explanation card.
+
 ## Next Session Plans
 1. **Frontend Click Interception / Dropdown Focus Fix**: Resolve the event-handling bug where the first click on a suggested query card is intercepted by `handleClickOutside` if a dropdown is open, requiring a second click to submit.
 2. **Graph Query History Visualizer**: Highlight queried nodes and connection edges in the graph based on the user's active conversation history.
 3. **Custom Brand-Color Graph Propagations**: Connect the SVG flowing particles and halo glows directly to the active branding theme (`brandPrimaryColor`).
+
 
 
 

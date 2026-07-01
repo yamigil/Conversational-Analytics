@@ -206,10 +206,16 @@
 ### 31. Step 17 (Show Schema) Tour Advance Fix
 - **Click Event Hook**: Added a tour step advancement check to the `onClick` handler of the `toggle-schema-btn` inside [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L3122). Clicking the "Show Schema" button during Step 17 now correctly advances the onboarding tour to Step 18 ("Demo: Ask a Question") as expected, rather than remaining stuck on the schema toggle explanation card.
 
+### 32. Interactive "Collapse Schema" Step & Upward Tooltip Arrow Alignment
+- **Step 18 (Collapse Schema) Insertion**: Added a new logical step 18 to the onboarding walkthrough inside [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L1176). This guides the user to browse the table structures and then collapse the schema drawer by clicking "Hide Schema" to return to the chat view, rather than jumping directly to the query input card while the drawer is still expanded.
+- **Forced Collapse Action (No Next Button)**: Removed the `Next` button from Step 18 and set the pulsing description label to `"Click 'Hide Schema'"`, forcing users to click the button to advance the tour.
+- **Downward-Pointing Tooltip Relocation (Step 20)**: Modified the layout rules inside [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L1769). Step 20 ("Show Thinking Process") is now positioned **below** the "Show thinking" toggle button (taking advantage of the empty space below, rather than overlapping the avatar bubble above). The tooltip card is styled with `top: rect.bottom + 12px`, and renders an upward-pointing arrow (`-top-2 left-6`) that points directly up into the center of the glowing "Show thinking" button, ensuring 100% correct alignment.
+
 ## Next Session Plans
 1. **Frontend Click Interception / Dropdown Focus Fix**: Resolve the event-handling bug where the first click on a suggested query card is intercepted by `handleClickOutside` if a dropdown is open, requiring a second click to submit.
 2. **Graph Query History Visualizer**: Highlight queried nodes and connection edges in the graph based on the user's active conversation history.
 3. **Custom Brand-Color Graph Propagations**: Connect the SVG flowing particles and halo glows directly to the active branding theme (`brandPrimaryColor`).
+
 
 
 

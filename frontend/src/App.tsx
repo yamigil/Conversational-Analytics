@@ -3537,7 +3537,10 @@ const App: React.FC = () => {
 
               {/* Loader Typing Bubble */}
               {isQuerying && streamingMessages.length === 0 && (
-                <div id="agent-thinking-bubble" className="flex gap-4 max-w-[85%] self-start animate-slideIn">
+                <div 
+                  id="agent-thinking-bubble" 
+                  className={`flex gap-4 max-w-[85%] self-start animate-slideIn ${tourStep === 19 ? 'tour-highlight p-2 rounded-2xl bg-white/2 border border-white/6' : ''}`}
+                >
                   <div className="w-9 h-9 rounded-full bg-white/5 border border-white/6 flex items-center justify-center font-heading font-semibold text-xs shrink-0 select-none">
                     {renderLogoSvg(appActiveBrandKey)}
                   </div>

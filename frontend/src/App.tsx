@@ -3084,7 +3084,7 @@ const App: React.FC = () => {
               if (page === "chat") {
                 setSelectedConvo("");
                 setMessages([]);
-                if (tourStep === 8) {
+                if (tourStep === 7 || tourStep === 8) {
                   setTourStep(9);
                 }
               }
@@ -4278,7 +4278,7 @@ const App: React.FC = () => {
                         Back
                       </button>
                     )}
-                    {tourStep !== 1 && tourStep !== 8 && tourStep !== 14 && tourStep !== 15 && tourStep !== 18 ? (
+                    {tourStep !== 1 && tourStep !== 8 && tourStep !== 14 && tourStep !== 15 && tourStep !== 16 && tourStep !== 17 && tourStep !== 18 && tourStep !== 19 ? (
                       <button 
                         onClick={handleNextTour}
                         className="py-1.5 px-3.5 bg-brand-primary hover:opacity-90 text-white rounded-lg text-xs font-semibold cursor-pointer transition shadow-md border-none"
@@ -4291,6 +4291,8 @@ const App: React.FC = () => {
                          tourStep === 8 ? "Click card to proceed" : 
                          tourStep === 14 ? "Select an agent" : 
                          tourStep === 15 ? "Choose thinking mode" : 
+                         tourStep === 16 ? "Click + button" :
+                         tourStep === 17 ? "Click 'Show Schema'" :
                          tourStep === 18 ? "Submit query or pill" : 
                          "Click 'Show thinking'"}
                       </span>

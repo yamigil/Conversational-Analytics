@@ -3572,7 +3572,7 @@ const App: React.FC = () => {
             <div className="px-4 md:px-10 pb-4 md:pb-8 pt-2 mt-auto">
               <div 
                 id="chat-input-container"
-                className={`glass-panel flex flex-col gap-2 px-4 md:px-6 py-3 md:py-4 rounded-2xl shadow-xl ${(tourStep === 18) ? 'tour-highlight' : ''}`}
+                className={`glass-panel flex flex-col gap-2 px-4 md:px-6 py-3 md:py-4 rounded-2xl shadow-xl ${(tourStep === 19) ? 'tour-highlight' : ''}`}
               >
                 <textarea 
                   ref={textareaRef}
@@ -4170,29 +4170,7 @@ const App: React.FC = () => {
           className="absolute bg-slate-900/98 border border-amber-500/55 p-5 rounded-2xl shadow-[0_0_30px_rgba(245,158,11,0.18)] z-[9999] w-[340px] flex flex-col gap-3.5 select-none"
           style={tooltipStyle}
         >
-          {/* Arrow indicator */}
-          {window.innerWidth >= 768 && (() => {
-            const isThinkingBubble = tourStep === 19 && !document.getElementById("show-thinking-btn");
-            return (
-              <>
-                {(tourStep === 1 || tourStep === 6 || tourStep === 13 || tourStep === 17 || isThinkingBubble) && (
-                  <div className={`absolute -top-2 ${tourStep === 1 || tourStep === 13 || tourStep === 17 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-t border-l border-amber-500/55 rotate-45`} />
-                )}
-                {(tourStep === 2 || tourStep === 9 || tourStep === 10 || tourStep === 14 || tourStep === 16) && (
-                  <div className="absolute -left-2 top-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
-                )}
-                {(tourStep === 11 || tourStep === 15) && (
-                  <div className="absolute -left-2 bottom-6 w-4 h-4 bg-slate-900 border-b border-l border-amber-500/55 rotate-45" />
-                )}
-                {(tourStep === 3 || tourStep === 12) && (
-                  <div className="absolute -right-2 top-6 w-4 h-4 bg-slate-900 border-t border-r border-amber-500/55 rotate-45" />
-                )}
-                {(tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 18 || (tourStep === 19 && !isThinkingBubble) || tourStep === 20) && (
-                  <div className={`absolute -bottom-2 ${tourStep === 4 || tourStep === 5 ? 'right-6' : 'left-6'} w-4 h-4 bg-slate-900 border-b border-r border-amber-500/55 rotate-45`} />
-                )}
-              </>
-            );
-          })()}
+
 
           {/* Content */}
           <div className="flex items-center gap-2">

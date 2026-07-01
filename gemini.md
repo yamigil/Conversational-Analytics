@@ -198,9 +198,15 @@
 - **Flawless Layout Tracking**: Verified that when the "Show thinking" toggle button appears, the tour tooltip cleanly points directly at it with a bottom-pointing arrow (`-bottom-2 left-6` and `bottom` relative styling), ensuring the arrow position is 100% correct in the current version of the codebase.
 - **Fast vs. Thinking Mode Latency Verification**: Confirmed that the "Fast Answer" vs "In-Depth Analysis" toggle guides the model's response length by injecting formatting instructions (e.g. `provide a fast, direct, and concise answer`), but overall latency is dominated by BigQuery query compilation and execution. Verified the backend cache yields a **32,000x speedup** on subsequent agent selections, loading schemas in **0.0012 seconds**.
 
+### 30. Hardened Tour Flow & Action Enforcement
+- **Dashboard Navigation Self-Healing**: Modified the `onNavigate` handler in [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L3084). If a user clicks "Launch Conversational Analytics" on Step 7 (which navigates to the chat page), the tour automatically heals itself, skips Step 8, and advances directly to Step 9, preventing an orphaned/broken tour state.
+- **Forced Action Steps (Disabled Next Button)**: Excluded steps 16 (Clean Slate), 17 (Show Schema), and 19 (Show Thinking) from rendering the `Next` button inside [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L4281). Users are now forced to click the targeted buttons (+, Show Schema, Show thinking) to advance the walkthrough, avoiding out-of-order flows.
+- **Dynamic Action Prompts**: Replaced the Next button on these steps with pulsing action reminders (e.g. `"Click + button"`, `"Click 'Show Schema'"`, `"Click 'Show thinking'"`), clarifying the required user action.
+
 ## Next Session Plans
 1. **Frontend Click Interception / Dropdown Focus Fix**: Resolve the event-handling bug where the first click on a suggested query card is intercepted by `handleClickOutside` if a dropdown is open, requiring a second click to submit.
 2. **Graph Query History Visualizer**: Highlight queried nodes and connection edges in the graph based on the user's active conversation history.
 3. **Custom Brand-Color Graph Propagations**: Connect the SVG flowing particles and halo glows directly to the active branding theme (`brandPrimaryColor`).
+
 
 

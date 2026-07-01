@@ -213,5 +213,25 @@ body::after {
   max-width: 16px !important;
   max-height: 16px !important;
   display: block;
+}.bg-particle-1 {
+  animation: float-slow 15s ease-in-out infinite;
+}
+.bg-particle-2 {
+  animation: float-slower 25s ease-in-out infinite;
+}
+.bg-particle-3 {
+  animation: float-fast 12s ease-in-out infinite;
 }
 
+@keyframes float-slow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(50px, 50px) scale(1.1); }
+}
+@keyframes float-slower {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-60px, 40px) scale(0.9); }
+}
+@keyframes float-fast {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(35px, -35px) scale(1.05); }
+}

@@ -1891,9 +1891,9 @@ const App: React.FC = () => {
       } else {
         setTourStep(16);
       }
-    } else if (tourStep >= 14 && tourStep <= 19) {
+    } else if (tourStep >= 14 && tourStep <= 20) {
       setTourStep(tourStep + 1);
-    } else if (tourStep === 20) {
+    } else if (tourStep === 21) {
       setTourStep(0);
       sessionStorage.setItem("ca_visited_tour", "true");
     }
@@ -2693,7 +2693,20 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
+    <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans relative">
+      {/* Background ambient glowing particles */}
+      <div 
+        className="pointer-events-none fixed -top-40 -left-40 w-[600px] h-[600px] rounded-full blur-[160px] bg-particle-1 z-0 opacity-[0.08]" 
+        style={{ backgroundColor: `hsl(${brandPrimary || '217 89% 61%'})` }}
+      />
+      <div 
+        className="pointer-events-none fixed -bottom-40 -right-40 w-[700px] h-[700px] rounded-full blur-[180px] bg-particle-2 z-0 opacity-[0.04]" 
+        style={{ backgroundColor: `hsl(${brandPrimary || '217 89% 61%'})` }}
+      />
+      <div 
+        className="pointer-events-none fixed top-1/4 left-1/3 w-[450px] h-[450px] rounded-full blur-[130px] bg-particle-3 z-0 opacity-[0.04]" 
+        style={{ backgroundColor: `hsl(${brandPrimary || '217 89% 61%'})` }}
+      />
       
       {/* Global Header Banner */}
       {user && (

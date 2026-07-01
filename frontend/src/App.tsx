@@ -1764,12 +1764,12 @@ const App: React.FC = () => {
         return;
       }
       
-      if (tourStep === 1 || tourStep === 6 || tourStep === 13 || tourStep === 17 || tourStep === 18 || tourStep === 20) {
+      if (tourStep === 1 || tourStep === 6 || tourStep === 13 || tourStep === 17 || tourStep === 18) {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.bottom + 12}px`,
           right: (tourStep === 1 || tourStep === 13 || tourStep === 17 || tourStep === 18) ? `${window.innerWidth - rect.right}px` : undefined,
-          left: (tourStep === 6 || tourStep === 20) ? `${rect.left}px` : undefined,
+          left: (tourStep === 6) ? `${rect.left}px` : undefined,
           zIndex: 9999,
           opacity: 1,
           transition: 'opacity 0.15s ease, transform 0.15s ease'
@@ -1792,7 +1792,7 @@ const App: React.FC = () => {
           opacity: 1,
           transition: 'opacity 0.15s ease, transform 0.15s ease'
         });
-      } else if (tourStep === 3 || tourStep === 12) {
+      } else if (tourStep === 3 || tourStep === 12 || tourStep === 20 || tourStep === 21) {
         setTooltipStyle({
           position: 'fixed',
           top: `${rect.top - 10}px`,
@@ -1801,7 +1801,7 @@ const App: React.FC = () => {
           opacity: 1,
           transition: 'opacity 0.15s ease, transform 0.15s ease'
         });
-      } else if (tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 19 || tourStep === 21) {
+      } else if (tourStep === 4 || tourStep === 5 || tourStep === 7 || tourStep === 8 || tourStep === 19) {
         const useRightAlign = (tourStep === 4 || tourStep === 5);
         setTooltipStyle({
           position: 'fixed',

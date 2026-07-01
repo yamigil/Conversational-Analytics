@@ -216,6 +216,48 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   const [isPreviewLoading, setIsPreviewLoading] = useState<boolean>(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
 
+  // Interactive drag-to-pan & zoom states for the canvas
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
+  // 3D perspective tilting tilt states
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+
+  const handleMouseMoveTilt = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5; // -0.5 to 0.5
+    const y = (e.clientY - rect.top) / rect.height - 0.5; // -0.5 to 0.5
+    setTilt({ x: x * 8, y: -y * 8 }); // Max 8 degrees subtle tilt
+  };
+
+  const handleMouseLeaveTilt = () => {
+    setTilt({ x: 0, y: 0 });
+    setIsPanning(false);
+  };
+
+  const handleMouseDownPan = (e: React.MouseEvent<SVGSVGElement>) => {
+    const tagName = (e.target as SVGElement).tagName;
+    if (tagName === "svg" || (e.target as SVGElement).id === "pan-bg-rect") {
+      setIsPanning(true);
+      setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    }
+  };
+
+  const handleMouseMovePan = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (isPanning) {
+      setPan({
+        x: e.clientX - panStart.x,
+        y: e.clientY - panStart.y
+      });
+    }
+  };
+
+  const handleMouseUpPan = () => {
+    setIsPanning(false);
+  };
+
   // Check if we should use the preset showcase layout
   const usePresetLayout = graphData.nodes.every(n => PRESET_COORDINATES[n.id]);
 
@@ -393,7 +435,16 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     return (
       <div className="w-full flex flex-col gap-6 select-none max-w-4xl mx-auto animate-fadeIn">
         {/* Tables Grid Layout */}
-        <div className="relative w-full bg-slate-950/60 border border-white/10 rounded-3xl p-6 backdrop-blur-md shadow-2xl flex flex-col gap-5 overflow-hidden">
+        <div 
+          onMouseMove={handleMouseMoveTilt}
+          onMouseLeave={handleMouseLeaveTilt}
+          style={{
+            transform: `perspective(1000px) rotateX(${tilt.y}deg) rotateY(${tilt.x}deg)`,
+            transition: 'transform 0.15s ease-out',
+            transformStyle: 'preserve-3d'
+          }}
+          className="relative w-full bg-slate-950/60 border border-white/10 rounded-3xl p-6 backdrop-blur-md shadow-2xl flex flex-col gap-5 overflow-hidden"
+        >
           {/* Grid background */}
           <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.025)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
           
@@ -630,16 +681,64 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   return (
     <div className="w-full flex flex-col gap-6 items-center pt-0 pb-2 select-none max-w-7xl mx-auto animate-fadeIn">
       {/* 1. Interactive Animated SVG Graph Canvas */}
-      <div className="relative w-full bg-slate-950/60 border border-white/10 rounded-3xl p-4 backdrop-blur-md shadow-2xl flex items-center justify-center overflow-hidden aspect-[16/9] md:aspect-[2/1] w-full">
+      <div 
+        onMouseMove={handleMouseMoveTilt}
+        onMouseLeave={handleMouseLeaveTilt}
+        style={{
+          transform: `perspective(1000px) rotateX(${tilt.y}deg) rotateY(${tilt.x}deg)`,
+          transition: 'transform 0.15s ease-out',
+          transformStyle: 'preserve-3d'
+        }}
+        className="relative w-full bg-slate-950/60 border border-white/10 rounded-3xl p-4 backdrop-blur-md shadow-2xl flex items-center justify-center overflow-hidden aspect-[16/9] md:aspect-[2/1] w-full"
+      >
         {/* Grid background */}
         <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.025)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
         
+        {/* Floating Pan & Zoom Controls UI */}
+        <div className="absolute bottom-4 right-4 flex gap-1.5 z-20">
+          <button 
+            onClick={(e) => { e.stopPropagation(); setZoom(z => Math.min(z * 1.1, 2.5)); }}
+            className="w-7 h-7 bg-slate-900/80 hover:bg-slate-800 border border-white/10 rounded-lg text-slate-300 flex items-center justify-center text-xs font-bold transition cursor-pointer select-none"
+            title="Zoom In"
+          >
+            +
+          </button>
+          <button 
+            onClick={(e) => { e.stopPropagation(); setZoom(z => Math.max(z / 1.1, 0.6)); }}
+            className="w-7 h-7 bg-slate-900/80 hover:bg-slate-800 border border-white/10 rounded-lg text-slate-300 flex items-center justify-center text-xs font-bold transition cursor-pointer select-none"
+            title="Zoom Out"
+          >
+            -
+          </button>
+          <button 
+            onClick={(e) => { e.stopPropagation(); setPan({ x: 0, y: 0 }); setZoom(1); }}
+            className="px-2 h-7 bg-slate-900/80 hover:bg-slate-800 border border-white/10 rounded-lg text-slate-300 flex items-center justify-center text-[10px] font-bold uppercase tracking-wider transition cursor-pointer select-none"
+            title="Reset View"
+          >
+            Reset
+          </button>
+        </div>
+
         <svg 
           viewBox="0 -30 800 505" 
-          className="w-full h-full overflow-visible cursor-default"
-          onClick={() => {
-            setSelectedNode(null);
-            setSelectedInstance(null);
+          className={`w-full h-full overflow-visible ${isPanning ? 'cursor-grabbing' : 'cursor-default'}`}
+          onMouseDown={handleMouseDownPan}
+          onMouseMove={handleMouseMovePan}
+          onMouseUp={handleMouseUpPan}
+          onMouseLeave={handleMouseUpPan}
+          onWheel={(e) => {
+            const zoomFactor = 1.08;
+            if (e.deltaY < 0) {
+              setZoom(z => Math.min(z * zoomFactor, 2.5));
+            } else {
+              setZoom(z => Math.max(z / zoomFactor, 0.6));
+            }
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget || (e.target as SVGElement).id === "pan-bg-rect") {
+              setSelectedNode(null);
+              setSelectedInstance(null);
+            }
           }}
         >
           <defs>
@@ -692,6 +791,10 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
             </marker>
           </defs>
           
+          {/* Invisible backdrop rect to capture panning drags anywhere in the SVG container */}
+          <rect id="pan-bg-rect" width="1200" height="800" x="-200" y="-150" fill="transparent" />
+
+          <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
           {/* Subtle watermark of the brand logo in the background */}
           {brandLogoSvg ? (
             <g 
@@ -1043,6 +1146,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                 </g>
               );
             })}
+          </g>
           </g>
         </svg>
         

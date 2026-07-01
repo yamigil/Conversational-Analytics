@@ -161,14 +161,17 @@ const parseSingleSystemMessageText = (parts: string[]): SystemMessagePart => {
   }
 
   if (parts.length === 2) {
+    const isFirstPartThoughtTitle = parts[0].trim().length < 80 && !parts[0].includes('\n') && !parts[0].toLowerCase().includes('select ');
     if (isStatus(parts[0])) {
       statuses.push(parts[0].trim());
       statuses.push(parts[1].trim());
-    } else {
+    } else if (isFirstPartThoughtTitle) {
       thoughts.push({
         title: parts[0].trim(),
         body: parts[1].trim()
       });
+    } else {
+      answer = parts.join("\n\n");
     }
   } else if (parts.length === 1) {
     const trimmed = parts[0].trim();
@@ -178,7 +181,18 @@ const parseSingleSystemMessageText = (parts: string[]): SystemMessagePart => {
       answer = parts[0];
     }
   } else if (parts.length >= 3) {
-    suggestions.push(...parts.map(p => p.trim()));
+    const areAllSuggestions = parts.every(p => p.trim().length < 120 && !p.includes('\n') && !p.toLowerCase().includes('select ') && !p.toLowerCase().includes('from '));
+    if (areAllSuggestions) {
+      suggestions.push(...parts.map(p => p.trim()));
+    } else {
+      const insightPartIdx = parts.findIndex(p => p.trim().startsWith("### Insights") || p.trim().startsWith("Insights") || p.trim().toLowerCase().startsWith("**insights**"));
+      if (insightPartIdx !== -1) {
+        insights = parts[insightPartIdx];
+        answer = parts.filter((_, idx) => idx !== insightPartIdx).join("\n\n");
+      } else {
+        answer = parts.join("\n\n");
+      }
+    }
   }
 
   return { statuses, thoughts, answer, insights, suggestions };
@@ -2697,18 +2711,18 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans relative">
+    <div className="flex flex-col h-screen w-screen bg-transparent text-slate-100 overflow-hidden font-sans relative">
       {/* Background ambient glowing particles */}
       <div 
-        className="pointer-events-none fixed -top-40 -left-40 w-[600px] h-[600px] rounded-full blur-[160px] bg-particle-1 z-0 opacity-[0.08]" 
+        className="pointer-events-none fixed -top-40 -left-40 w-[600px] h-[600px] rounded-full blur-[160px] bg-particle-1 z-0 opacity-[0.15]" 
         style={{ backgroundColor: `hsl(${brandPrimary || '217 89% 61%'})` }}
       />
       <div 
-        className="pointer-events-none fixed -bottom-40 -right-40 w-[700px] h-[700px] rounded-full blur-[180px] bg-particle-2 z-0 opacity-[0.04]" 
+        className="pointer-events-none fixed -bottom-40 -right-40 w-[700px] h-[700px] rounded-full blur-[180px] bg-particle-2 z-0 opacity-[0.1]" 
         style={{ backgroundColor: `hsl(${brandPrimary || '217 89% 61%'})` }}
       />
       <div 
-        className="pointer-events-none fixed top-1/4 left-1/3 w-[450px] h-[450px] rounded-full blur-[130px] bg-particle-3 z-0 opacity-[0.04]" 
+        className="pointer-events-none fixed top-1/4 left-1/3 w-[450px] h-[450px] rounded-full blur-[130px] bg-particle-3 z-0 opacity-[0.1]" 
         style={{ backgroundColor: `hsl(${brandPrimary || '217 89% 61%'})` }}
       />
       
@@ -2802,7 +2816,7 @@ const App: React.FC = () => {
                   </button>
                   
                   {showConnDropdown && (
-                    <div className={`absolute top-full right-0 mt-2 w-64 bg-slate-950/95 border border-white/8 rounded-xl shadow-xl overflow-hidden backdrop-blur-md animate-slideDown flex flex-col ${tourStep > 0 ? 'z-[2000]' : 'z-50'}`}>
+                    <div className={`absolute top-full right-0 mt-2 w-64 bg-slate-950/95 border border-white/8 rounded-xl shadow-xl overflow-visible backdrop-blur-md animate-slideDown flex flex-col ${tourStep > 0 ? 'z-[2000]' : 'z-50'}`}>
                       <div className="px-3 py-2 bg-white/3 border-b border-white/6 text-[9px] font-bold uppercase tracking-wider text-slate-400 select-none text-left">
                         Active Identity
                       </div>

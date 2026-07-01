@@ -224,6 +224,26 @@
 - **Drag-to-Pan Click Distance Check**: Solved the state reset bug where panning/dragging the visualizer canvas would accidentally trigger the background `onClick` handler and collapse open subnodes. Added a pixel distance threshold (`distance > 5` inside [GraphVisualizer.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/components/GraphVisualizer.tsx#L739)) to distinguish panning drags from intentional background clicks.
 - **Cascading Table Row Slides & Chart Entrances**: Implemented a smooth scale-in animation for Vega charts and a staggered slide-up animation (`animate-row-slide`) on database table rows inside [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L581) to load rows sequentially.
 
+## Implemented Checklists & Milestones (Session 67 / Checkpoint 67)
+
+### 36. Premium Radial Gradient Background & Ambient Glowing Particles
+- **Visible Gradient Layout**: Removed the solid dark class `bg-slate-950` from the root application wrapper container in [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L2714) and set it to `bg-transparent`.
+- **Opacities and Highlights**: Increased the opacities of the glowing ambient background particles (`0.15` and `0.1`), allowing the premium radial gradient from [index.css](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/index.css#L21-L29) to dynamically show through the glassmorphic panels.
+
+### 37. Fixed GCP Credentials Region Selector Clipping
+- **CustomSelect Overflow Recovery**: Replaced `overflow-hidden` with `overflow-visible` on the main active identity dropdown popover wrapper in [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L2819).
+- **Result**: Allows the nested regional dropdowns to overflow beyond the container boundaries and display all selection options clearly.
+
+### 38. Robust Message Parts Parser & Populated Agent Responses
+- **Multi-Part Message Parser Fix**: Patched `parseSingleSystemMessageText` in [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L151-L185) to distinguish multi-part agent responses (text answer paragraphs, thoughts, SQL queries, or data insights) from lists of follow-up suggestions.
+- **Robust Selection Criteria**: The parser now only treats a system message as suggestions if ALL parts are short (under 120 chars) and free of SQL/newlines. Otherwise, it merges them as the main text answer.
+- **Result**: Resolved the issue where executing a graph query or selecting a suggested query card from the visualizer would return a blank agent chat bubble.
+
+### 39. Visual Validation on Localhost
+- **E2E Visual Verification**: Ran automated browser subagents on `http://localhost:8000/` to test both credentials region selectors and Penske Customer 360 graph schema queries, taking screenshots to confirm everything is fully populated.
+
+---
+
 ## Next Session Plans
 1. **Frontend Click Interception / Dropdown Focus Fix**: Resolve the event-handling bug where the first click on a suggested query card is intercepted by `handleClickOutside` if a dropdown is open, requiring a second click to submit.
 2. **Graph Query History Visualizer**: Highlight queried nodes and connection edges in the graph based on the user's active conversation history.

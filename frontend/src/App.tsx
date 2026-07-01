@@ -278,7 +278,7 @@ const MessageThinkingBlock: React.FC<{
   const [isOpen, setIsOpen] = useState(false);
 
   // Inject mock thoughts/statuses during Step 19 & 20 of the walkthrough to guarantee the collapsible panel is visible and interactive!
-  const isTourThinkingStep = tourStep === 19 || tourStep === 20;
+  const isTourThinkingStep = tourStep === 19 || tourStep === 20 || tourStep === 21;
   const displayStatuses = (statuses.length === 0 && isTourThinkingStep)
     ? ["Analyzing user greeting", "Checking database schemas", "Preparing capabilities response"]
     : statuses;

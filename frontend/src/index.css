@@ -246,13 +246,18 @@ body::after {
     0 0 16px rgba(59, 130, 246, 0.1);
 }
 
-.graph-node-3d {
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  transform-box: fill-box;
-  transform-origin: center;
+.graph-core-circle {
+  transition: r 0.25s cubic-bezier(0.16, 1, 0.3, 1), stroke-width 0.25s ease;
 }
-.graph-node-3d:hover {
-  transform: scale(1.1);
+.group:hover .graph-core-circle {
+  r: 31px;
+}
+
+.graph-glossy-circle {
+  transition: r 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.group:hover .graph-glossy-circle {
+  r: 31px;
 }
 
 .animate-row-slide {

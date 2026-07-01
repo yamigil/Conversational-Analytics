@@ -1063,7 +1063,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                 <g
                   key={node.id}
                   transform={`translate(${node.x}, ${node.y})`}
-                  className="cursor-pointer group graph-node-3d"
+                  className="cursor-pointer group"
                   onMouseEnter={() => setHoveredNode(node.id)}
                   onMouseLeave={() => setHoveredNode(null)}
                   onClick={(e) => {
@@ -1169,12 +1169,12 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     fill={isSelected ? "rgba(15, 23, 42, 0.95)" : "rgba(17, 24, 39, 0.85)"}
                     stroke={isSelected || isHovered ? nodeColor : "rgba(255,255,255,0.2)"}
                     strokeWidth={isSelected || isHovered ? "2.5" : "1.5"}
-                    className={`transition-all duration-300 ${isDimmed ? "opacity-30" : "opacity-100"}`}
+                    className={`transition-all duration-300 graph-core-circle ${isDimmed ? "opacity-30" : "opacity-100"}`}
                   />
                   <circle
                     r="28"
                     fill="url(#glossy-3d-gradient)"
-                    className={`pointer-events-none transition-all duration-300 ${isDimmed ? "opacity-30" : "opacity-100"}`}
+                    className={`pointer-events-none transition-all duration-300 graph-glossy-circle ${isDimmed ? "opacity-30" : "opacity-100"}`}
                   />
 
                   {/* Semantic Icon - scaled up from 20 to 22, aligned using translate(-11, -11) */}

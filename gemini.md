@@ -244,6 +244,24 @@
 
 ---
 
+## Implemented Checklists & Milestones (Session 68 / Checkpoint 68)
+
+### 40. Disabled 3D Perspective Layout Tilting
+- **Removed Layout Tilt**: Completely deleted the state variable `tilt`, its listeners (`handleMouseMoveTilt`, `handleMouseLeaveTilt`), and all associated perspective rotations from both the flat-table container wrapper and the SVG graph container wrapper in [GraphVisualizer.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/components/GraphVisualizer.tsx).
+- **Result**: The layout panels remain perfectly flat, static, and performant when hovered, while interactive dragging of nodes and panning inside the canvas remain fully operational.
+
+### 41. Fixed Suggested Record Queries Formatting & Casing Safety
+- **Case-Insensitive Property Resolver**: Introduced `getProperty` helper in [GraphVisualizer.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/components/GraphVisualizer.tsx#L103) to read row properties case-insensitively. This ensures suggestions and node initials build correctly regardless of database casing (e.g. `customer_id` vs `CUSTOMER_ID`, `name` vs `NAME`).
+- **Smart Initials & Casing Fallback**: Added combined `first_name` and `last_name` resolvers to `getInstanceLabel` and `getInstanceSuggestions` for customer names.
+- **Race Condition Prevention**: Restructured the SVG satellite renderer to only populate satellite records if `isPreviewLoading` is false. This prevents users from clicking mock satellite nodes before the live preview query completes.
+- **Result**: Suggestions under "Suggested Record Insights" now resolve correctly with actual live database values (e.g. `"Michael Torres (C001)"`) instead of falling back to `"this customer"` or empty values.
+
+### 42. Verified Compilation and Run Parity
+- **Compiled Cleanly**: Successfully completed the production compilation with zero errors.
+- **E2E Visual Verification**: Ran automated browser tests and captured screenshots showing correctly resolved live suggestions and flat layout views.
+
+---
+
 ## Next Session Plans
 1. **Frontend Click Interception / Dropdown Focus Fix**: Resolve the event-handling bug where the first click on a suggested query card is intercepted by `handleClickOutside` if a dropdown is open, requiring a second click to submit.
 2. **Graph Query History Visualizer**: Highlight queried nodes and connection edges in the graph based on the user's active conversation history.

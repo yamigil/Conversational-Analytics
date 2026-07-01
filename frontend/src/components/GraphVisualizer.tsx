@@ -100,8 +100,25 @@ const DYNAMIC_PALETTE = [
   "#f43f5e"  // Red/Pink
 ];
 
+const getProperty = (row: any, keyName: string): any => {
+  if (!row) return undefined;
+  const target = keyName.toLowerCase();
+  for (const [k, v] of Object.entries(row)) {
+    if (k.toLowerCase() === target) return v;
+  }
+  return undefined;
+};
+
 const getInstanceLabel = (nodeId: string, row: any, idx: number): string => {
-  if (nodeId === "customers") return row.name ? row.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase() : `C${idx+1}`;
+  let nameVal = getProperty(row, 'name');
+  if (nodeId === "customers" && !nameVal) {
+    const first = getProperty(row, 'first_name');
+    const last = getProperty(row, 'last_name');
+    if (first || last) nameVal = `${first || ""} ${last || ""}`.trim();
+  }
+  if (nodeId === "customers" && nameVal) {
+    return String(nameVal).split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+  }
   if (nodeId === "orders") return `O${idx+1}`;
   if (nodeId === "products") return `P${idx+1}`;
   if (nodeId === "brands") return `B${idx+1}`;
@@ -115,8 +132,14 @@ const getInstanceLabel = (nodeId: string, row: any, idx: number): string => {
 
 const getInstanceSuggestions = (nodeId: string, row: any): string[] => {
   if (nodeId === "customers") {
-    const name = row.name || "this customer";
-    const cid = row.customer_id || "";
+    let name = getProperty(row, 'name');
+    if (!name) {
+      const first = getProperty(row, 'first_name');
+      const last = getProperty(row, 'last_name');
+      if (first || last) name = `${first || ""} ${last || ""}`.trim();
+    }
+    if (!name) name = "this customer";
+    const cid = getProperty(row, 'customer_id') || getProperty(row, 'id') || "";
     return [
       `Show me the complete service visit history and repair costs for customer ${name}.`,
       `List all vehicles purchased or leased by customer ID ${cid}.`,
@@ -124,7 +147,7 @@ const getInstanceSuggestions = (nodeId: string, row: any): string[] => {
     ];
   }
   if (nodeId === "orders") {
-    const oid = row.order_id || row.id || "this order";
+    const oid = getProperty(row, 'order_id') || getProperty(row, 'id') || "this order";
     return [
       `Which customer placed order ${oid} and what is their contact email?`,
       `List the brand names and prices of all products included in order ${oid}.`,
@@ -132,7 +155,7 @@ const getInstanceSuggestions = (nodeId: string, row: any): string[] => {
     ];
   }
   if (nodeId === "vehicles") {
-    const vin = row.vin || "this vehicle";
+    const vin = getProperty(row, 'vin') || "this vehicle";
     return [
       `Who is the customer that purchased the vehicle with VIN ${vin}?`,
       `Show the full service ticket history, costs, and repair dates for vehicle ${vin}.`,
@@ -140,8 +163,8 @@ const getInstanceSuggestions = (nodeId: string, row: any): string[] => {
     ];
   }
   if (nodeId === "service_visits") {
-    const vid = row.visit_id || "this visit";
-    const vin = row.vin || "";
+    const vid = getProperty(row, 'visit_id') || getProperty(row, 'id') || "this visit";
+    const vin = getProperty(row, 'vin') || "";
     return [
       `Which customer owns the vehicle with VIN ${vin} that was serviced in visit ${vid}?`,
       `What was the total cost and service type breakdown for visit ${vid}?`,
@@ -149,7 +172,7 @@ const getInstanceSuggestions = (nodeId: string, row: any): string[] => {
     ];
   }
   if (nodeId === "deal_jackets") {
-    const did = row.deal_id || "this deal";
+    const did = getProperty(row, 'deal_id') || getProperty(row, 'id') || "this deal";
     return [
       `Show me the profile and contact details of the customer for deal jacket ${did}.`,
       `What is the interest rate, credit score, and status of finance deal ${did}?`,
@@ -157,8 +180,8 @@ const getInstanceSuggestions = (nodeId: string, row: any): string[] => {
     ];
   }
   if (nodeId === "web_events") {
-    const eid = row.event_id || "this event";
-    const cid = row.customer_id || "";
+    const eid = getProperty(row, 'event_id') || getProperty(row, 'id') || "this event";
+    const cid = getProperty(row, 'customer_id') || "";
     return [
       `Who is the customer who triggered web event ${eid}?`,
       `What is the timestamp and details of web event ${eid}?`,
@@ -166,8 +189,8 @@ const getInstanceSuggestions = (nodeId: string, row: any): string[] => {
     ];
   }
   if (nodeId === "users") {
-    const name = row.name || "this user";
-    const uid = row.id || "";
+    const name = getProperty(row, 'name') || "this user";
+    const uid = getProperty(row, 'id') || "";
     return [
       `List all orders placed by user ${name} including purchase dates and order status.`,
       `What are the most popular product categories browsed or purchased by user ID ${uid}?`,
@@ -175,7 +198,7 @@ const getInstanceSuggestions = (nodeId: string, row: any): string[] => {
     ];
   }
   if (nodeId === "products") {
-    const pid = row.id || "";
+    const pid = getProperty(row, 'id') || "";
     return [
       `Which other customers purchased the product with ID ${pid}?`,
       `What is the retail price, cost, and profit margin for product ID ${pid}?`,
@@ -223,20 +246,6 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const mouseDownPos = useRef({ x: 0, y: 0 });
 
-  // 3D perspective tilting tilt states
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-
-  const handleMouseMoveTilt = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5; // -0.5 to 0.5
-    const y = (e.clientY - rect.top) / rect.height - 0.5; // -0.5 to 0.5
-    setTilt({ x: x * 8, y: -y * 8 }); // Max 8 degrees subtle tilt
-  };
-
-  const handleMouseLeaveTilt = () => {
-    setTilt({ x: 0, y: 0 });
-    setIsPanning(false);
-  };
 
   const handleMouseDownPan = (e: React.MouseEvent<SVGSVGElement>) => {
     mouseDownPos.current = { x: e.clientX, y: e.clientY };
@@ -438,13 +447,6 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
       <div className="w-full flex flex-col gap-6 select-none max-w-4xl mx-auto animate-fadeIn">
         {/* Tables Grid Layout */}
         <div 
-          onMouseMove={handleMouseMoveTilt}
-          onMouseLeave={handleMouseLeaveTilt}
-          style={{
-            transform: `perspective(1000px) rotateX(${tilt.y}deg) rotateY(${tilt.x}deg)`,
-            transition: 'transform 0.15s ease-out',
-            transformStyle: 'preserve-3d'
-          }}
           className="relative w-full bg-slate-950/60 border border-white/10 rounded-3xl p-6 backdrop-blur-md shadow-2xl flex flex-col gap-5 overflow-hidden"
         >
           {/* Grid background */}
@@ -684,13 +686,6 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     <div className="w-full flex flex-col gap-6 items-center pt-0 pb-2 select-none max-w-7xl mx-auto animate-fadeIn">
       {/* 1. Interactive Animated SVG Graph Canvas */}
       <div 
-        onMouseMove={handleMouseMoveTilt}
-        onMouseLeave={handleMouseLeaveTilt}
-        style={{
-          transform: `perspective(1000px) rotateX(${tilt.y}deg) rotateY(${tilt.x}deg)`,
-          transition: 'transform 0.15s ease-out',
-          transformStyle: 'preserve-3d'
-        }}
         className="relative w-full bg-slate-950/60 border border-white/10 rounded-3xl p-4 backdrop-blur-md shadow-2xl flex items-center justify-center overflow-hidden aspect-[16/9] md:aspect-[2/1] w-full"
       >
         {/* Grid background */}
@@ -1049,12 +1044,11 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
               
               const nodeColor = getNodeColor(node.id, idx);
               
-              // Get satellites (first 3 records of the preview rows, falling back to local mocks if loading/error/missing)
               let satellites: any[] = [];
-              if (isSelected) {
+              if (isSelected && !isPreviewLoading) {
                 if (previewData && previewData.rows && previewData.rows.length > 0) {
                   satellites = previewData.rows.slice(0, 3);
-                } else {
+                } else if (previewError || !previewData) {
                   satellites = getLocalMockSatellites();
                 }
               }

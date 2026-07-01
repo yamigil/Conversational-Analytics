@@ -3119,7 +3119,12 @@ const App: React.FC = () => {
                   {activeAgentObj?.graphData && (
                     <button
                       id="toggle-schema-btn"
-                      onClick={() => setIsSchemaExpanded(!isSchemaExpanded)}
+                      onClick={() => {
+                        setIsSchemaExpanded(!isSchemaExpanded);
+                        if (tourStep === 17) {
+                          setTourStep(18);
+                        }
+                      }}
                       className={`flex items-center gap-1.5 px-3 py-1.5 bg-white/4 hover:bg-white/8 border border-white/6 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-300 transition cursor-pointer border-none ${tourStep === 17 ? 'tour-highlight border-amber-500/50' : ''}`}
                     >
                       <Network size={12} className={isSchemaExpanded ? "text-amber-400 animate-pulse" : "text-slate-400"} />

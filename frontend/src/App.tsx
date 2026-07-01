@@ -1951,7 +1951,13 @@ const App: React.FC = () => {
       } else {
         setTourStep(16);
       }
-    } else if (tourStep >= 15 && tourStep <= 20) {
+    } else if (tourStep === 18) {
+      setIsSchemaExpanded(false);
+      setTourStep(17);
+    } else if (tourStep === 19) {
+      setIsSchemaExpanded(true);
+      setTourStep(18);
+    } else if (tourStep >= 15 && tourStep <= 21) {
       setTourStep(tourStep - 1);
     }
   };

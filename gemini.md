@@ -211,10 +211,14 @@
 - **Forced Collapse Action (No Next Button)**: Removed the `Next` button from Step 18 and set the pulsing description label to `"Click 'Hide Schema'"`, forcing users to click the button to advance the tour.
 - **Downward-Pointing Tooltip Relocation (Step 20)**: Modified the layout rules inside [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L1769). Step 20 ("Show Thinking Process") is now positioned **below** the "Show thinking" toggle button (taking advantage of the empty space below, rather than overlapping the avatar bubble above). The tooltip card is styled with `top: rect.bottom + 12px`, and renders an upward-pointing arrow (`-top-2 left-6`) that points directly up into the center of the glowing "Show thinking" button, ensuring 100% correct alignment.
 
+### 33. Back Button State Synchronization (Schema Drawer)
+- **Synced Back Navigation State**: Modified `handleBackTour` in [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L1948). If a user clicks `Back` from Step 19 (Ask a Question) to Step 18 (Collapse Schema), we force-expand the schema drawer (`setIsSchemaExpanded(true)`). If they click `Back` from Step 18 (Collapse Schema) to Step 17 (Show Schema), we force-collapse it (`setIsSchemaExpanded(false)`). This guarantees that the UI visual state stays 100% in sync with the current step instructions when navigating backwards.
+
 ## Next Session Plans
 1. **Frontend Click Interception / Dropdown Focus Fix**: Resolve the event-handling bug where the first click on a suggested query card is intercepted by `handleClickOutside` if a dropdown is open, requiring a second click to submit.
 2. **Graph Query History Visualizer**: Highlight queried nodes and connection edges in the graph based on the user's active conversation history.
 3. **Custom Brand-Color Graph Propagations**: Connect the SVG flowing particles and halo glows directly to the active branding theme (`brandPrimaryColor`).
+
 
 
 

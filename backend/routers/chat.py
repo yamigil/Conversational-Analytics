@@ -48,18 +48,27 @@ def chat(req: ChatRequestModel, user: dict = Depends(get_current_user), client: 
             )
 
         def event_generator():
-            generator = client.chat_stream(
-                conversation_name=req.conversation_name,
-                agent_name=req.agent_name,
-                message_text=guided_message,
-                looker_credentials=req.looker_credentials
-            )
-            for chunk in generator:
-                # Extract the inner message if wrapped in the API envelope (camelCase or snake_case)
-                if isinstance(chunk, dict):
-                    if "message" in chunk:
-                        chunk = chunk["message"]
-                yield f"data: {json.dumps(chunk)}\n\n"
+            try:
+                generator = client.chat_stream(
+                    conversation_name=req.conversation_name,
+                    agent_name=req.agent_name,
+                    message_text=guided_message,
+                    looker_credentials=req.looker_credentials
+                )
+                for chunk in generator:
+                    # Extract the inner message if wrapped in the API envelope (camelCase or snake_case)
+                    if isinstance(chunk, dict):
+                        if "message" in chunk:
+                            chunk = chunk["message"]
+                    yield f"data: {json.dumps(chunk)}\n\n"
+            except Exception as e:
+                logger.error(f"Error in chat stream generator: {e}")
+                err_msg = str(e)
+                if "ResourceExhausted" in err_msg or "429" in err_msg:
+                    err_msg = "Google Cloud Gemini Quota exhausted. Please wait a moment and try again."
+                else:
+                    err_msg = f"API Error during response streaming: {err_msg}"
+                yield f"data: {json.dumps({'systemMessage': {'error': {'message': err_msg}}})}\n\n"
             yield "data: [DONE]\n\n"
 
         return StreamingResponse(event_generator(), media_type="text/event-stream")

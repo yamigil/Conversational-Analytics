@@ -390,7 +390,7 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
     
     # Dynamic Graph Detection: if not detected by keywords, check if there is a property graph
     # in the project whose dataset or graph name matches the agent's name/keywords.
-    if not is_graph_agent:
+    if not is_graph_agent and not skip_db_scan:
         active_project = get_project_id()
         discovered_graphs = discover_project_graphs(active_project)
         for g in discovered_graphs:

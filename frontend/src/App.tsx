@@ -55,6 +55,7 @@ interface Agent {
   suggestions?: string[];
   isGraphAgent?: boolean;
   graphData?: any;
+  schemaLoaded?: boolean;
 }
 
 interface Conversation {
@@ -1305,7 +1306,7 @@ const App: React.FC = () => {
     const agent = targetList.find(a => a.name === agentName);
     if (!agent) return;
     
-    if (agent.isGraphAgent && !agent.graphData) {
+    if (!agent.schemaLoaded) {
       setLoadingAgentSchema(true);
       try {
         const res = await authenticatedFetch(`/api/agents/${encodeURIComponent(agentName)}/schema`);
@@ -1313,9 +1314,11 @@ const App: React.FC = () => {
           const enriched = await res.json();
           setAgents(prev => prev.map(a => a.name === agentName ? { 
             ...a, 
+            isGraphAgent: enriched.isGraphAgent,
             graphData: enriched.graphData,
             welcomeSubtitle: enriched.welcomeSubtitle,
-            suggestions: enriched.suggestions
+            suggestions: enriched.suggestions,
+            schemaLoaded: true
           } : a));
         }
       } catch (err) {
@@ -3220,36 +3223,48 @@ const App: React.FC = () => {
                   )}
                   
                   {selectedAgent ? (
-                    (() => {
-                      const activeAgentObj = agents.find(a => a.name === selectedAgent);
-                      
-                      // Render standard suggestions grid
-                      return (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
-                          {( (() => {
-                            if (activeAgentObj && Array.isArray(activeAgentObj.suggestions) && activeAgentObj.suggestions.length > 0) {
-                              return activeAgentObj.suggestions;
-                            }
-                            const agentId = selectedAgent.split("/").pop() || "";
-                            return getAgentSuggestions(activeAgentObj?.displayName || "", agentId, appActiveBrandKey);
-                          })() as string[] ).map((suggestion, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => {
-                                setInputText(suggestion);
-                                handleSendMessage(suggestion);
-                              }}
-                              className="p-4 bg-white/3 border border-white/6 hover:border-brand-primary/30 hover:bg-brand-primary/5 rounded-2xl text-left text-xs text-slate-300 font-medium transition cursor-pointer flex flex-col gap-1.5 shadow-sm group hover:-translate-y-0.5 duration-200"
-                            >
-                              <span className="group-hover:text-white transition duration-150 leading-relaxed">{suggestion}</span>
-                              <span className="text-[10px] font-bold text-brand-primary shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 mt-auto">
-                                Ask agent <ChevronRight size={10} />
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      );
-                    })()
+                    loadingAgentSchema ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
+                        {[1, 2, 3, 4].map(i => (
+                          <div key={i} className="p-4 bg-white/2 border border-white/6 rounded-2xl h-24 animate-pulse flex flex-col gap-2">
+                            <div className="h-3 w-3/4 bg-white/5 rounded" />
+                            <div className="h-3 w-1/2 bg-white/5 rounded mt-1" />
+                            <div className="h-2.5 w-16 bg-brand-primary/10 rounded mt-auto" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      (() => {
+                        const activeAgentObj = agents.find(a => a.name === selectedAgent);
+                        
+                        // Render standard suggestions grid
+                        return (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
+                            {( (() => {
+                              if (activeAgentObj && Array.isArray(activeAgentObj.suggestions) && activeAgentObj.suggestions.length > 0) {
+                                return activeAgentObj.suggestions;
+                              }
+                              const agentId = selectedAgent.split("/").pop() || "";
+                              return getAgentSuggestions(activeAgentObj?.displayName || "", agentId, appActiveBrandKey);
+                            })() as string[] ).map((suggestion, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => {
+                                  setInputText(suggestion);
+                                  handleSendMessage(suggestion);
+                                }}
+                                className="p-4 bg-white/3 border border-white/6 hover:border-brand-primary/30 hover:bg-brand-primary/5 rounded-2xl text-left text-xs text-slate-300 font-medium transition cursor-pointer flex flex-col gap-1.5 shadow-sm group hover:-translate-y-0.5 duration-200"
+                              >
+                                <span className="group-hover:text-white transition duration-150 leading-relaxed">{suggestion}</span>
+                                <span className="text-[10px] font-bold text-brand-primary shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 mt-auto">
+                                  Ask agent <ChevronRight size={10} />
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })()
+                    )
                   ) : (
                     <div className="p-6 bg-white/3 border border-white/6 rounded-2xl max-w-sm w-full mx-auto flex flex-col gap-4 text-center backdrop-blur-md shadow-lg animate-fadeIn">
                       <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-brand-primary/10 text-brand-primary mx-auto">

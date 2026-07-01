@@ -170,7 +170,20 @@
   - Verified that the record-level satellite suggestions (which are not cached) began working **instantly and live** on both localhost and production, generating highly-personalized questions for individual records (e.g. `"Chicken Breast"`).
   - Documented that the main node suggestions remain cached in the running local server until it is restarted, while the newly deployed production portals show them immediately.
 
+## Implemented Checklists & Milestones (Session 59 / Checkpoint 59)
+
+### 25. Blazing Fast Agent Listing (Bypassed BQ Scand on Startup)
+- **Instant Dropdown Population**: Restructured `enrich_agent_metadata` in [backend/schema_discovery.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/schema_discovery.py#L391) to completely skip dynamic property graph scans when `skip_db_scan` is True. This eliminates all BigQuery API call latency when populating the dropdown on startup.
+- **On-Demand Schema Loading**: Modified `fetchAgentSchema` in [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L1306) to trigger on-demand schema loading for **all** selected agents (not just graph agents) on first selection. The backend then dynamically runs the full metadata scans, resolving graph schemas and generating suggestions.
+- **Suggestions Shimmer Loader Skeleton**: Implemented a beautiful, glassmorphic pulsing shimmer skeleton in [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L3225) that renders while agent schemas and custom AI suggestions are loaded in the background, matching modern design guidelines.
+
+### 26. SSE Stream Error Recovery & Quota Safety Handler
+- **Caught Hang Conditions**: Identified a critical error condition where a `ResourceExhausted` (429 rate limit) exception raised *inside* FastAPI's stream iterator caused uvicorn to cleanly terminate the SSE connection after already sending a `200 OK` header, leaving the frontend hung with an empty thinking loader.
+- **Robust Exception Interceptor**: Wrapped FastAPI's `event_generator` in [backend/routers/chat.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/routers/chat.py#L51) inside a try-except block. If any rate limit or API exception occurs during generation, it catches the error and yields a structured `systemMessage` error JSON payload before closing the stream.
+- **Flawless Client Recovery**: The client-side parser reads this structured payload, terminates the querying loader, and renders the specific error message (e.g. `"Google Cloud Gemini Quota exhausted"`) directly in a chat bubble, preventing any hung UI state.
+
 ## Next Session Plans
-1. **Frontend Click Interception / Dropdown Focus Fix**: Investigate and resolve the event-handling bug where the first click on a suggested query card is intercepted by `handleClickOutside` if a dropdown is open, requiring a second click to submit.
+1. **Frontend Click Interception / Dropdown Focus Fix**: Resolve the event-handling bug where the first click on a suggested query card is intercepted by `handleClickOutside` if a dropdown is open, requiring a second click to submit.
 2. **Graph Query History Visualizer**: Highlight queried nodes and connection edges in the graph based on the user's active conversation history.
 3. **Custom Brand-Color Graph Propagations**: Connect the SVG flowing particles and halo glows directly to the active branding theme (`brandPrimaryColor`).
+

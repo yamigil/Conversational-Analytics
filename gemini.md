@@ -214,10 +214,15 @@
 ### 33. Back Button State Synchronization (Schema Drawer)
 - **Synced Back Navigation State**: Modified `handleBackTour` in [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L1948). If a user clicks `Back` from Step 19 (Ask a Question) to Step 18 (Collapse Schema), we force-expand the schema drawer (`setIsSchemaExpanded(true)`). If they click `Back` from Step 18 (Collapse Schema) to Step 17 (Show Schema), we force-collapse it (`setIsSchemaExpanded(false)`). This guarantees that the UI visual state stays 100% in sync with the current step instructions when navigating backwards.
 
+### 34. Walkthrough Finish Fix & Premium Ambient Background
+- **Walkthrough Finish Fix**: Shifted the final step index comparisons in `handleNextTour` inside [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L1894) from 20 to 21. Clicking "Finish Walkthrough" on Step 21 now correctly terminates the onboarding tour, saves the completion state to session storage, and hides the tooltip overlay.
+- **Dynamic Floating Particle Background**: Inspired by the animation patterns in `@Emu-Station.WebApp`, I implemented three large, blurred background glow circles that float slowly inside [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L2695) and [frontend/src/index.css](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/index.css#L214). These circles are colored dynamically matching the user's custom brand primary HSL variable (`brandPrimary`) and animated using CSS transitions, creating a premium glassmorphic background layer.
+
 ## Next Session Plans
 1. **Frontend Click Interception / Dropdown Focus Fix**: Resolve the event-handling bug where the first click on a suggested query card is intercepted by `handleClickOutside` if a dropdown is open, requiring a second click to submit.
 2. **Graph Query History Visualizer**: Highlight queried nodes and connection edges in the graph based on the user's active conversation history.
 3. **Custom Brand-Color Graph Propagations**: Connect the SVG flowing particles and halo glows directly to the active branding theme (`brandPrimaryColor`).
+
 
 
 

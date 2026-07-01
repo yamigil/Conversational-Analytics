@@ -567,7 +567,7 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
 
       <div className="p-5">
         {activeTab === "chart" && hasChart && (
-          <div ref={chartRef} className="w-full overflow-x-auto bg-transparent"></div>
+          <div ref={chartRef} className="w-full overflow-x-auto bg-transparent animate-scaleIn"></div>
         )}
 
         {activeTab === "table" && tableData && (
@@ -582,7 +582,11 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
               </thead>
               <tbody>
                 {tableData.rows.map((row: any, rIdx: number) => (
-                  <tr key={rIdx} className="hover:bg-white/2 border-b border-white/3 text-slate-300">
+                  <tr 
+                    key={rIdx} 
+                    className="hover:bg-white/2 border-b border-white/3 text-slate-300 animate-row-slide"
+                    style={{ animationDelay: `${Math.min(rIdx * 0.04, 0.8)}s` }}
+                  >
                     {tableData.headers.map((h: string, fIdx: number) => (
                       <td key={fIdx} className="px-4 py-2.5 whitespace-nowrap">
                         {row[h] !== undefined ? String(row[h]) : "-"}

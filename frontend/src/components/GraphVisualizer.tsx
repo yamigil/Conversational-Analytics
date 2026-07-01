@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { 
   Users, 
   ShoppingBag, 
@@ -221,6 +221,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   const [zoom, setZoom] = useState(1);
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const mouseDownPos = useRef({ x: 0, y: 0 });
 
   // 3D perspective tilting tilt states
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
@@ -238,6 +239,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   };
 
   const handleMouseDownPan = (e: React.MouseEvent<SVGSVGElement>) => {
+    mouseDownPos.current = { x: e.clientX, y: e.clientY };
     const tagName = (e.target as SVGElement).tagName;
     if (tagName === "svg" || (e.target as SVGElement).id === "pan-bg-rect") {
       setIsPanning(true);
@@ -476,7 +478,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                   }}
                   onMouseEnter={() => setHoveredNode(node.id)}
                   onMouseLeave={() => setHoveredNode(null)}
-                  className={`group relative p-4 rounded-xl border transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[120px] flex-1 min-w-[240px] max-w-[320px] ${
+                  className={`group relative p-4 rounded-xl border cursor-pointer flex flex-col gap-3 min-h-[120px] flex-1 min-w-[240px] max-w-[320px] table-card-3d ${
                     isSelected
                       ? "bg-brand-primary/10 border-brand-primary/60 shadow-[0_0_15px_rgba(59,130,246,0.15)]"
                       : "bg-slate-900/40 border-white/6 hover:bg-slate-950/60 hover:border-white/12"
@@ -735,6 +737,11 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
             }
           }}
           onClick={(e) => {
+            const dx = e.clientX - mouseDownPos.current.x;
+            const dy = e.clientY - mouseDownPos.current.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance > 5) return;
+
             if (e.target === e.currentTarget || (e.target as SVGElement).id === "pan-bg-rect") {
               setSelectedNode(null);
               setSelectedInstance(null);
@@ -789,6 +796,13 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
             >
               <path d="M 0 1.5 L 7 5 L 0 8.5 z" fill="currentColor" />
             </marker>
+            
+            {/* 3D sphere glossy glass shine overlay */}
+            <radialGradient id="glossy-3d-gradient" cx="30%" cy="30%" r="70%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.3" />
+              <stop offset="50%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="100%" stopColor="#000000" stopOpacity="0.45" />
+            </radialGradient>
           </defs>
           
           {/* Invisible backdrop rect to capture panning drags anywhere in the SVG container */}
@@ -893,15 +907,21 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
               const x2 = tgt.x - ux * rBoundary;
               const y2 = tgt.y - uy * rBoundary;
 
+              // Calculate midpoint and normal vector offset for curvature
+              const mx = (x1 + x2) / 2;
+              const my = (y1 + y2) / 2;
+              const curveOffset = 30; // Subtle curve
+              const curveX = mx - uy * curveOffset;
+              const curveY = my + ux * curveOffset;
+              const pathData = `M ${x1} ${y1} Q ${curveX} ${curveY} ${x2} ${y2}`;
+
               return (
                 <g key={idx} className="transition-all duration-300">
                   {/* Glowing background line for highlighted connections */}
                   {highlighted && (
-                    <line
-                      x1={x1}
-                      y1={y1}
-                      x2={x2}
-                      y2={y2}
+                    <path
+                      d={pathData}
+                      fill="none"
                       stroke={edgeColor}
                       strokeWidth="5"
                       strokeLinecap="round"
@@ -909,11 +929,9 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     />
                   )}
                   {/* Core relationship line */}
-                  <line
-                    x1={x1}
-                    y1={y1}
-                    x2={x2}
-                    y2={y2}
+                  <path
+                    d={pathData}
+                    fill="none"
                     stroke={highlighted ? edgeColor : "rgba(255,255,255,0.15)"}
                     strokeWidth={highlighted ? "3" : "1.5"}
                     strokeDasharray={highlighted ? "none" : "6, 6"}
@@ -928,7 +946,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                       <animateMotion
                         dur="2s"
                         repeatCount="indefinite"
-                        path={`M ${x1} ${y1} L ${x2} ${y2}`}
+                        path={pathData}
                       />
                     </circle>
                   )}
@@ -951,8 +969,35 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
               const dimmed = (hoveredNode || selectedNode) && !highlighted;
 
               const isSelfLoop = edge.source === edge.target;
-              const xLabel = isSelfLoop ? src.x : (src.x + tgt.x) / 2;
-              const yLabel = isSelfLoop ? src.y - 72 : (src.y + tgt.y) / 2;
+              let xLabel, yLabel;
+              if (isSelfLoop) {
+                xLabel = src.x;
+                yLabel = src.y - 72;
+              } else {
+                // Shorten edge lines to end exactly at the node boundary rings (34px radius)
+                const dx = tgt.x - src.x;
+                const dy = tgt.y - src.y;
+                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                const ux = dx / dist;
+                const uy = dy / dist;
+
+                const rBoundary = 34;
+                const x1 = src.x + ux * rBoundary;
+                const y1 = src.y + uy * rBoundary;
+                const x2 = tgt.x - ux * rBoundary;
+                const y2 = tgt.y - uy * rBoundary;
+
+                // Midpoint normal vector offset
+                const mx = (x1 + x2) / 2;
+                const my = (y1 + y2) / 2;
+                const curveOffset = 30;
+                const curveX = mx - uy * curveOffset;
+                const curveY = my + ux * curveOffset;
+
+                // Bezier curve midpoint calculation
+                xLabel = 0.25 * x1 + 0.5 * curveX + 0.25 * x2;
+                yLabel = 0.25 * y1 + 0.5 * curveY + 0.25 * y2;
+              }
 
               return (
                 <g 
@@ -1018,7 +1063,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                 <g
                   key={node.id}
                   transform={`translate(${node.x}, ${node.y})`}
-                  className="cursor-pointer group"
+                  className="cursor-pointer group graph-node-3d"
                   onMouseEnter={() => setHoveredNode(node.id)}
                   onMouseLeave={() => setHoveredNode(null)}
                   onClick={(e) => {
@@ -1082,6 +1127,11 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                             strokeWidth={selectedInstance === sat ? "2.5" : "1.8"} // Stronger borders
                             className="transition-all duration-200 hover:scale-110 shadow-lg"
                           />
+                          <circle
+                            r="18"
+                            fill="url(#glossy-3d-gradient)"
+                            className="pointer-events-none"
+                          />
                           
                           {/* Satellite Text Label (Initials or entity indices) */}
                           <text
@@ -1120,6 +1170,11 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     stroke={isSelected || isHovered ? nodeColor : "rgba(255,255,255,0.2)"}
                     strokeWidth={isSelected || isHovered ? "2.5" : "1.5"}
                     className={`transition-all duration-300 ${isDimmed ? "opacity-30" : "opacity-100"}`}
+                  />
+                  <circle
+                    r="28"
+                    fill="url(#glossy-3d-gradient)"
+                    className={`pointer-events-none transition-all duration-300 ${isDimmed ? "opacity-30" : "opacity-100"}`}
                   />
 
                   {/* Semantic Icon - scaled up from 20 to 22, aligned using translate(-11, -11) */}

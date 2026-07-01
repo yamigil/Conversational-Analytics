@@ -235,3 +235,42 @@ body::after {
   0%, 100% { transform: translate(0, 0) scale(1); }
   50% { transform: translate(35px, -35px) scale(1.05); }
 }
+.table-card-3d {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+  transform-style: preserve-3d;
+}
+.table-card-3d:hover {
+  transform: translateY(-5px) rotateX(3deg) rotateY(-3deg);
+  box-shadow: 
+    -4px 8px 20px rgba(0, 0, 0, 0.45), 
+    0 0 16px rgba(59, 130, 246, 0.1);
+}
+
+.graph-node-3d {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.graph-node-3d:hover {
+  transform: scale(1.1);
+}
+
+.animate-row-slide {
+  opacity: 0;
+  animation: rowSlide 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes rowSlide {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-flow {
+  animation: flowOffset 1.5s linear infinite;
+}
+
+@keyframes flowOffset {
+  to {
+    stroke-dashoffset: -20;
+  }
+}

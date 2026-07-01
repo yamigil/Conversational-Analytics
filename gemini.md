@@ -182,6 +182,11 @@
 - **Robust Exception Interceptor**: Wrapped FastAPI's `event_generator` in [backend/routers/chat.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/routers/chat.py#L51) inside a try-except block. If any rate limit or API exception occurs during generation, it catches the error and yields a structured `systemMessage` error JSON payload before closing the stream.
 - **Flawless Client Recovery**: The client-side parser reads this structured payload, terminates the querying loader, and renders the specific error message (e.g. `"Google Cloud Gemini Quota exhausted"`) directly in a chat bubble, preventing any hung UI state.
 
+### 27. Custom Glassmorphic Confirmation Modal
+- **Replaced Native Browser Popups**: Replaced all native browser `confirm` popups (both conversation deletion and brand-theme deletion) with a custom React confirmation modal that blends seamlessly with the portal's design system.
+- **Modern Glassmorphic Design**: Styled the modal with a dark translucent glass backdrop, backdrop blur, a warning alert icon, clear action descriptions, and themed action buttons (danger red for delete).
+- **Verified Local Verification**: Visually verified the modal's look and feel on a simulated local environment, taking screenshots and ensuring it is responsive.
+
 ## Next Session Plans
 1. **Frontend Click Interception / Dropdown Focus Fix**: Resolve the event-handling bug where the first click on a suggested query card is intercepted by `handleClickOutside` if a dropdown is open, requiring a second click to submit.
 2. **Graph Query History Visualizer**: Highlight queried nodes and connection edges in the graph based on the user's active conversation history.

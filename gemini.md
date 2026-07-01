@@ -218,10 +218,17 @@
 - **Walkthrough Finish Fix**: Shifted the final step index comparisons in `handleNextTour` inside [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L1894) from 20 to 21. Clicking "Finish Walkthrough" on Step 21 now correctly terminates the onboarding tour, saves the completion state to session storage, and hides the tooltip overlay.
 - **Dynamic Floating Particle Background**: Inspired by the animation patterns in `@Emu-Station.WebApp`, I implemented three large, blurred background glow circles that float slowly inside [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L2695) and [frontend/src/index.css](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/index.css#L214). These circles are colored dynamically matching the user's custom brand primary HSL variable (`brandPrimary`) and animated using CSS transitions, creating a premium glassmorphic background layer.
 
+### 35. Curved Bezier Edges, 3D Spheres & Cascading Table Animations
+- **Curved Bezier Edges & Flows**: Replaced straight SVG connection lines with quadratic Bezier curve paths inside [GraphVisualizer.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/components/GraphVisualizer.tsx#L907). Configured custom curvature formulas and mapped edge text label positions dynamically to sit at the curve midpoints. Highlighted connections now animate glowing dots flowing along the Bezier curves.
+- **3D Glossy Node Spheres & Card Hover Popups**: Defined a dynamic specular radial gradient `glossy-3d-gradient` inside the SVG `<defs>` section of [GraphVisualizer.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/components/GraphVisualizer.tsx#L789). Layered it over node circles to give them a glossy, glass-like 3D marble appearance. Added the `.table-card-3d` class to individual table cards to animate them popping out in 3D when hovered.
+- **Drag-to-Pan Click Distance Check**: Solved the state reset bug where panning/dragging the visualizer canvas would accidentally trigger the background `onClick` handler and collapse open subnodes. Added a pixel distance threshold (`distance > 5` inside [GraphVisualizer.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/components/GraphVisualizer.tsx#L739)) to distinguish panning drags from intentional background clicks.
+- **Cascading Table Row Slides & Chart Entrances**: Implemented a smooth scale-in animation for Vega charts and a staggered slide-up animation (`animate-row-slide`) on database table rows inside [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L581) to load rows sequentially.
+
 ## Next Session Plans
 1. **Frontend Click Interception / Dropdown Focus Fix**: Resolve the event-handling bug where the first click on a suggested query card is intercepted by `handleClickOutside` if a dropdown is open, requiring a second click to submit.
 2. **Graph Query History Visualizer**: Highlight queried nodes and connection edges in the graph based on the user's active conversation history.
 3. **Custom Brand-Color Graph Propagations**: Connect the SVG flowing particles and halo glows directly to the active branding theme (`brandPrimaryColor`).
+
 
 
 

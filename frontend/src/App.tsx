@@ -691,6 +691,75 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}): Promi
   return response;
 };
 
+interface CustomSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  disabled?: boolean;
+}
+
+const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, placeholder = "Select...", disabled = false }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const selectedOption = options.find(opt => opt.value === value);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between py-2.5 px-4 bg-slate-950/40 border border-white/6 hover:border-white/12 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm text-slate-200 focus:border-brand-primary outline-none cursor-pointer transition"
+      >
+        <span className={selectedOption ? "text-slate-200 font-medium" : "text-slate-500 font-medium"}>
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <ChevronDown className={`text-slate-400 transition-transform duration-200 shrink-0 ml-2 ${isOpen ? 'rotate-180' : ''}`} size={16} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 mt-1.5 z-[200] max-h-60 overflow-y-auto bg-slate-900/95 backdrop-blur-md border border-white/10 rounded-2xl shadow-xl shadow-black/80 p-1.5 animate-fadeIn">
+          {options.map((opt, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => {
+                onChange(opt.value);
+                setIsOpen(false);
+              }}
+              className={`w-full text-left px-3.5 py-2 text-xs rounded-xl transition flex items-center justify-between ${
+                opt.value === value 
+                  ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
+                  : 'text-slate-300 hover:text-white hover:bg-white/5 font-medium'
+              }`}
+            >
+              <span>{opt.label}</span>
+              {opt.value === value && <Check size={12} className="text-brand-primary shrink-0" />}
+            </button>
+          ))}
+          {options.length === 0 && (
+            <div className="px-3.5 py-2 text-xs text-slate-500 font-medium italic">
+              No options available
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Helper to strip the hidden system instruction suffix from user messages before rendering them in the UI
 const cleanUserMessage = (text: string | undefined): string => {
   if (!text) return "";
@@ -1914,8 +1983,7 @@ const App: React.FC = () => {
   }, [isSchemaExpanded]);
 
 
-  const handleAgentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value;
+  const handleAgentChange = (val: string) => {
     setSelectedAgent(val);
     sessionStorage.setItem("activeAgentName", val);
     setSelectedConvo("");
@@ -2746,18 +2814,14 @@ const App: React.FC = () => {
                               </div>
                             ) : (
                               <div className="relative">
-                                <select
+                                <CustomSelect
                                   value={selectedProject}
-                                  onChange={(e) => handleProjectChange(e.target.value)}
-                                  className="w-full py-2 px-3 bg-slate-950 border border-white/8 rounded-lg text-xs text-slate-200 focus:border-brand-primary outline-none cursor-pointer appearance-none"
-                                >
-                                  {gcpProjects.map((p) => (
-                                    <option key={p.projectId} value={p.projectId}>
-                                      {p.name}
-                                    </option>
-                                  ))}
-                                </select>
-                                <ChevronDown className="absolute right-3 top-2.5 text-slate-400 pointer-events-none" size={12} />
+                                  onChange={handleProjectChange}
+                                  options={gcpProjects.map((p) => ({
+                                    value: p.projectId,
+                                    label: p.name
+                                  }))}
+                                />
                               </div>
                             )}
                           </div>
@@ -2769,23 +2833,21 @@ const App: React.FC = () => {
                       </div>
                       <div className="p-3 flex flex-col gap-2">
                         <div className="relative">
-                          <select 
+                          <CustomSelect 
                             value={settingsLocation} 
-                            onChange={(e) => {
-                              const val = e.target.value;
+                            onChange={(val) => {
                               setSettingsLocation(val);
                               handleLocationChange(val);
                             }}
-                            className="w-full py-2 px-3 bg-slate-950 border border-white/8 rounded-lg text-xs text-slate-200 focus:border-brand-primary outline-none cursor-pointer appearance-none"
-                          >
-                            <option value="all">All Common Regions (Default)</option>
-                            <option value="global">Global</option>
-                            <option value="us-central1">us-central1 (Iowa)</option>
-                            <option value="europe-west1">europe-west1 (Belgium)</option>
-                            <option value="us">us (US Multi-region)</option>
-                            <option value="eu">eu (EU Multi-region)</option>
-                          </select>
-                          <ChevronDown className="absolute right-3 top-2.5 text-slate-400 pointer-events-none" size={12} />
+                            options={[
+                              { value: "all", label: "All Common Regions (Default)" },
+                              { value: "global", label: "Global" },
+                              { value: "us-central1", label: "us-central1 (Iowa)" },
+                              { value: "europe-west1", label: "europe-west1 (Belgium)" },
+                              { value: "us", label: "us (US Multi-region)" },
+                              { value: "eu", label: "eu (EU Multi-region)" }
+                            ]}
+                          />
                         </div>
                       </div>
                     </div>
@@ -2912,19 +2974,15 @@ const App: React.FC = () => {
           <div className="mb-7 flex flex-col">
             <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2">Active Data Agent</label>
             <div className={`relative ${tourStep === 9 || tourStep === 14 ? 'tour-highlight rounded-xl' : ''}`} id="agent-select-container">
-              <select 
+              <CustomSelect
                 value={selectedAgent}
                 onChange={handleAgentChange}
-                className="w-full py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 focus:border-brand-primary outline-none cursor-pointer appearance-none"
-              >
-                <option value="" disabled>Select a data agent</option>
-                {agents.map((a, idx) => (
-                  <option key={idx} value={a.name}>
-                    {a.displayName || a.name.split("/").pop()}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-4 top-3.5 text-slate-400 pointer-events-none" size={16} />
+                placeholder="Select a data agent"
+                options={agents.map(a => ({
+                  value: a.name,
+                  label: a.displayName || a.name.split("/").pop() || ""
+                }))}
+              />
             </div>
           </div>
 
@@ -3238,23 +3296,15 @@ const App: React.FC = () => {
                         Select AI Specialist
                       </div>
                       
-                      <div className="relative w-full">
-                        <select
+                        <CustomSelect
                           value={selectedAgent}
                           onChange={handleAgentChange}
-                          className="w-full py-2.5 pl-4 pr-10 bg-slate-950/60 border border-white/10 rounded-xl text-xs font-semibold text-slate-200 focus:border-brand-primary outline-none cursor-pointer appearance-none text-center"
-                        >
-                          <option value="">Select a data agent</option>
-                          {agents.map((agent, idx) => (
-                            <option key={idx} value={agent.name}>
-                              {agent.displayName || agent.name.split("/").pop()}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
-                          <ChevronDown size={14} />
-                        </div>
-                      </div>
+                          placeholder="Select a data agent"
+                          options={agents.map(agent => ({
+                            value: agent.name,
+                            label: agent.displayName || agent.name.split("/").pop() || ""
+                          }))}
+                        />
                       
                       <p className="text-[10px] text-slate-500 font-medium text-center">
                         Active agent handles your queries and provides custom data insights.
@@ -3638,17 +3688,16 @@ const App: React.FC = () => {
                     <div className="flex flex-col gap-2">
                       <label className="text-xs font-semibold text-slate-400">Authentication Mode</label>
                       <div className="relative">
-                        <select 
+                        <CustomSelect 
                           value={credentialsMode} 
-                          onChange={(e) => handleCredentialsModeChange(e.target.value as "service_account" | "user_sso")}
-                          className="w-full py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 outline-none focus:border-brand-primary/50 cursor-pointer appearance-none"
-                        >
-                          <option value="service_account">Service Account (ADC)</option>
-                          {isCorporateUser(user?.email || auth.currentUser?.email || null) && (
-                            <option value="user_sso">SSO User Session (Google Login)</option>
-                          )}
-                        </select>
-                        <ChevronDown className="absolute right-4 top-4 text-slate-400 pointer-events-none" size={14} />
+                          onChange={(val) => handleCredentialsModeChange(val as "service_account" | "user_sso")}
+                          options={[
+                            { value: "service_account", label: "Service Account (ADC)" },
+                            ...(isCorporateUser(user?.email || auth.currentUser?.email || null) ? [
+                              { value: "user_sso", label: "SSO User Session (Google Login)" }
+                            ] : [])
+                          ]}
+                        />
                       </div>
                       <small className="text-[10px] text-slate-400">
                         Choose between service-wide Google credentials or authenticating queries with your current user identity.
@@ -3668,18 +3717,14 @@ const App: React.FC = () => {
                           />
                         ) : (
                           <div className="relative">
-                            <select 
+                            <CustomSelect 
                               value={settingsProjectId} 
-                              onChange={(e) => setSettingsProjectId(e.target.value)}
-                              className="w-full py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 outline-none focus:border-brand-primary/50 cursor-pointer appearance-none"
-                            >
-                              {gcpProjects.map((p) => (
-                                <option key={p.projectId} value={p.projectId}>
-                                  {p.name} ({p.projectId})
-                                </option>
-                              ))}
-                            </select>
-                            <ChevronDown className="absolute right-4 top-4 text-slate-400 pointer-events-none" size={14} />
+                              onChange={setSettingsProjectId}
+                              options={gcpProjects.map((p) => ({
+                                value: p.projectId,
+                                label: `${p.name} (${p.projectId})`
+                              }))}
+                            />
                           </div>
                         )}
                         <small className="text-[10px] text-slate-400">
@@ -3691,23 +3736,21 @@ const App: React.FC = () => {
                     <div className="flex flex-col gap-2">
                       <label className="text-xs font-semibold text-slate-400">GCP Location (Region)</label>
                       <div className="relative">
-                        <select 
+                        <CustomSelect 
                           value={settingsLocation} 
-                          onChange={(e) => {
-                            const val = e.target.value;
+                          onChange={(val) => {
                             setSettingsLocation(val);
                             handleLocationChange(val);
                           }}
-                          className="w-full py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 outline-none focus:border-brand-primary/50 cursor-pointer appearance-none"
-                        >
-                          <option value="all">All Common Regions (Default)</option>
-                          <option value="global">Global</option>
-                          <option value="us-central1">us-central1 (Iowa)</option>
-                          <option value="europe-west1">europe-west1 (Belgium)</option>
-                          <option value="us">us (US Multi-region)</option>
-                          <option value="eu">eu (EU Multi-region)</option>
-                        </select>
-                        <ChevronDown className="absolute right-4 top-4 text-slate-400 pointer-events-none" size={14} />
+                          options={[
+                            { value: "all", label: "All Common Regions (Default)" },
+                            { value: "global", label: "Global" },
+                            { value: "us-central1", label: "us-central1 (Iowa)" },
+                            { value: "europe-west1", label: "europe-west1 (Belgium)" },
+                            { value: "us", label: "us (US Multi-region)" },
+                            { value: "eu", label: "eu (EU Multi-region)" }
+                          ]}
+                        />
                       </div>
                       <small className="text-[10px] text-slate-400">
                         Choose the Google Cloud region where your Dialogflow CX or Vertex AI Data Agents are deployed.
@@ -3749,10 +3792,9 @@ const App: React.FC = () => {
                       <label className="text-xs font-semibold text-slate-400">Select Active Profile</label>
                       <div className="flex gap-3">
                         <div className="relative flex-1">
-                          <select 
+                          <CustomSelect 
                             value={activeBrandKey}
-                            onChange={(e) => {
-                              const val = e.target.value;
+                            onChange={(val) => {
                               setActiveBrandKey(val);
                               localStorage.setItem("ca_active_brand", val);
                               if (branding) {
@@ -3769,13 +3811,11 @@ const App: React.FC = () => {
                                 setSettingsLocation(b.gcpLocation || "all");
                               }
                             }}
-                            className="w-full py-3 px-4 bg-slate-950/40 border border-white/6 rounded-xl text-sm text-slate-200 focus:border-brand-primary outline-none cursor-pointer appearance-none"
-                          >
-                            {branding && Object.keys(branding.brands).map((key, idx) => (
-                              <option key={idx} value={key}>{branding.brands[key].name}</option>
-                            ))}
-                          </select>
-                          <ChevronDown className="absolute right-4 top-3.5 text-slate-400 pointer-events-none" size={16} />
+                            options={branding ? Object.keys(branding.brands).map((key) => ({
+                              value: key,
+                              label: branding.brands[key].name
+                            })) : []}
+                          />
                         </div>
                         {activeBrandKey !== "default" && (
                           <button

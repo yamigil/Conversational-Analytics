@@ -1114,6 +1114,22 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     setSelectedNode(isSelected ? null : node.id);
                   }}
                 >
+                  {/* Orbit Track Circle (Slow rotation for premium look) */}
+                  {satellites.length > 0 && (
+                    <circle
+                      r="92"
+                      fill="none"
+                      stroke={nodeColor}
+                      strokeWidth="1.5"
+                      strokeDasharray="6,6"
+                      className="opacity-25"
+                      style={{ 
+                        animation: 'spin 120s linear infinite',
+                        transformOrigin: '0px 0px'
+                      }}
+                    />
+                  )}
+
                   {/* Satellites Orbiting Nodes (Exploratory Data Nodes - SCALED UP FOR PREMIUM VISIBILITY) */}
                   {satellites.map((sat, sIdx) => {
                     const satelliteRadius = 92; // Spaced out further
@@ -1144,6 +1160,13 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                             setSelectedInstance(selectedInstance === sat ? null : sat);
                           }}
                         >
+                          {/* Constant subtle pulsing glow for all satellites */}
+                          <circle
+                            r="20"
+                            fill={nodeColor}
+                            className="opacity-15 blur-[2px] animate-pulse pointer-events-none"
+                          />
+
                           {/* Pulsing glow on active satellite */}
                           {selectedInstance === sat && (
                             <circle

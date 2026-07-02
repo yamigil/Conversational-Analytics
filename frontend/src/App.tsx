@@ -406,6 +406,51 @@ const MessageThinkingBlock: React.FC<{
   );
 };
 
+// Lightweight helper to add VS Code-like syntax highlighting to generated SQL statements
+const highlightSQL = (sql: string): React.ReactNode => {
+  if (!sql) return "";
+  
+  const keywords = /\b(SELECT|FROM|WHERE|AND|OR|JOIN|LEFT|RIGHT|INNER|ON|GROUP BY|ORDER BY|LIMIT|HAVING|COUNT|DISTINCT|AS|GRAPH_TABLE|MATCH|COLUMNS|SHORTEST|ANY|ALL|DESC|ASC|IN|USING|BY)\b/gi;
+  
+  // Split by whitespace, punctuation, quotes, or bracket boundaries
+  const tokens = sql.split(/(\s+|,|\.|\(|\)|\[|\]|=|<|>|;|`[^`]*`|'[^']*')/g);
+  
+  return tokens.map((token, idx) => {
+    const trimmed = token.trim();
+    const upperToken = trimmed.toUpperCase();
+    
+    // Check if it's a keyword
+    if (keywords.test(upperToken)) {
+      return (
+        <span key={idx} className="text-pink-500 font-semibold">
+          {token}
+        </span>
+      );
+    }
+    
+    // String literals & backticks (values, table/column references)
+    if (trimmed.startsWith("'") || trimmed.startsWith("`")) {
+      return (
+        <span key={idx} className="text-emerald-400 font-medium">
+          {token}
+        </span>
+      );
+    }
+    
+    // Numbers
+    if (trimmed !== "" && !isNaN(Number(trimmed))) {
+      return (
+        <span key={idx} className="text-amber-400 font-medium">
+          {token}
+        </span>
+      );
+    }
+    
+    // Plain SQL body text
+    return <span key={idx} className="text-slate-200">{token}</span>;
+  });
+};
+
 // SQL widget
 const SqlWidget: React.FC<{ data: any }> = ({ data }) => {
   const [copied, setCopied] = useState(false);
@@ -419,18 +464,20 @@ const SqlWidget: React.FC<{ data: any }> = ({ data }) => {
 
   return (
     <div className="mt-4 border border-white/6 rounded-lg overflow-hidden bg-slate-950">
-      <div className="bg-white/2 px-4 py-2 border-b border-white/6 flex justify-between items-center text-xs text-slate-400">
-        <span className="font-heading font-medium">Generated SQL Query</span>
+      <div className="bg-white/2 px-4 py-2 border-b border-white/6 flex justify-between items-center text-xs">
+        <span className="font-heading font-medium text-slate-400">Generated SQL Query</span>
         <button 
           onClick={handleCopy}
-          className="flex items-center gap-1.5 hover:text-white transition cursor-pointer"
+          className={`flex items-center gap-1.5 transition duration-150 cursor-pointer select-none border-none bg-transparent ${
+            copied ? "text-emerald-400 font-semibold scale-105" : "text-slate-400 hover:text-white"
+          }`}
         >
-          {copied ? <Check size={13} /> : <Copy size={13} />}
+          {copied ? <Check size={13} className="animate-fadeIn" /> : <Copy size={13} />}
           {copied ? "Copied!" : "Copy SQL"}
         </button>
       </div>
-      <pre className="p-4 font-mono text-xs text-sky-400 overflow-x-auto whitespace-pre-wrap">
-        <code>{data.generatedSql}</code>
+      <pre className="p-4 font-mono text-xs overflow-x-auto whitespace-pre-wrap leading-relaxed">
+        <code>{highlightSQL(data.generatedSql)}</code>
       </pre>
     </div>
   );

@@ -246,26 +246,34 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     if (!agentName || !graphData?.nodes || graphData.nodes.length === 0) return;
 
     const prefetchNodes = async () => {
-      for (const node of graphData.nodes) {
-        if (node.id === "schema_root") continue;
-        try {
-          let data: any;
-          if (fetchTablePreview) {
-            data = await fetchTablePreview(node.id, agentName);
-          } else {
-            const queryParams = new URLSearchParams({
-              table_name: node.id,
-              ...(agentName ? { agent_name: agentName } : {})
-            });
-            const res = await fetch(`/api/preview?${queryParams.toString()}`);
-            if (res.ok) data = await res.json();
-          }
-          if (data) {
-            setPreviewsCache(prev => ({ ...prev, [node.id]: data }));
-          }
-        } catch (e) {
-          console.warn(`Pre-fetch failed for node '${node.id}':`, e);
-        }
+      const cacheUpdate: Record<string, any> = {};
+      try {
+        await Promise.all(
+          graphData.nodes.map(async (node) => {
+            if (node.id === "schema_root") return;
+            try {
+              let data: any;
+              if (fetchTablePreview) {
+                data = await fetchTablePreview(node.id, agentName);
+              } else {
+                const queryParams = new URLSearchParams({
+                  table_name: node.id,
+                  ...(agentName ? { agent_name: agentName } : {})
+                });
+                const res = await fetch(`/api/preview?${queryParams.toString()}`);
+                if (res.ok) data = await res.json();
+              }
+              if (data) {
+                cacheUpdate[node.id] = data;
+              }
+            } catch (e) {
+              console.warn(`Pre-fetch failed for node '${node.id}':`, e);
+            }
+          })
+        );
+        setPreviewsCache(cacheUpdate);
+      } catch (err) {
+        console.warn("Failed parallel pre-fetch:", err);
       }
     };
 
@@ -1086,10 +1094,10 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
               const nodeColor = getNodeColor(node.id, idx);
               
               let satellites: any[] = [];
-              if (isSelected && !isPreviewLoading) {
+              if (isSelected) {
                 if (previewData && previewData.rows && previewData.rows.length > 0) {
                   satellites = previewData.rows.slice(0, 3);
-                } else if (previewError || !previewData) {
+                } else {
                   satellites = getLocalMockSatellites();
                 }
               }

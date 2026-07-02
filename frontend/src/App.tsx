@@ -161,7 +161,20 @@ const parseSingleSystemMessageText = (parts: string[]): SystemMessagePart => {
   }
 
   if (parts.length === 2) {
-    const isFirstPartThoughtTitle = parts[0].trim().length < 80 && !parts[0].includes('\n') && !parts[0].toLowerCase().includes('select ');
+    const firstLower = parts[0].trim().toLowerCase();
+    const isFirstPartThoughtTitle = 
+      firstLower.length < 80 && 
+      !parts[0].includes('\n') && 
+      !firstLower.includes('select ') && 
+      (firstLower.includes('thought') || 
+       firstLower.includes('thinking') ||
+       firstLower.includes('bypassing') ||
+       firstLower.includes('formulating') ||
+       firstLower.includes('validating') ||
+       firstLower.startsWith('running a query') ||
+       firstLower.startsWith('running query') ||
+       firstLower.startsWith('executing query') ||
+       firstLower.startsWith('executing:'));
     if (isStatus(parts[0])) {
       statuses.push(parts[0].trim());
       statuses.push(parts[1].trim());

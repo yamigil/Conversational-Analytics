@@ -238,6 +238,39 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   const [previewData, setPreviewData] = useState<{ columns: string[], rows: any[], recordSuggestions?: string[][] } | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState<boolean>(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewsCache, setPreviewsCache] = useState<Record<string, any>>({});
+
+  // Background pre-fetching of preview data for all nodes when agentName changes
+  React.useEffect(() => {
+    setPreviewsCache({});
+    if (!agentName || !graphData?.nodes || graphData.nodes.length === 0) return;
+
+    const prefetchNodes = async () => {
+      for (const node of graphData.nodes) {
+        if (node.id === "schema_root") continue;
+        try {
+          let data: any;
+          if (fetchTablePreview) {
+            data = await fetchTablePreview(node.id, agentName);
+          } else {
+            const queryParams = new URLSearchParams({
+              table_name: node.id,
+              ...(agentName ? { agent_name: agentName } : {})
+            });
+            const res = await fetch(`/api/preview?${queryParams.toString()}`);
+            if (res.ok) data = await res.json();
+          }
+          if (data) {
+            setPreviewsCache(prev => ({ ...prev, [node.id]: data }));
+          }
+        } catch (e) {
+          console.warn(`Pre-fetch failed for node '${node.id}':`, e);
+        }
+      }
+    };
+
+    prefetchNodes();
+  }, [agentName, graphData.nodes, fetchTablePreview]);
 
   // Interactive drag-to-pan & zoom states for the canvas
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -337,12 +370,17 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     }
 
     const fetchPreview = async () => {
+      if (previewsCache[selectedNode]) {
+        setPreviewData(previewsCache[selectedNode]);
+        return;
+      }
+
       setIsPreviewLoading(true);
       setPreviewError(null);
       try {
+        let data: any;
         if (fetchTablePreview) {
-          const data = await fetchTablePreview(selectedNode, agentName);
-          setPreviewData(data);
+          data = await fetchTablePreview(selectedNode, agentName);
         } else {
           const queryParams = new URLSearchParams({
             table_name: selectedNode,
@@ -350,8 +388,11 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
           });
           const res = await fetch(`/api/preview?${queryParams.toString()}`);
           if (!res.ok) throw new Error("Failed to load table data preview");
-          const data = await res.json();
+          data = await res.json();
+        }
+        if (data) {
           setPreviewData(data);
+          setPreviewsCache(prev => ({ ...prev, [selectedNode]: data }));
         }
       } catch (err: any) {
         console.error("Preview fetch error:", err);
@@ -362,7 +403,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     };
 
     fetchPreview();
-  }, [selectedNode, agentName, fetchTablePreview]);
+  }, [selectedNode, agentName, fetchTablePreview, previewsCache]);
 
   const edges = graphData.edges;
 

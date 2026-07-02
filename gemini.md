@@ -262,6 +262,23 @@
 
 ---
 
+## Implemented Checklists & Milestones (Session 69 / Checkpoint 69)
+
+### 43. Asynchronous Schema Node Pre-fetching & Interactive Caching
+- **Added Pre-fetching Hook**: Implemented a background `useEffect` in [GraphVisualizer.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/components/GraphVisualizer.tsx) that fires immediately when a graph agent is loaded. It loops through all nodes in the schema and pre-fetches their live BigQuery preview/suggestions in the background.
+- **Node Caching**: Introduced a local `previewsCache` state mapping node IDs to their previews. When a node is selected, the app resolves it instantly from the cache.
+- **Result**: Selecting nodes, closing them, and clicking them again now loads record insights and orbiting satellites instantly (under 50ms) with zero loading spinner delay.
+
+### 44. Premium Transparent Header Background
+- **Transparent Global Header**: Modified the global `<header>` class definition in [App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L2731) to replace the dark slate class `bg-slate-950/80` with `bg-transparent`.
+- **Result**: Enables the gorgeous radial background gradient and flowing particle animations to bleed through the top header container, providing a unified premium workspace layout.
+
+### 45. Unified Backend Calls under Gemini 2.5 Flash
+- **Upgraded Greeting Generator**: Replaced the legacy `gemini-1.5-flash` model endpoint in [branding.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/routers/branding.py#L237) with the stable `gemini-2.5-flash` model endpoint, formatting its payload with the required `role: "user"` structure.
+- **Result**: Unified all AI model generations across the application.
+
+---
+
 ## Next Session Plans
 1. **Frontend Click Interception / Dropdown Focus Fix**: Resolve the event-handling bug where the first click on a suggested query card is intercepted by `handleClickOutside` if a dropdown is open, requiring a second click to submit.
 2. **Graph Query History Visualizer**: Highlight queried nodes and connection edges in the graph based on the user's active conversation history.

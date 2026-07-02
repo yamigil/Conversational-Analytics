@@ -2728,7 +2728,7 @@ const App: React.FC = () => {
       
       {/* Global Header Banner */}
       {user && (
-        <header className={`h-16 bg-slate-950/80 backdrop-blur-md border-b border-white/6 px-4 md:px-8 flex items-center justify-between shrink-0 select-none animate-fadeIn ${tourStep > 0 ? 'z-[1010]' : 'z-40'}`}>
+        <header className={`h-16 bg-transparent backdrop-blur-md border-b border-white/6 px-4 md:px-8 flex items-center justify-between shrink-0 select-none animate-fadeIn ${tourStep > 0 ? 'z-[1010]' : 'z-40'}`}>
           {/* Left: Hamburger Button (mobile chat only) & Logo/Title (Click to go Home) */}
           <div className="flex items-center gap-3 min-w-0">
             {currentPage === "chat" && (

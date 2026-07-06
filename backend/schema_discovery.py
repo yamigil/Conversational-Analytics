@@ -11,7 +11,8 @@ def extract_questions_from_text(text: str) -> list:
     questions = []
     
     # 1. Match numbered list questions (supporting both newlines and inline like "(1) ... (2) ...")
-    numbered_matches = re.findall(r'(?:\(?\d+[\.\)]\s*)\s*(.*?)(?=\s*\(?\d+[\.\)]|$)', text, re.DOTALL)
+    # Requiring whitespace boundary before list numbers to avoid matching numbers in database names (e.g., penske_customer_360)
+    numbered_matches = re.findall(r'(?:^|\s)\(?\d+[\.\)]\s+(.*?)(?=\s+(?:\(?\d+[\.\)]|$))', text, re.DOTALL | re.MULTILINE)
     for m in numbered_matches:
         q = m.strip()
         q = q.rstrip(".,; ")
@@ -200,8 +201,8 @@ def generate_graph_node_suggestions(nodes: list, edges: list) -> dict:
             parsed = json.loads(cleaned.strip())
             if isinstance(parsed, dict):
                 logger.info(f"Successfully generated custom graph suggestions via Gemini for nodes: {list(parsed.keys())}")
-                # Ensure all keys are strings and values are lists of strings
-                return {str(k): [str(v) for v in val] for k, val in parsed.items() if isinstance(val, list)}
+                # Ensure all keys are lowercase strings and values are lists of strings
+                return {str(k).lower().strip(): [str(v) for v in val] for k, val in parsed.items() if isinstance(val, list)}
     except Exception as ex:
         logger.warning(f"Failed to generate custom graph suggestions with Gemini: {ex}. Using generic fallbacks.")
     return {}
@@ -289,9 +290,10 @@ def discover_bq_graph_schema(project_id: str, dataset_id: str) -> Optional[dict]
         # Ensure every node has suggestions (in case Gemini missed some or failed)
         for n in nodes:
             table_id = n["id"]
-            if table_id not in node_suggestions or len(node_suggestions[table_id]) < 3:
+            lookup_id = table_id.lower().strip()
+            if lookup_id not in node_suggestions or len(node_suggestions[lookup_id]) < 3:
                 clean_label = n["label"].replace("_", " ").title()
-                node_suggestions[table_id] = [
+                node_suggestions[lookup_id] = [
                     f"What are the most common relationships and connections starting from {clean_label.lower()}?",
                     f"Can you summarize the top 10 attributes and key columns inside the {clean_label.lower()} table?",
                     f"Show me the latest activity trends and records in {clean_label.lower()}."

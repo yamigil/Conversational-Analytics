@@ -52,13 +52,40 @@ Use these instructions to automatically generate the visual pipeline nodes and S
     WHERE Name IS NOT NULL
     GROUP BY Name
   ),
+  synthetic_names AS (
+    SELECT * FROM UNNEST([
+      STRUCT('John' AS first_name, 'Smith' AS last_name, '(208) 555' AS phone_area, 'Idaho Falls, ID 83402' AS city_state),
+      STRUCT('Jane' AS first_name, 'Doe' AS last_name, '(385) 555' AS phone_area, 'Salt Lake City, UT 84101' AS city_state),
+      STRUCT('Robert' AS first_name, 'Johnson' AS last_name, '(208) 444' AS phone_area, 'Pocatello, ID 83201' AS city_state),
+      STRUCT('Mary' AS first_name, 'Williams' AS last_name, '(435) 555' AS phone_area, 'St. George, UT 84770' AS city_state),
+      STRUCT('James' AS first_name, 'Brown' AS last_name, '(385) 222' AS phone_area, 'Provo, UT 84601' AS city_state),
+      STRUCT('Patricia' AS first_name, 'Jones' AS last_name, '(208) 333' AS phone_area, 'Twin Falls, ID 83301' AS city_state),
+      STRUCT('Michael' AS first_name, 'Miller' AS last_name, '(385) 888' AS phone_area, 'Sandy, UT 84070' AS city_state),
+      STRUCT('Linda' AS first_name, 'Davis' AS last_name, '(208) 777' AS phone_area, 'Boise, ID 83702' AS city_state),
+      STRUCT('William' AS first_name, 'Rodriguez' AS last_name, '(435) 333' AS phone_area, 'Logan, UT 84321' AS city_state),
+      STRUCT('Elizabeth' AS first_name, 'Martinez' AS last_name, '(385) 999' AS phone_area, 'Orem, UT 84057' AS city_state)
+    ])
+  ),
+  synthetic_customers AS (
+    SELECT
+      CONCAT(f.first_name, ' ', l.last_name) AS name,
+      FORMAT('%s-%04d', f.phone_area, ABS(MOD(FARM_FINGERPRINT(f.first_name || l.last_name), 9000)) + 1000) AS phone,
+      FORMAT('%d Main St, %s', ABS(MOD(FARM_FINGERPRINT(f.first_name || l.last_name || 'addr'), 900)) + 100, f.city_state) AS address
+    FROM synthetic_names f
+    CROSS JOIN synthetic_names l
+  ),
+  combined_customers AS (
+    SELECT name, phone, address FROM unique_raw_customers
+    UNION DISTINCT
+    SELECT name, phone, address FROM synthetic_customers
+  ),
   numbered_customers AS (
     SELECT
       name,
       phone,
       address,
       ROW_NUMBER() OVER(ORDER BY name) AS row_num
-    FROM unique_raw_customers
+    FROM combined_customers
   )
   SELECT
     FORMAT('C%03d', row_num) AS customer_id,
@@ -74,15 +101,7 @@ Use these instructions to automatically generate the visual pipeline nodes and S
 * **Upstream Dependency**: `customers`
 * **Query**:
   ```sql
-  WITH unique_raw_vehicles AS (
-    SELECT
-      VIN__Synthetic_ AS vin,
-      Name AS customer_name
-    FROM `gilbertos-project-340619.penske_customer_360.raw_tacoma_services`
-    WHERE VIN__Synthetic_ IS NOT NULL
-    GROUP BY VIN__Synthetic_, Name
-  ),
-  mapped_vehicles AS (
+  WITH real_vehicles AS (
     SELECT
       v.vin,
       c.customer_id,
@@ -90,32 +109,89 @@ Use these instructions to automatically generate the visual pipeline nodes and S
       'Tacoma' AS model,
       ABS(MOD(FARM_FINGERPRINT(v.vin), 100)) AS hash_val,
       ABS(MOD(FARM_FINGERPRINT(v.vin), 3)) AS year_hash
-    FROM unique_raw_vehicles v
+    FROM (
+      SELECT
+        VIN__Synthetic_ AS vin,
+        Name AS customer_name
+      FROM `gilbertos-project-340619.penske_customer_360.raw_tacoma_services`
+      WHERE VIN__Synthetic_ IS NOT NULL
+      GROUP BY VIN__Synthetic_, Name
+    ) v
     LEFT JOIN `gilbertos-project-340619.penske_customer_360.customers` c ON v.customer_name = c.name
+  ),
+  real_vehicles_mapped AS (
+    SELECT
+      vin,
+      customer_id,
+      make,
+      model,
+      CASE 
+        WHEN hash_val < 15 THEN 'SR (Base)'
+        WHEN hash_val < 50 THEN 'SR5'
+        WHEN hash_val < 75 THEN 'TRD Sport'
+        WHEN hash_val < 90 THEN 'TRD Off-Road'
+        WHEN hash_val < 95 THEN 'TRD Pro'
+        ELSE 'Limited'
+      END AS trim,
+      CASE year_hash
+        WHEN 0 THEN 2024
+        WHEN 1 THEN 2025
+        ELSE 2026
+      END AS year,
+      CASE 
+        WHEN hash_val < 75 THEN 'RETAIL_BUY'
+        ELSE 'LEASE'
+      END AS purchase_type
+    FROM real_vehicles
+  ),
+  synthetic_customers_vehicles AS (
+    SELECT
+      CONCAT('5TFSYNC', customer_id, 'X01') AS vin,
+      customer_id,
+      'Toyota' AS make,
+      CASE ABS(MOD(FARM_FINGERPRINT(customer_id), 4))
+        WHEN 0 THEN 'RAV4'
+        WHEN 1 THEN 'Tundra'
+        WHEN 2 THEN 'Camry'
+        ELSE 'Highlander'
+      END AS model,
+      CASE ABS(MOD(FARM_FINGERPRINT(customer_id || 'trim'), 4))
+        WHEN 0 THEN 'XLE'
+        WHEN 1 THEN 'Limited'
+        WHEN 2 THEN 'Platinum'
+        ELSE 'TRD Pro'
+      END AS trim,
+      2023 + ABS(MOD(FARM_FINGERPRINT(customer_id || 'year'), 3)) AS year,
+      CASE WHEN MOD(ABS(FARM_FINGERPRINT(customer_id || 'pt')), 2) = 0 THEN 'RETAIL_BUY' ELSE 'LEASE' END AS purchase_type
+    FROM `gilbertos-project-340619.penske_customer_360.customers`
+    WHERE customer_id NOT IN (SELECT DISTINCT customer_id FROM real_vehicles_mapped)
+  ),
+  secondary_vehicles AS (
+    SELECT
+      CONCAT('5TFSYNC', customer_id, 'X02') AS vin,
+      customer_id,
+      'Toyota' AS make,
+      CASE ABS(MOD(FARM_FINGERPRINT(customer_id || 'sec'), 4))
+        WHEN 0 THEN 'Prius'
+        WHEN 1 THEN 'RAV4'
+        WHEN 2 THEN 'Sequoia'
+        ELSE 'Camry'
+      END AS model,
+      CASE ABS(MOD(FARM_FINGERPRINT(customer_id || 'sectrim'), 3))
+        WHEN 0 THEN 'LE'
+        WHEN 1 THEN 'XLE'
+        ELSE 'Limited'
+      END AS trim,
+      2023 + ABS(MOD(FARM_FINGERPRINT(customer_id || 'secyear'), 3)) AS year,
+      CASE WHEN MOD(ABS(FARM_FINGERPRINT(customer_id || 'secpt')), 2) = 0 THEN 'RETAIL_BUY' ELSE 'LEASE' END AS purchase_type
+    FROM `gilbertos-project-340619.penske_customer_360.customers`
+    WHERE ABS(MOD(FARM_FINGERPRINT(customer_id), 5)) = 0
   )
-  SELECT
-    vin,
-    customer_id,
-    make,
-    model,
-    CASE 
-      WHEN hash_val < 15 THEN 'SR (Base)'
-      WHEN hash_val < 50 THEN 'SR5'
-      WHEN hash_val < 75 THEN 'TRD Sport'
-      WHEN hash_val < 90 THEN 'TRD Off-Road'
-      WHEN hash_val < 95 THEN 'TRD Pro'
-      ELSE 'Limited'
-    END AS trim,
-    CASE year_hash
-      WHEN 0 THEN 2024
-      WHEN 1 THEN 2025
-      ELSE 2026
-    END AS year,
-    CASE 
-      WHEN hash_val < 75 THEN 'RETAIL_BUY'
-      ELSE 'LEASE'
-    END AS purchase_type
-  FROM mapped_vehicles;
+  SELECT * FROM real_vehicles_mapped
+  UNION ALL
+  SELECT * FROM synthetic_customers_vehicles
+  UNION ALL
+  SELECT * FROM secondary_vehicles;
   ```
 
 ### Step 4: Cleanse & Load Service Visits (`service_visits`)
@@ -123,7 +199,7 @@ Use these instructions to automatically generate the visual pipeline nodes and S
 * **Upstream Dependency**: `create_raw_tacoma_services`
 * **Query**:
   ```sql
-  WITH cleaned_visits AS (
+  WITH real_visits AS (
     SELECT
       VIN__Synthetic_ AS vin,
       Service_Date AS service_date,
@@ -134,16 +210,48 @@ Use these instructions to automatically generate the visual pipeline nodes and S
       ROW_NUMBER() OVER(ORDER BY Service_Date, VIN__Synthetic_) AS row_num
     FROM `gilbertos-project-340619.penske_customer_360.raw_tacoma_services`
     WHERE VIN__Synthetic_ IS NOT NULL
+  ),
+  real_visits_mapped AS (
+    SELECT
+      FORMAT('V%03d', row_num) AS visit_id,
+      vin,
+      service_date,
+      dealership_name,
+      COALESCE(mileage, 15000) AS mileage,
+      COALESCE(service_cost, 0.0) AS service_cost,
+      service_type
+    FROM real_visits
+  ),
+  synthetic_visits AS (
+    SELECT
+      CONCAT('V', SUBSTRING(vin, 8, 6), 'S', CAST(v_idx AS STRING)) AS visit_id,
+      vin,
+      DATE_SUB(CURRENT_DATE(), INTERVAL ABS(MOD(FARM_FINGERPRINT(vin || CAST(v_idx AS STRING) || 'date'), 365)) DAY) AS service_date,
+      CASE ABS(MOD(FARM_FINGERPRINT(vin || CAST(v_idx AS STRING) || 'dl'), 3))
+        WHEN 0 THEN 'Penske Toyota of Downey'
+        WHEN 1 THEN 'Penske Toyota West'
+        ELSE 'Penske Toyota of Chandler'
+      END AS dealership_name,
+      v_idx * 10000 + ABS(MOD(FARM_FINGERPRINT(vin || CAST(v_idx AS STRING) || 'mil'), 2500)) AS mileage,
+      CASE ABS(MOD(FARM_FINGERPRINT(vin || CAST(v_idx AS STRING) || 'type'), 4))
+        WHEN 0 THEN 89.95
+        WHEN 1 THEN 94.50
+        WHEN 2 THEN 120.00
+        ELSE 145.25
+      END AS service_cost,
+      CASE ABS(MOD(FARM_FINGERPRINT(vin || CAST(v_idx AS STRING) || 'type'), 4))
+        WHEN 0 THEN 'Full Synthetic Oil Change'
+        WHEN 1 THEN 'Oil Change & Tire Rotation'
+        WHEN 2 THEN 'Wheel Alignment'
+        ELSE 'Transmission Service'
+      END AS service_type
+    FROM `gilbertos-project-340619.penske_customer_360.vehicles`,
+    UNNEST([1, 2]) AS v_idx
+    WHERE vin LIKE '5TFSYNC%'
   )
-  SELECT
-    FORMAT('V%03d', row_num) AS visit_id,
-    vin,
-    service_date,
-    dealership_name,
-    COALESCE(mileage, 15000) AS mileage,
-    COALESCE(service_cost, 0.0) AS service_cost,
-    service_type
-  FROM cleaned_visits;
+  SELECT * FROM real_visits_mapped
+  UNION ALL
+  SELECT * FROM synthetic_visits;
   ```
 
 ### Step 5: Synthesize Deal Jackets (`deal_jackets`)

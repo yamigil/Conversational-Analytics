@@ -279,10 +279,26 @@
 
 ---
 
+## Implemented Checklists & Milestones (Session 74 / Checkpoint 74)
+
+### 46. Robust Dynamic Thought Detection in Streaming Responses
+- **Generalized Stream Parser**: Refactored `parseSingleSystemMessageText` in [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L162-L191) to classify all 2-part chunks as internal thoughts unless matching final answer/insight headers.
+- **Dynamic Reasoning Collapse**: This automatically and robustly collapses dynamic, agent-generated thought process sections (such as `"Identifying Valuable Customers"` and `"Analyzing Query Results"`) inside the collapsible thoughts container, preventing them from leaking raw in the chat bubble.
+- **E2E Visual Verification**: Ran automated browser subagents on localhost, taking screenshots to confirm that the chat bubble remains extremely clean, showing only final answers, charts, and syntax-highlighted SQL, while the full thoughts panel expands perfectly.
+
+### 47. SQL/GQL Widget Polish & Copy Micro-Animations
+- **Lightweight Highlighting**: Implemented custom syntax highlighting for SQL and GQL queries (coloring keywords, strings, backticks, and numeric literals) directly in the UI.
+- **Copy Feedback Animation**: Added a scaling checkmark feedback micro-animation to the "Copy SQL" button inside the SQL widget for a modern user experience.
+
+### 48. Symmetrical Orbit Tracks & Satellite Glows
+- **Circular Orbit Tracks**: Rendered rotating dashed circle tracks for orbiting satellites around selected graph nodes in [frontend/src/components/GraphVisualizer.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/components/GraphVisualizer.tsx).
+- **Satellite Glow Effect**: Added glowing core centers and pulsing halos on satellites.
+
+---
+
 ## Next Session Plans
 1. **Frontend Click Interception / Dropdown Focus Fix**: Resolve the event-handling bug where the first click on a suggested query card is intercepted by `handleClickOutside` if a dropdown is open, requiring a second click to submit.
-2. **Graph Query History Visualizer**: Highlight queried nodes and connection edges in the graph based on the user's active conversation history.
-3. **Custom Brand-Color Graph Propagations**: Connect the SVG flowing particles and halo glows directly to the active branding theme (`brandPrimaryColor`).
+2. **Graph Query History Visualizer**: Highlight queried nodes and connection edges in the graph based on the active conversation history.
 
 
 

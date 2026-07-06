@@ -128,6 +128,8 @@ For data agents connected to a **BigQuery Graph database**, the portal replaces 
 ---
 
 ## Recent Updates & Fixes
+* **Dynamic Thought Process Isolation**: Refactored the streaming message parser in the React frontend to classify all 2-part chunks as internal thoughts unless matching final answer headers, robustly preventing detailed reasoning logs from leaking into the final user-facing response.
+* **SQL Widget Polish & Orbit Tracks**: Added rotating dashed orbit tracks and halo glows around satellite nodes in the graph visualizer, and custom syntax highlighting + copy animations to SQL widgets.
 * **Vertex AI Gemini 2.5 Flash Upgrade**: Upgraded the core suggestion engine and branding generator from `gemini-1.5-flash` to `gemini-2.5-flash` to match the model availability of the project, resolving a 404 error.
 * **Strict Payload Hardening**: Added the mandatory `"role": "user"` field to the Vertex AI request payloads, resolving a 400 Bad Request error.
 * **Modular Architecture**: Re-architected `main.py` into modular route handlers (`chat`, `agents`, `telemetry`, `gcp`, etc.) to improve long-term maintainability.

@@ -308,6 +308,7 @@
 - **Case-Insensitive Suggestions**: Standardized the Property Graph metadata parser in [backend/schema_discovery.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/schema_discovery.py) to handle node lookups case-insensitively, preventing casing mismatches from falling back to generic questions.
 - **Math Formula & Versioning Exclusions**: Hardened the question extraction regex to require line/word boundaries. This stops dataset numbers (like `360.`) and inline math values (like `* 100.`) from being incorrectly parsed as vertical list item markers.
 - **Self-Healing Final Answer Promotion**: Added logic to `groupConversationalMessages` in [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L285) to detect when a final response matches our 2-part thought heuristic (which originally caused empty answer bubbles). The visualizer now automatically promotes the final narrative block as the main answer, resolving empty bubbles for complex queries.
+- **Cache Warmup Resilience & Self-Healing Cache**: Increased Gemini API timeout from 12 to 30 seconds inside [backend/gemini_client.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/gemini_client.py#L35) to handle concurrent warmup calls. Configured `discover_bq_graph_schema` to bypass caching fallback values on API errors/timeouts, allowing the backend to try calling Gemini again on subsequent user visits rather than permanently locking the cache with generic fallbacks.
 
 ---
 

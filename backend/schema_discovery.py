@@ -301,7 +301,8 @@ def discover_bq_graph_schema(project_id: str, dataset_id: str) -> Optional[dict]
             })
             
         # 5. Generate node suggestions (Try Gemini first, fallback to generic templates)
-        node_suggestions = generate_graph_node_suggestions(nodes, edges)
+        raw_suggestions = generate_graph_node_suggestions(nodes, edges)
+        node_suggestions = {**raw_suggestions}
         
         # Ensure every node has suggestions (in case Gemini missed some or failed)
         for n in nodes:
@@ -322,7 +323,14 @@ def discover_bq_graph_schema(project_id: str, dataset_id: str) -> Optional[dict]
             "projectId": project_id,
             "datasetId": dataset_id
         }
-        _GRAPH_SCHEMA_CACHE[cache_key] = res
+        
+        # Self-healing Cache Policy: Only cache if Gemini succeeded in generating suggestions.
+        # This prevents locking the cache with permanent fallback values on transient API timeouts.
+        if raw_suggestions:
+            _GRAPH_SCHEMA_CACHE[cache_key] = res
+        else:
+            logger.warning(f"Gemini API failed during graph suggestions generation for {dataset_id}. Fallbacks loaded, but cache bypass active for self-healing.")
+            
         return res
         
     except Exception as e:

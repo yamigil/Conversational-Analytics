@@ -128,6 +128,7 @@ For data agents connected to a **BigQuery Graph database**, the portal replaces 
 ---
 
 ## Recent Updates & Fixes
+* **Self-Healing Schema Cache Policy & Timeout Hardening**: Hardened Vertex AI API calls by raising timeouts from 12 to 30 seconds to prevent transient timeouts during parallel cache warmups. Upgraded the graph schema discovery cache to bypass storing fallback results if the Gemini API call failed, forcing a retry on subsequent user queries until Gemini successfully materializes premium suggestions.
 * **Self-Healing Final Answer Promotion**: Resolved a UI bug where 2-part narrative final responses from Gemini (e.g. `[Analysis Title, Narrative Result]`) were incorrectly grouped as internal thought steps due to heuristic classification, leaving the main chat bubble empty. The grouping engine now detects empty answer blocks and dynamically promotes the last narrative thought into the main answer bubble.
 * **Robust Case-Insensitive Graph Suggestions**: Standardized the BigQuery Property Graph metadata parser to handle mixed-case node names and labels (such as `ORDERS` vs `orders`) case-insensitively, preventing accidental fallbacks to generic questions.
 * **Precision Suggested Query Regex Fixes**: Hardened the suggested question extractor to ignore database versioning numbers (like `360.` in `penske_customer_360`) and inline math values (like `* 100.` in metric instructions), ensuring only valid natural language questions are suggested to the user.

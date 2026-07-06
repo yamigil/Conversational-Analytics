@@ -16,3 +16,7 @@ __pycache__/
 *.log
 deleted_conversations.json
 gilbertos-project-*.json
+
+# Ignore local Dataform pipeline git project
+pipeline/
+

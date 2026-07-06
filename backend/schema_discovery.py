@@ -10,11 +10,12 @@ def extract_questions_from_text(text: str) -> list:
         return []
     questions = []
     
-    # 1. Match numbered list questions (supporting both newlines and inline like "(1) ... (2) ...")
-    # Requiring whitespace boundary before list numbers to avoid matching numbers in database names (e.g., penske_customer_360)
-    numbered_matches = re.findall(r'(?:^|\s)\(?\d+[\.\)]\s+(.*?)(?=\s+(?:\(?\d+[\.\)]|$))', text, re.DOTALL | re.MULTILINE)
-    for m in numbered_matches:
-        q = m.strip()
+    # 1. Match vertical list items starting a line: e.g. "1. Question?" or "  2) Question?"
+    # Requires start-of-line anchor to avoid matching inline math numbers (e.g. * 100. )
+    vertical_matches = re.findall(r'(?:^|\n)\s*\d+[\.\)]\s+(.*?)(?=\n\s*\d+[\.\)]|$)', text, re.DOTALL)
+    for m in vertical_matches:
+        # Take the first line to avoid grabbing multiple paragraphs if subsequent indices are missing
+        q = m.strip().split('\n')[0]
         q = q.rstrip(".,; ")
         if 15 < len(q) < 160:
             if any(k in q.lower() for k in ["primary key", "key column", "foreign key", "table schema"]):
@@ -24,6 +25,21 @@ def extract_questions_from_text(text: str) -> list:
             if not q.endswith("?"):
                 q += "?"
             questions.append(q)
+            
+    # 2. Match inline list items: e.g. "(1) Question? (2) Question?"
+    # Requires parentheses around the numbers to prevent false positives with plain floats
+    inline_matches = re.findall(r'(?:^|\s)\(\d+\)\s+(.*?)(?=\s+\(\d+\)|$)', text, re.DOTALL)
+    for m in inline_matches:
+        q = m.strip().rstrip(".,; ")
+        if 15 < len(q) < 160:
+            if any(k in q.lower() for k in ["primary key", "key column", "foreign key", "table schema"]):
+                continue
+            if q.count(":") > 1 or q.count("`") > 2 or "*" in q or "#" in q:
+                continue
+            if not q.endswith("?"):
+                q += "?"
+            if q not in questions:
+                questions.append(q)
             
     # 2. Extract questions inside quotes ending with a question mark (fallback/extra)
     quoted_matches = re.findall(r'["\']([^"\']+\?)["\']', text)

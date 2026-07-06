@@ -1,0 +1,5 @@
+dataformCoreVersion: 3.0.61
+defaultProject: gilbertos-project-340619
+defaultLocation: us-central1
+defaultDataset: penske_customer_360
+defaultAssertionDataset: penske_customer_360_assertions

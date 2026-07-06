@@ -1,0 +1,58 @@
+config {
+  type: "table",
+  name: "vehicles",
+  dependencies: ["create_raw_tacoma_services"],
+  description: "Parsed vehicles registered to owners, with assigned trims and purchase details",
+  columns: {
+    vin: "Unique Vehicle Identification Number",
+    customer_id: "Reference to the owner customer_id",
+    make: "Vehicle manufacturer (Toyota)",
+    model: "Vehicle model (Tacoma)",
+    trim: "Probabilistically assigned trim level",
+    year: "Assigned model year",
+    purchase_type: "Assigned purchase method (RETAIL_BUY vs LEASE)"
+  }
+}
+
+WITH unique_raw_vehicles AS (
+  SELECT
+    VIN__Synthetic_ AS vin,
+    Name AS customer_name
+  FROM `gilbertos-project-340619.penske_customer_360.raw_tacoma_services`
+  WHERE VIN__Synthetic_ IS NOT NULL
+  GROUP BY VIN__Synthetic_, Name
+),
+mapped_vehicles AS (
+  SELECT
+    v.vin,
+    c.customer_id,
+    'Toyota' AS make,
+    'Tacoma' AS model,
+    ABS(MOD(FARM_FINGERPRINT(v.vin), 100)) AS hash_val,
+    ABS(MOD(FARM_FINGERPRINT(v.vin), 3)) AS year_hash
+  FROM unique_raw_vehicles v
+  LEFT JOIN ${ref("customers")} c ON v.customer_name = c.name
+)
+SELECT
+  vin,
+  customer_id,
+  make,
+  model,
+  CASE 
+    WHEN hash_val < 15 THEN 'SR (Base)'
+    WHEN hash_val < 50 THEN 'SR5'
+    WHEN hash_val < 75 THEN 'TRD Sport'
+    WHEN hash_val < 90 THEN 'TRD Off-Road'
+    WHEN hash_val < 95 THEN 'TRD Pro'
+    ELSE 'Limited'
+  END AS trim,
+  CASE year_hash
+    WHEN 0 THEN 2024
+    WHEN 1 THEN 2025
+    ELSE 2026
+  END AS year,
+  CASE 
+    WHEN hash_val < 75 THEN 'RETAIL_BUY'
+    ELSE 'LEASE'
+  END AS purchase_type
+FROM mapped_vehicles

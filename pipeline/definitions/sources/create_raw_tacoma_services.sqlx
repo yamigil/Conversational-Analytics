@@ -1,0 +1,15 @@
+config {
+  type: "operations",
+  name: "create_raw_tacoma_services",
+  description: "DDL operation to create the raw Tacoma service history external table in BigQuery"
+}
+
+CREATE OR REPLACE EXTERNAL TABLE `gilbertos-project-340619.penske_customer_360.raw_tacoma_services`
+OPTIONS (
+  format = 'CSV',
+  uris = ['gs://gilbertos-project-340619-raw/tacoma_service_history.csv'],
+  skip_leading_rows = 1,
+  allow_jagged_rows = true,
+  allow_quoted_newlines = true,
+  ignore_unknown_values = true
+);

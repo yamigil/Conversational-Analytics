@@ -162,19 +162,17 @@ const parseSingleSystemMessageText = (parts: string[]): SystemMessagePart => {
 
   if (parts.length === 2) {
     const firstLower = parts[0].trim().toLowerCase();
+    const isAnswerHeader = 
+      firstLower.startsWith('insight') || 
+      firstLower.startsWith('key insight') ||
+      firstLower.startsWith('summary') ||
+      firstLower.startsWith('answer') ||
+      firstLower.startsWith('response');
     const isFirstPartThoughtTitle = 
       firstLower.length < 80 && 
       !parts[0].includes('\n') && 
-      !firstLower.includes('select ') && 
-      (firstLower.includes('thought') || 
-       firstLower.includes('thinking') ||
-       firstLower.includes('bypassing') ||
-       firstLower.includes('formulating') ||
-       firstLower.includes('validating') ||
-       firstLower.startsWith('running a query') ||
-       firstLower.startsWith('running query') ||
-       firstLower.startsWith('executing query') ||
-       firstLower.startsWith('executing:'));
+      !firstLower.includes('select ') &&
+      !isAnswerHeader;
     if (isStatus(parts[0])) {
       statuses.push(parts[0].trim());
       statuses.push(parts[1].trim());

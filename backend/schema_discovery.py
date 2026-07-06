@@ -457,6 +457,9 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
                 best_graph = None
                 agent_keywords = set(name_lower.split() + desc_lower.split())
                 agent_keywords = {w.strip("-_,.") for w in agent_keywords if len(w) > 2}
+                # Filter out generic words that would cause false positive matches with any graph
+                generic = {"graph", "agent", "database", "demo", "dataset", "project", "the", "look", "ecommerce"}
+                agent_keywords = {w for w in agent_keywords if w not in generic}
                 
                 max_matches = 0
                 for g in discovered_graphs:
@@ -468,13 +471,14 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
                         max_matches = matches
                         best_graph = g
                         
-                # Fall back to the first discovered graph if no matching keywords were found
-                if not best_graph:
-                    best_graph = discovered_graphs[0]
-                    
-                project_id = best_graph["project_id"]
-                dataset_id = best_graph["dataset_id"]
-                logger.info(f"Dynamically bound Graph Agent '{agent.get('displayName')}' to best matching graph '{project_id}.{dataset_id}.{best_graph['graph_name']}' (matches={max_matches})")
+                # ONLY bind if we have actual specific keyword matches (matches > 0)
+                # If matches == 0, we do not bind, allowing it to fall back to the agent's actual connected tables schema!
+                if max_matches > 0 and best_graph:
+                    project_id = best_graph["project_id"]
+                    dataset_id = best_graph["dataset_id"]
+                    logger.info(f"Dynamically bound Graph Agent '{agent.get('displayName')}' to best matching graph '{project_id}.{dataset_id}.{best_graph['graph_name']}' (matches={max_matches})")
+                else:
+                    logger.info(f"No specific matching Property Graphs found for agent '{agent.get('displayName')}'. Bypassing dynamic graph binding.")
                 
         discovered_schema = None
         if dataset_id and project_id:

@@ -296,6 +296,20 @@
 
 ---
 
+## Implemented Checklists & Milestones (Session 77 / Checkpoint 77)
+
+### 49. Dataform Pipeline Scaling & BQML Customer Segmentation
+- **Expanded Customer Profiles**: Scaled up customer records from 60 to **160 profiles** (using a synthetic generator cross-join) to provide a rich dataset for analysis.
+- **BQML K-Means Model**: Trained a machine learning model (`penske_customer_360.customer_segments`) inside the Dataform pipeline to group customers into 3 behavioral clusters.
+- **Customer Insights Predictions**: Materialized a predictions table (`customer_insights`) using `ML.PREDICT` to assign segments and track service overdue reminders (flagging profiles with last service > 180 days).
+- **Copy-Pasteable Prompt Guides**: Created [docs/agent_instructions.md](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/docs/agent_instructions.md) to document copy-pasteable instructions for dealerships/analytics agents.
+
+### 50. Precision Suggested Query Extractor Fixes
+- **Case-Insensitive Suggestions**: Standardized the Property Graph metadata parser in [backend/schema_discovery.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/schema_discovery.py) to handle node lookups case-insensitively, preventing casing mismatches from falling back to generic questions.
+- **Math Formula & Versioning Exclusions**: Hardened the question extraction regex to require line/word boundaries. This stops dataset numbers (like `360.`) and inline math values (like `* 100.`) from being incorrectly parsed as vertical list item markers.
+
+---
+
 ## Next Session Plans
 1. **Frontend Click Interception / Dropdown Focus Fix**: Resolve the event-handling bug where the first click on a suggested query card is intercepted by `handleClickOutside` if a dropdown is open, requiring a second click to submit.
 2. **Graph Query History Visualizer**: Highlight queried nodes and connection edges in the graph based on the active conversation history.

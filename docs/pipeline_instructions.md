@@ -380,3 +380,91 @@ Use these instructions to automatically generate the visual pipeline nodes and S
         LABEL TRIGGERED
     );
   ```
+
+### Step 8: Train K-Means Clustering Model (`create_customer_segments_model`)
+* **Task Type**: BigQuery ML Model Creation
+* **Upstream Dependencies**: `customers`, `vehicles`, `service_visits`, `deal_jackets`, `web_events`
+* **Query**:
+  ```sql
+  CREATE OR REPLACE MODEL `gilbertos-project-340619.penske_customer_360.customer_segments`
+  OPTIONS(
+    model_type='KMEANS',
+    num_clusters=3,
+    standardize_features=TRUE
+  ) AS
+  SELECT
+    c.customer_id,
+    COUNT(DISTINCT v.vin) AS num_vehicles,
+    COALESCE(SUM(sv.service_cost), 0.0) AS total_service_spend,
+    COALESCE(AVG(sv.mileage), 0.0) AS avg_service_mileage,
+    COALESCE(ANY_VALUE(dj.credit_score), 700) AS credit_score,
+    COALESCE(ANY_VALUE(dj.loan_amount), 0.0) AS loan_amount,
+    COUNT(DISTINCT we.event_id) AS num_web_events
+  FROM `gilbertos-project-340619.penske_customer_360.customers` c
+  LEFT JOIN `gilbertos-project-340619.penske_customer_360.vehicles` v ON c.customer_id = v.customer_id
+  LEFT JOIN `gilbertos-project-340619.penske_customer_360.service_visits` sv ON v.vin = sv.vin
+  LEFT JOIN `gilbertos-project-340619.penske_customer_360.deal_jackets` dj ON c.customer_id = dj.customer_id AND v.vin = dj.vin
+  LEFT JOIN `gilbertos-project-340619.penske_customer_360.web_events` we ON c.customer_id = we.customer_id
+  GROUP BY c.customer_id;
+  ```
+
+### Step 9: Materialize Customer Insights & Predictions (`customer_insights`)
+* **Task Type**: SQL Table Materialization
+* **Upstream Dependencies**: `create_customer_segments_model`
+* **Query**:
+  ```sql
+  WITH customer_features AS (
+    SELECT
+      c.customer_id,
+      c.name,
+      c.email,
+      c.phone,
+      COUNT(DISTINCT v.vin) AS num_vehicles,
+      COALESCE(SUM(sv.service_cost), 0.0) AS total_service_spend,
+      COALESCE(AVG(sv.mileage), 0.0) AS avg_service_mileage,
+      COALESCE(ANY_VALUE(dj.credit_score), 700) AS credit_score,
+      COALESCE(ANY_VALUE(dj.loan_amount), 0.0) AS loan_amount,
+      COUNT(DISTINCT we.event_id) AS num_web_events,
+      MAX(sv.service_date) AS last_service_date
+    FROM `gilbertos-project-340619.penske_customer_360.customers` c
+    LEFT JOIN `gilbertos-project-340619.penske_customer_360.vehicles` v ON c.customer_id = v.customer_id
+    LEFT JOIN `gilbertos-project-340619.penske_customer_360.service_visits` sv ON v.vin = sv.vin
+    LEFT JOIN `gilbertos-project-340619.penske_customer_360.deal_jackets` dj ON c.customer_id = dj.customer_id AND v.vin = dj.vin
+    LEFT JOIN `gilbertos-project-340619.penske_customer_360.web_events` we ON c.customer_id = we.customer_id
+    GROUP BY c.customer_id, c.name, c.email, c.phone
+  ),
+  predicted_segments AS (
+    SELECT
+      customer_id,
+      name,
+      email,
+      phone,
+      last_service_date,
+      centroid_id
+    FROM ML.PREDICT(
+      MODEL `gilbertos-project-340619.penske_customer_360.customer_segments`,
+      (SELECT * FROM customer_features)
+    )
+  )
+  SELECT
+    customer_id,
+    name,
+    email,
+    phone,
+    last_service_date,
+    DATE_DIFF(CURRENT_DATE(), last_service_date, DAY) AS days_since_last_service,
+    CASE
+      WHEN last_service_date IS NULL THEN 'NO_SERVICE_HISTORY'
+      WHEN DATE_DIFF(CURRENT_DATE(), last_service_date, DAY) > 180 THEN 'OVERDUE'
+      WHEN DATE_DIFF(CURRENT_DATE(), last_service_date, DAY) > 120 THEN 'DUE_SOON'
+      ELSE 'UP_TO_DATE'
+    END AS service_due_status,
+    centroid_id,
+    CASE centroid_id
+      WHEN 1 THEN 'High Value - Loyal Buyer'
+      WHEN 2 THEN 'Dormant - Lead Reactivation'
+      ELSE 'Active Web Shopper - Trade-In Target'
+    END AS target_segment
+  FROM predicted_segments;
+  ```
+

@@ -1,0 +1,44 @@
+config {
+  type: "operations",
+  dependencies: ["customers", "vehicles", "service_visits", "deal_jackets", "web_events"],
+  name: "customer_360_graph",
+  description: "DDL action to compile the BigQuery Property Graph on top of staging tables"
+}
+
+CREATE OR REPLACE PROPERTY GRAPH `gilbertos-project-340619.penske_customer_360.customer_360_graph`
+  NODE TABLES (
+    ${ref("customers")} KEY (customer_id) LABEL Customer,
+    ${ref("vehicles")} KEY (vin) LABEL Vehicle,
+    ${ref("service_visits")} KEY (visit_id) LABEL ServiceVisit,
+    ${ref("deal_jackets")} KEY (deal_id) LABEL DealJacket,
+    ${ref("web_events")} KEY (event_id) LABEL WebEvent
+  )
+  EDGE TABLES (
+    -- Edge: Customer owns Vehicle (defined on vehicles table)
+    ${ref("vehicles")} AS customer_ownership
+      KEY (vin)
+      SOURCE KEY (customer_id) REFERENCES ${ref("customers")} (customer_id)
+      DESTINATION KEY (vin) REFERENCES ${ref("vehicles")} (vin)
+      LABEL OWNS,
+      
+    -- Edge: Vehicle has Service Visit (defined on service_visits table)
+    ${ref("service_visits")} AS vehicle_services
+      KEY (visit_id)
+      SOURCE KEY (vin) REFERENCES ${ref("vehicles")} (vin)
+      DESTINATION KEY (visit_id) REFERENCES ${ref("service_visits")} (visit_id)
+      LABEL SERVICED_AT,
+      
+    -- Edge: Customer has F&I Contract (defined on deal_jackets table)
+    ${ref("deal_jackets")} AS customer_deals
+      KEY (deal_id)
+      SOURCE KEY (customer_id) REFERENCES ${ref("customers")} (customer_id)
+      DESTINATION KEY (deal_id) REFERENCES ${ref("deal_jackets")} (deal_id)
+      LABEL FINANCED_WITH,
+      
+    -- Edge: Customer triggered Web Event (defined on web_events table)
+    ${ref("web_events")} AS customer_web_events
+      KEY (event_id)
+      SOURCE KEY (customer_id) REFERENCES ${ref("customers")} (customer_id)
+      DESTINATION KEY (event_id) REFERENCES ${ref("web_events")} (event_id)
+      LABEL TRIGGERED
+  );

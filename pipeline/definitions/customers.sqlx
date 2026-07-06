@@ -1,0 +1,38 @@
+config {
+  type: "table",
+  name: "customers",
+  dependencies: ["create_raw_tacoma_services"],
+  description: "Uniquely parsed customer contacts with contact information",
+  columns: {
+    customer_id: "Unique customer identifier",
+    name: "Full name of the customer",
+    email: "Synthetic customer email contact",
+    phone: "Phone number parsed from Tacoma records",
+    address: "Customer address parsed from Tacoma records"
+  }
+}
+
+WITH unique_raw_customers AS (
+  SELECT 
+    Name AS name,
+    ANY_VALUE(Phone) AS phone,
+    ANY_VALUE(Address) AS address
+  FROM `gilbertos-project-340619.penske_customer_360.raw_tacoma_services`
+  WHERE Name IS NOT NULL
+  GROUP BY Name
+),
+numbered_customers AS (
+  SELECT
+    name,
+    phone,
+    address,
+    ROW_NUMBER() OVER(ORDER BY name) AS row_num
+  FROM unique_raw_customers
+)
+SELECT
+  FORMAT('C%03d', row_num) AS customer_id,
+  name,
+  LOWER(REPLACE(name, ' ', '.')) || '.demo@penske.com' AS email,
+  phone,
+  address
+FROM numbered_customers

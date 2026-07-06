@@ -1,0 +1,37 @@
+config {
+  type: "table",
+  name: "service_visits",
+  dependencies: ["create_raw_tacoma_services"],
+  description: "Deduplicated and cleaned customer dealership service records",
+  columns: {
+    visit_id: "Unique service visit identifier",
+    vin: "VIN of the serviced vehicle",
+    service_date: "Date of the service event",
+    dealership_name: "Dealership location where serviced",
+    mileage: "Vehicle mileage at time of service",
+    service_cost: "Total dollar cost of the service operation",
+    service_type: "Categorized service description"
+  }
+}
+
+WITH cleaned_visits AS (
+  SELECT
+    VIN__Synthetic_ AS vin,
+    Service_Date AS service_date,
+    Dealership_Name AS dealership_name,
+    Mileage AS mileage,
+    Service_Cost AS service_cost,
+    Service_Type AS service_type,
+    ROW_NUMBER() OVER(ORDER BY Service_Date, VIN__Synthetic_) AS row_num
+  FROM `gilbertos-project-340619.penske_customer_360.raw_tacoma_services`
+  WHERE VIN__Synthetic_ IS NOT NULL
+)
+SELECT
+  FORMAT('V%03d', row_num) AS visit_id,
+  vin,
+  service_date,
+  dealership_name,
+  COALESCE(mileage, 15000) AS mileage,
+  COALESCE(service_cost, 0.0) AS service_cost,
+  service_type
+FROM cleaned_visits

@@ -307,6 +307,7 @@
 ### 50. Precision Suggested Query Extractor Fixes
 - **Case-Insensitive Suggestions**: Standardized the Property Graph metadata parser in [backend/schema_discovery.py](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/backend/schema_discovery.py) to handle node lookups case-insensitively, preventing casing mismatches from falling back to generic questions.
 - **Math Formula & Versioning Exclusions**: Hardened the question extraction regex to require line/word boundaries. This stops dataset numbers (like `360.`) and inline math values (like `* 100.`) from being incorrectly parsed as vertical list item markers.
+- **Self-Healing Final Answer Promotion**: Added logic to `groupConversationalMessages` in [frontend/src/App.tsx](file:///Users/gilgtz/Documents/Google/Agents/ca-agent-web-app/frontend/src/App.tsx#L285) to detect when a final response matches our 2-part thought heuristic (which originally caused empty answer bubbles). The visualizer now automatically promotes the final narrative block as the main answer, resolving empty bubbles for complex queries.
 
 ---
 

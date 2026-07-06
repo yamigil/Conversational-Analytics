@@ -285,6 +285,21 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
   }
 
   if (currentSystemMsg) {
+    // Self-healing: if the answer is empty, but we have extracted thoughts, promote the final thought
+    // as the narrative answer if it is a standard business narrative (not raw SQL query code).
+    if (!currentSystemMsg.answer && currentSystemMsg.thoughts.length > 0) {
+      const lastThought = currentSystemMsg.thoughts[currentSystemMsg.thoughts.length - 1];
+      const cleanBody = lastThought.body.trim().toLowerCase();
+      // Ensure the body does not contain query commands/syntax
+      if (!cleanBody.startsWith("select") && 
+          !cleanBody.startsWith("with") && 
+          !cleanBody.startsWith("create") && 
+          !cleanBody.startsWith("insert") &&
+          !cleanBody.startsWith("delete")) {
+        currentSystemMsg.answer = lastThought.body;
+        currentSystemMsg.thoughts.pop(); // Remove it from thoughts to avoid duplicating in the UI
+      }
+    }
     grouped.push({ systemMessage: currentSystemMsg });
   }
 

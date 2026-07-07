@@ -167,23 +167,14 @@ const parseSingleSystemMessageText = (parts: string[]): SystemMessagePart => {
       firstLower.startsWith('key insight') ||
       firstLower.startsWith('summary') ||
       firstLower.startsWith('answer') ||
-      firstLower.startsWith('response');
-    const isFirstPartThoughtTitle = 
-      firstLower.length < 80 && 
-      !parts[0].includes('\n') && 
-      !firstLower.includes('select ') &&
-      !isAnswerHeader;
-    const secondLower = parts[1].trim().toLowerCase();
-    const isSecondPartSqlOrReasoning = 
-      secondLower.startsWith('select') ||
-      secondLower.startsWith('with') ||
-      secondLower.startsWith('executing:') ||
-      secondLower.startsWith('running:');
+      firstLower.startsWith('response') ||
+      firstLower.startsWith('result') ||
+      firstLower.startsWith('conclusion');
 
     if (isStatus(parts[0])) {
       statuses.push(parts[0].trim());
       statuses.push(parts[1].trim());
-    } else if (isFirstPartThoughtTitle && isSecondPartSqlOrReasoning) {
+    } else if (!isAnswerHeader && firstLower.length < 100 && !parts[0].includes('\n')) {
       thoughts.push({
         title: parts[0].trim(),
         body: parts[1].trim()

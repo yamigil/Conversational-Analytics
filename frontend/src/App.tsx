@@ -140,12 +140,12 @@ const getAgentSuggestions = (displayName: string, agentId: string, brandKey: str
 
 // Helper to identify status texts
 const isStatus = (str: string) => {
-  const s = str.trim();
-  return s === "Analyzing context" || 
-         s.startsWith("Retrieved context for") || 
-         s.startsWith("Running query") ||
-         s.startsWith("Executing query") ||
-         s.startsWith("Generating visualization");
+  const s = str.trim().toLowerCase();
+  return s.startsWith("analyzing") || 
+         s.startsWith("retrieved context") || 
+         s.startsWith("running") ||
+         s.startsWith("executing") ||
+         s.startsWith("generating visualization");
 };
 
 // Parses a single, un-merged system message text parts list using boundary invariant
@@ -173,10 +173,17 @@ const parseSingleSystemMessageText = (parts: string[]): SystemMessagePart => {
       !parts[0].includes('\n') && 
       !firstLower.includes('select ') &&
       !isAnswerHeader;
+    const secondLower = parts[1].trim().toLowerCase();
+    const isSecondPartSqlOrReasoning = 
+      secondLower.startsWith('select') ||
+      secondLower.startsWith('with') ||
+      secondLower.startsWith('executing:') ||
+      secondLower.startsWith('running:');
+
     if (isStatus(parts[0])) {
       statuses.push(parts[0].trim());
       statuses.push(parts[1].trim());
-    } else if (isFirstPartThoughtTitle) {
+    } else if (isFirstPartThoughtTitle && isSecondPartSqlOrReasoning) {
       thoughts.push({
         title: parts[0].trim(),
         body: parts[1].trim()
@@ -300,7 +307,25 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
         currentSystemMsg.thoughts.pop(); // Remove it from thoughts to avoid duplicating in the UI
       }
     }
-    grouped.push({ systemMessage: currentSystemMsg });
+
+    // Fallback: if answer is still empty but insights exists, display insights as answer
+    if (!currentSystemMsg.answer && currentSystemMsg.insights) {
+      currentSystemMsg.answer = currentSystemMsg.insights;
+    }
+
+    const hasContent = Boolean(
+      currentSystemMsg.answer ||
+      currentSystemMsg.insights ||
+      currentSystemMsg.data ||
+      currentSystemMsg.schema ||
+      currentSystemMsg.chart ||
+      currentSystemMsg.statuses.length > 0 ||
+      currentSystemMsg.thoughts.length > 0
+    );
+
+    if (hasContent) {
+      grouped.push({ systemMessage: currentSystemMsg });
+    }
   }
 
   return grouped;

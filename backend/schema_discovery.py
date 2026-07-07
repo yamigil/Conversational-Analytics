@@ -18,11 +18,15 @@ def extract_questions_from_text(text: str) -> list:
         q = m.strip().split('\n')[0]
         q = q.rstrip(".,; ")
         if 15 < len(q) < 160:
-            if any(k in q.lower() for k in ["primary key", "key column", "foreign key", "table schema"]):
+            if any(k in q.lower() for k in ["primary key", "key column", "foreign key", "table schema", "property graph", "insights table"]):
                 continue
             if q.count(":") > 1 or q.count("`") > 2 or "*" in q or "#" in q:
                 continue
             if not q.endswith("?"):
+                first_word = q.split()[0].lower() if q.split() else ""
+                question_starters = {"what", "which", "who", "how", "can", "show", "find", "list", "are", "do", "does", "is", "why", "where", "summarize", "count", "compare", "give"}
+                if first_word not in question_starters:
+                    continue
                 q += "?"
             questions.append(q)
             
@@ -32,11 +36,15 @@ def extract_questions_from_text(text: str) -> list:
     for m in inline_matches:
         q = m.strip().rstrip(".,; ")
         if 15 < len(q) < 160:
-            if any(k in q.lower() for k in ["primary key", "key column", "foreign key", "table schema"]):
+            if any(k in q.lower() for k in ["primary key", "key column", "foreign key", "table schema", "property graph", "insights table"]):
                 continue
             if q.count(":") > 1 or q.count("`") > 2 or "*" in q or "#" in q:
                 continue
             if not q.endswith("?"):
+                first_word = q.split()[0].lower() if q.split() else ""
+                question_starters = {"what", "which", "who", "how", "can", "show", "find", "list", "are", "do", "does", "is", "why", "where", "summarize", "count", "compare", "give"}
+                if first_word not in question_starters:
+                    continue
                 q += "?"
             if q not in questions:
                 questions.append(q)

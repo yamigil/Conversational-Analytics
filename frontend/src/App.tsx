@@ -148,127 +148,50 @@ const isStatus = (str: string) => {
          s.startsWith("generating visualization");
 };
 
-// Parses a single, un-merged system message text parts list using boundary invariant
-const parseSingleSystemMessageText = (parts: string[]): SystemMessagePart => {
-  const statuses: string[] = [];
-  const thoughts: { title: string; body: string }[] = [];
-  let answer = "";
-  let insights = "";
-  const suggestions: string[] = [];
-
-  if (!parts || parts.length === 0) {
-    return { statuses, thoughts, answer, insights, suggestions };
-  }
-
-  if (parts.length === 2) {
-    const firstLower = parts[0].trim().toLowerCase();
-    const isAnswerHeader = 
-      firstLower.startsWith('### ') ||
-      firstLower.startsWith('## ') ||
-      firstLower === 'insights' || 
-      firstLower === 'key insights' ||
-      firstLower === 'summary' ||
-      firstLower === 'final answer';
-
-    if (isStatus(parts[0])) {
-      statuses.push(parts[0].trim());
-      statuses.push(parts[1].trim());
-    } else if (!isAnswerHeader && firstLower.length < 100 && !parts[0].includes('\n')) {
-      thoughts.push({
-        title: parts[0].trim(),
-        body: parts[1].trim()
-      });
-    } else {
-      answer = parts.join("\n\n");
-    }
-  } else if (parts.length === 1) {
-    const trimmed = parts[0].trim();
-    if (trimmed.startsWith("### Insights") || trimmed.startsWith("Insights") || trimmed.toLowerCase().startsWith("**insights**")) {
-      insights = parts[0];
-    } else {
-      answer = parts[0];
-    }
-  } else if (parts.length >= 3) {
-    const areAllSuggestions = parts.every(p => p.trim().length < 120 && !p.includes('\n') && !p.toLowerCase().includes('select ') && !p.toLowerCase().includes('from '));
-    if (areAllSuggestions) {
-      suggestions.push(...parts.map(p => p.trim()));
-    } else {
-      const insightPartIdx = parts.findIndex(p => p.trim().startsWith("### Insights") || p.trim().startsWith("Insights") || p.trim().toLowerCase().startsWith("**insights**"));
-      if (insightPartIdx !== -1) {
-        insights = parts[insightPartIdx];
-        answer = parts.filter((_, idx) => idx !== insightPartIdx).join("\n\n");
-      } else {
-        answer = parts.join("\n\n");
-      }
-    }
-  }
-
-  return { statuses, thoughts, answer, insights, suggestions };
-};
-
-// Interface for parsed system message parts
-interface SystemMessagePart {
-  statuses: string[];
-  thoughts: { title: string; body: string }[];
-  answer: string;
-  insights: string;
-  suggestions: string[];
-}
 
 
 
-// Groups consecutive system messages between user queries into a single system message
+
+// Groups consecutive system messages between user queries into a single system message using deterministic mathematical temporal partitioning
 const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] => {
   const grouped: ChatMessage[] = [];
-  let currentSystemMsg: any = null;
+  let turnSystemMsgs: any[] = [];
 
-  for (const msg of rawMessages) {
-    if (msg.userMessage) {
-      if (currentSystemMsg) {
-        grouped.push({ systemMessage: currentSystemMsg });
-        currentSystemMsg = null;
+  const flushTurn = () => {
+    if (turnSystemMsgs.length === 0) return;
+
+    const currentSystemMsg: any = {
+      statuses: [],
+      thoughts: [],
+      answer: "",
+      insights: "",
+      suggestions: [],
+      schema: null,
+      data: null,
+      chart: null
+    };
+
+    // Mathematical boundary: find the index of the LAST data/execution chunk in the turn
+    let kData = -1;
+    let lastTextIdx = -1;
+    for (let i = 0; i < turnSystemMsgs.length; i++) {
+      const sys = turnSystemMsgs[i];
+      if (sys.data || sys.schema || sys.chart) {
+        kData = i;
       }
-      grouped.push(msg);
-    } else if (msg.systemMessage) {
-      if (!currentSystemMsg) {
-        currentSystemMsg = {
-          statuses: [],
-          thoughts: [],
-          answer: "",
-          insights: "",
-          suggestions: [],
-          schema: null,
-          data: null,
-          chart: null
-        };
+      if (sys.text && sys.text.parts && sys.text.parts.length > 0) {
+        lastTextIdx = i;
       }
-      
-      const sys = msg.systemMessage;
-      if (sys.text && sys.text.parts) {
-        const parsed = parseSingleSystemMessageText(sys.text.parts);
-        currentSystemMsg.statuses.push(...parsed.statuses);
-        currentSystemMsg.thoughts.push(...parsed.thoughts);
-        
-        if (parsed.answer) {
-          currentSystemMsg.answer = currentSystemMsg.answer 
-            ? currentSystemMsg.answer + "\n\n" + parsed.answer 
-            : parsed.answer;
-        }
-        if (parsed.insights) {
-          currentSystemMsg.insights = currentSystemMsg.insights 
-            ? currentSystemMsg.insights + "\n\n" + parsed.insights 
-            : parsed.insights;
-        }
-        currentSystemMsg.suggestions.push(...parsed.suggestions);
-      }
-      
+    }
+
+    for (let i = 0; i < turnSystemMsgs.length; i++) {
+      const sys = turnSystemMsgs[i];
+
       if (sys.error && sys.error.message) {
-        const errMsg = sys.error.message;
-        currentSystemMsg.answer = currentSystemMsg.answer 
-          ? currentSystemMsg.answer + "\n\n" + errMsg 
-          : errMsg;
+        currentSystemMsg.answer = currentSystemMsg.answer
+          ? currentSystemMsg.answer + "\n\n" + sys.error.message
+          : sys.error.message;
       }
-      
       if (sys.schema) {
         currentSystemMsg.schema = { ...(currentSystemMsg.schema || {}), ...sys.schema };
       }
@@ -278,27 +201,48 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
       if (sys.chart) {
         currentSystemMsg.chart = { ...(currentSystemMsg.chart || {}), ...sys.chart };
       }
-    }
-  }
 
-  if (currentSystemMsg) {
-    // Self-healing: if the answer is empty, but we have extracted thoughts, promote the final thought
-    // as the narrative answer if it is a standard business narrative (not raw SQL query code).
-    if (!currentSystemMsg.answer && currentSystemMsg.thoughts.length > 0) {
-      const lastThought = currentSystemMsg.thoughts[currentSystemMsg.thoughts.length - 1];
-      const cleanBody = lastThought.body.trim().toLowerCase();
-      // Ensure the body does not contain query commands/syntax
-      if (!cleanBody.startsWith("select") && 
-          !cleanBody.startsWith("with") && 
-          !cleanBody.startsWith("create") && 
-          !cleanBody.startsWith("insert") &&
-          !cleanBody.startsWith("delete")) {
-        currentSystemMsg.answer = lastThought.body;
-        currentSystemMsg.thoughts.pop(); // Remove it from thoughts to avoid duplicating in the UI
+      if (sys.text && sys.text.parts) {
+        const parts: string[] = sys.text.parts;
+        // Check suggestions
+        const areAllSuggestions = parts.length >= 3 && parts.every((p: string) => p.trim().length < 120 && !p.includes('\n') && !p.toLowerCase().includes('select ') && !p.toLowerCase().includes('from '));
+        if (areAllSuggestions) {
+          currentSystemMsg.suggestions.push(...parts.map((p: string) => p.trim()));
+          continue;
+        }
+
+        // Deterministic Mathematical Partition:
+        // Any text chunk received BEFORE or UP TO database execution (i <= kData) is strictly Pre-Execution Reasoning / Thought.
+        // If no DB execution occurred (kData == -1), any text chunk BEFORE the last text chunk (i < lastTextIdx) is Reasoning / Thought.
+        const isPreExecutionReasoning = (kData !== -1 && i <= kData) || (kData === -1 && i < lastTextIdx);
+
+        if (isPreExecutionReasoning) {
+          if (parts.length === 2) {
+            if (isStatus(parts[0])) {
+              currentSystemMsg.statuses.push(parts[0].trim(), parts[1].trim());
+            } else {
+              currentSystemMsg.thoughts.push({ title: parts[0].trim(), body: parts[1].trim() });
+            }
+          } else {
+            const firstLine = parts[0].split('\n')[0].trim();
+            currentSystemMsg.thoughts.push({
+              title: firstLine.length < 80 ? firstLine : "Reasoning Step",
+              body: parts.join("\n\n")
+            });
+          }
+        } else {
+          // Post-execution synthesis (i > kData or i === lastTextIdx)
+          const joinedText = parts.join("\n\n").trim();
+          if (joinedText.startsWith("### Insights") || joinedText.startsWith("Insights") || joinedText.toLowerCase().startsWith("**insights**")) {
+            currentSystemMsg.insights = currentSystemMsg.insights ? currentSystemMsg.insights + "\n\n" + joinedText : joinedText;
+          } else {
+            currentSystemMsg.answer = currentSystemMsg.answer ? currentSystemMsg.answer + "\n\n" + joinedText : joinedText;
+          }
+        }
       }
     }
 
-    // Fallback: if answer is still empty but insights exists, display insights as answer
+    // Fallback: if answer is empty but insights exists, display insights as answer
     if (!currentSystemMsg.answer && currentSystemMsg.insights) {
       currentSystemMsg.answer = currentSystemMsg.insights;
     }
@@ -316,7 +260,18 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
     if (hasContent) {
       grouped.push({ systemMessage: currentSystemMsg });
     }
+    turnSystemMsgs = [];
+  };
+
+  for (const msg of rawMessages) {
+    if (msg.userMessage) {
+      flushTurn();
+      grouped.push(msg);
+    } else if (msg.systemMessage) {
+      turnSystemMsgs.push(msg.systemMessage);
+    }
   }
+  flushTurn();
 
   return grouped;
 };

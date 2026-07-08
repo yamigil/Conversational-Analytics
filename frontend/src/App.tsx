@@ -154,6 +154,7 @@ const isStatus = (str: string) => {
 
 // Groups consecutive system messages between user queries into a single system message using deterministic mathematical temporal partitioning
 const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] => {
+  if (!Array.isArray(rawMessages)) return [];
   const grouped: ChatMessage[] = [];
   let turnSystemMsgs: any[] = [];
 
@@ -1538,7 +1539,8 @@ const App: React.FC = () => {
     try {
       const res = await authenticatedFetch(`/api/conversations/${encodeURIComponent(agentName)}`);
       if (res.ok) {
-        const data = await res.json();
+        const rawData = await res.json();
+        const data = Array.isArray(rawData) ? rawData : [];
         setConversations(data);
         
         if (selectConvoName) {
@@ -1565,7 +1567,8 @@ const App: React.FC = () => {
     try {
       const res = await authenticatedFetch(`/api/messages/${encodeURIComponent(convoName)}`);
       if (res.ok) {
-        const data = await res.json();
+        const rawData = await res.json();
+        const data = Array.isArray(rawData) ? rawData : [];
         setMessages(groupConversationalMessages(data));
         
         // Auto-detect and restore the chat mode (Fast vs Thinking) based on the user prompt's hidden instruction

@@ -638,46 +638,49 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
             welcome_subtitle = f"Explore your dynamic database relationships for '{display_name}'. Hover and click table nodes to inspect columns and preview data!"
             
     else:
-        # Auto-generate Star Relational Schema for standard agents!
-        table_nodes = []
-        table_edges = []
-        
-        # Add central root node
-        table_nodes.append({
-            "id": "schema_root",
-            "label": "Database Schema",
-            "icon": "database",
-            "type": "database",
-            "description": f"Relational database schema containing all tables available to the {display_name} agent."
-        })
-        
-        for t in tables:
-            clean_name = t.split(".")[-1] if "." in t else t
+        # Auto-generate Star Relational Schema for standard agents on-demand!
+        if skip_db_scan:
+            agent["graphData"] = None
+        else:
+            table_nodes = []
+            table_edges = []
             
+            # Add central root node
             table_nodes.append({
-                "id": clean_name,
-                "label": clean_name,
-                "icon": clean_name,
-                "type": "table",
-                "description": f"Connected database table: {clean_name}. Contains columns, metrics, and records for analytical queries."
+                "id": "schema_root",
+                "label": "Database Schema",
+                "icon": "database",
+                "type": "database",
+                "description": f"Relational database schema containing all tables available to the {display_name} agent."
             })
             
-            table_edges.append({
-                "source": "schema_root",
-                "target": clean_name,
-                "label": "CONTAINS"
-            })
-            
-        agent["graphData"] = {
-            "nodes": table_nodes,
-            "edges": table_edges,
-            "nodeSuggestions": {
-                clean_name: get_table_specific_suggestions(clean_name, display_name) 
-                for clean_name in [t.split(".")[-1] if "." in t else t for t in tables]
+            for t in tables:
+                clean_name = t.split(".")[-1] if "." in t else t
+                
+                table_nodes.append({
+                    "id": clean_name,
+                    "label": clean_name,
+                    "icon": clean_name,
+                    "type": "table",
+                    "description": f"Connected database table: {clean_name}. Contains columns, metrics, and records for analytical queries."
+                })
+                
+                table_edges.append({
+                    "source": "schema_root",
+                    "target": clean_name,
+                    "label": "CONTAINS"
+                })
+                
+            agent["graphData"] = {
+                "nodes": table_nodes,
+                "edges": table_edges,
+                "nodeSuggestions": {
+                    clean_name: get_table_specific_suggestions(clean_name, display_name) 
+                    for clean_name in [t.split(".")[-1] if "." in t else t for t in tables]
+                }
             }
-        }
-        if not welcome_subtitle:
-            welcome_subtitle = f"Explore the connected tables schema for {display_name}. Hover and click table nodes to inspect columns and preview data!"
+            if not welcome_subtitle:
+                welcome_subtitle = f"Explore the connected tables schema for {display_name}. Hover and click table nodes to inspect columns and preview data!"
 
     agent["suggestions"] = suggestions
     agent["welcomeSubtitle"] = welcome_subtitle

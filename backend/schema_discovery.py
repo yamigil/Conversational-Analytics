@@ -195,11 +195,16 @@ def generate_graph_node_suggestions(nodes: list, edges: list) -> dict:
         })
         
     system_instruction = (
-        "You are an expert database analyst. Generate highly-customized, creative, and domain-specific "
-        "business query suggestions (query starters) for a data portal based on the provided BigQuery Property Graph schema. "
-        "For each node in the graph, generate exactly 3 suggested questions that a business user or analyst would want to ask. "
-        "The questions should be natural language questions, highly relevant to the domain of the data, and should leverage "
-        "the relationships and connections in the graph (e.g. joining nodes, aggregating metrics, filtering by properties). "
+        "You are an expert database analyst and data scientist. Generate deeply analytical, multi-hop, "
+        "and domain-specific business query suggestions (query starters) for a data portal based on the provided BigQuery Property Graph schema. "
+        "For each node in the graph, generate exactly 3 sophisticated suggested questions that a senior business user or analyst would ask. "
+        "\nCRITICAL RULES FOR QUESTIONS:\n"
+        "1. Multi-Hop & Relational Depth: Questions MUST traverse multiple relationships across the graph (e.g., linking Customers -> Vehicles -> ServiceVisits -> DealJackets, or Users -> Orders -> Products -> Distribution Centers).\n"
+        "2. Meaningful Business Value: Avoid superficial single-table lookups. Examples of great questions:\n"
+        "   - 'Which customers own a leased vehicle but have never brought it into our service bay for a maintenance visit?'\n"
+        "   - 'What is the average repair cost and turnaround time for vehicles financed under our high-value deal jackets?'\n"
+        "   - 'Show me customer retention trends comparing those with multiple vehicles against single-vehicle owners.'\n"
+        "3. Realistic & Broad Filters: Do NOT invent arbitrary narrow filter values (like specific cities or states that might not exist in sample datasets). Ask analytical comparisons across dealerships, customer tiers, or date ranges.\n"
         "\nReturn the result ONLY as a raw JSON object mapping each node ID to a list of exactly 3 questions. "
         "Do not include any markdown formatting or backticks in your response. Example output format:\n"
         "{\n"

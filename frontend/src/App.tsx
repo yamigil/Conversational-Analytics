@@ -196,7 +196,11 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
         const parts: string[] = sys.text.parts.filter((p: any) => typeof p === 'string' && p.trim().length > 0);
         if (parts.length === 0) continue;
 
-        const areAllSuggestions = parts.length >= 3 && parts.every((p: string) => p.trim().length < 120 && !p.includes('\n') && !p.toLowerCase().includes('select ') && !p.toLowerCase().includes('from '));
+        // Check if this chunk is a list of follow-up suggestions (e.g. 2+ short prompt strings)
+        const areAllSuggestions = parts.length >= 2 && parts.every((p: string) => 
+          p.trim().length < 130 && !p.includes('\n\n') && !p.toLowerCase().includes('select ') && !p.toLowerCase().includes('from ') &&
+          (p.trim().endsWith('?') || p.trim().endsWith('.') || parts.length >= 3)
+        );
         if (areAllSuggestions) {
           currentSystemMsg.suggestions.push(...parts.map((p: string) => p.trim()));
           continue;
@@ -211,26 +215,17 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
       }
     }
 
-    // 100% Deterministic Structural Partition:
-    // Among all narrative text chunks in a turn, the LAST chunk is mathematically guaranteed to be the final user-facing answer.
-    // All earlier narrative chunks are intermediate reasoning/thoughts.
+    // Combine all substantive post-execution narrative chunks into the final user-facing answer.
+    // Only pre-execution intermediate reasoning chunks belong in thoughts.
     for (let idx = 0; idx < narrativeChunks.length; idx++) {
       const parts = narrativeChunks[idx];
       if (!parts || parts.length === 0) continue;
       const isFinalChunk = idx === narrativeChunks.length - 1;
 
-      if (!isFinalChunk) {
-        if (parts.length === 2 && parts[0] && parts[1]) {
-          currentSystemMsg.thoughts.push({ title: parts[0].trim(), body: parts[1].trim() });
-        } else if (parts[0]) {
-          const firstLine = (parts[0].split('\n')[0] || "").trim();
-          currentSystemMsg.thoughts.push({
-            title: firstLine.length > 0 && firstLine.length < 80 ? firstLine : "Reasoning Step",
-            body: parts.join("\n\n")
-          });
-        }
+      if (!isFinalChunk && parts.length === 2 && parts[0] && parts[1] && parts[0].length < 60 && !parts[0].includes('.')) {
+        currentSystemMsg.thoughts.push({ title: parts[0].trim(), body: parts[1].trim() });
       } else {
-        // Final Chunk -> Answer
+        // Substantive narrative chunk -> Answer
         const cleanAnswerText = (parts.length === 2 && parts[0] && parts[1] && !parts[0].startsWith("#") && parts[0].length < 60)
           ? parts[1].trim()
           : parts.join("\n\n").trim();

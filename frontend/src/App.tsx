@@ -509,11 +509,11 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
     if (chart?.result?.vegaConfig) return chart.result.vegaConfig;
     if (!tableData || !tableData.rows || tableData.rows.length === 0) return null;
 
-    // Only auto-synthesize a chart if the result set is compact (<= 12 rows, <= 6 columns)
-    // so we never produce overly wide charts that cause horizontal scrollbars
+    // Only auto-synthesize a chart if the result set is compact (<= 8 rows, <= 5 columns)
+    // so we never produce overly wide charts or horizontal scrollbars
     const firstRow = tableData.rows[0];
     const keys = Object.keys(firstRow);
-    if (tableData.rows.length > 12 || keys.length > 6) return null;
+    if (tableData.rows.length > 8 || keys.length > 5) return null;
 
     let nominalField = "";
     let quantitativeField = "";
@@ -528,10 +528,15 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
     }
 
     if (nominalField && quantitativeField) {
+      // Check if average label length is too long (> 20 chars), if so table view is cleaner
+      const avgLen = tableData.rows.reduce((acc: number, r: any) => acc + String(r[nominalField] || "").length, 0) / tableData.rows.length;
+      if (avgLen > 20) return null;
+
       return {
         $schema: "https://vega.github.io/schema/vega-lite/v5.json",
         title: `${quantitativeField} by ${nominalField}`,
         width: "container",
+        autosize: { type: "fit-x", contains: "padding" },
         data: { values: tableData.rows },
         mark: { type: "bar", cornerRadiusEnd: 4 },
         encoding: {
@@ -582,6 +587,10 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
       try {
         const vegaSpec = JSON.parse(JSON.stringify(effectiveVegaConfig));
         const hexColor = getHexColorFromHsl(primaryColorHsl);
+        
+        // Ensure any chart dynamically adapts its width to fit the container
+        vegaSpec.width = "container";
+        vegaSpec.autosize = { type: "fit-x", contains: "padding" };
         
         if (vegaSpec.config && vegaSpec.config.range) {
           vegaSpec.config.range.category = [hexColor, "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
@@ -3483,13 +3492,13 @@ const App: React.FC = () => {
                   return (
                     <div 
                       key={idx}
-                      className={`flex gap-4 max-w-[85%] min-w-0 ${isUser ? "self-end flex-row-reverse" : "self-start"} animate-slideIn`}
+                      className={`flex gap-4 min-w-0 ${isUser ? "self-end flex-row-reverse max-w-[80%]" : "self-start w-full max-w-full"} animate-slideIn`}
                     >
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center font-heading font-semibold text-xs shrink-0 select-none ${isUser ? "bg-brand-primary text-white" : "bg-white/5 border border-white/6 text-slate-200"}`}>
                         {isUser ? "ME" : renderLogoSvg(appActiveBrandKey)}
                       </div>
                       
-                      <div className={`px-5 py-4 rounded-2xl shadow-sm text-[0.95rem] leading-relaxed max-w-full min-w-0 overflow-hidden break-words ${isUser ? "bg-brand-primary/10 border border-brand-primary/25 rounded-tr-sm" : "bg-white/3 border border-white/6 rounded-tl-sm"}`}>
+                      <div className={`px-5 py-4 rounded-2xl shadow-sm text-[0.95rem] leading-relaxed max-w-full min-w-0 overflow-hidden break-words ${isUser ? "bg-brand-primary/10 border border-brand-primary/25 rounded-tr-sm" : "bg-white/3 border border-white/6 rounded-tl-sm flex-1"}`}>
                         {isUser ? (
                           <p className="break-words">{cleanUserMessage(msg.userMessage?.text)}</p>
                         ) : (
@@ -3583,12 +3592,12 @@ const App: React.FC = () => {
 
               {/* Streaming Output Renderer */}
               {streamingMessages.length > 0 && (
-                <div className="flex gap-4 max-w-[85%] self-start animate-slideIn">
+                <div className="flex gap-4 w-full max-w-full self-start animate-slideIn">
                   <div className="w-9 h-9 rounded-full bg-white/5 border border-white/6 flex items-center justify-center font-heading font-semibold text-xs shrink-0 select-none">
                     {renderLogoSvg(appActiveBrandKey)}
                   </div>
                   
-                  <div className="px-5 py-4 rounded-2xl bg-white/3 border border-white/6 rounded-tl-sm shadow-sm text-[0.95rem] leading-relaxed max-w-full min-w-0 overflow-hidden break-words">
+                  <div className="px-5 py-4 rounded-2xl bg-white/3 border border-white/6 rounded-tl-sm shadow-sm text-[0.95rem] leading-relaxed max-w-full min-w-0 overflow-hidden break-words flex-1">
                     <div className="markdown-body max-w-full min-w-0 overflow-x-auto break-words">
                       {(() => {
                         const parsedStreamingList = groupConversationalMessages(

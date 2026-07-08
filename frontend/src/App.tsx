@@ -163,13 +163,12 @@ const parseSingleSystemMessageText = (parts: string[]): SystemMessagePart => {
   if (parts.length === 2) {
     const firstLower = parts[0].trim().toLowerCase();
     const isAnswerHeader = 
-      firstLower.startsWith('insight') || 
-      firstLower.startsWith('key insight') ||
-      firstLower.startsWith('summary') ||
-      firstLower.startsWith('answer') ||
-      firstLower.startsWith('response') ||
-      firstLower.startsWith('result') ||
-      firstLower.startsWith('conclusion');
+      firstLower.startsWith('### ') ||
+      firstLower.startsWith('## ') ||
+      firstLower === 'insights' || 
+      firstLower === 'key insights' ||
+      firstLower === 'summary' ||
+      firstLower === 'final answer';
 
     if (isStatus(parts[0])) {
       statuses.push(parts[0].trim());
@@ -512,37 +511,6 @@ const SqlWidget: React.FC<{ data: any }> = ({ data }) => {
   );
 };
 
-// Data Table widget
-const DataTableOnlyWidget: React.FC<{ data: any }> = ({ data }) => {
-  if (!data.result?.data || !data.result?.schema) return null;
-  return (
-    <div className="mt-4 border border-white/6 rounded-xl overflow-hidden bg-slate-900/30">
-      <div className="overflow-x-auto max-h-64">
-        <table className="w-full border-collapse text-xs text-left">
-          <thead>
-            <tr className="bg-white/3 border-b border-white/6 text-slate-400 font-medium">
-              {data.result.schema.fields?.map((f: any, idx: number) => (
-                <th key={idx} className="px-4 py-2.5 whitespace-nowrap">{f.name}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {data.result.data.map((row: any, rIdx: number) => (
-              <tr key={rIdx} className="hover:bg-white/2 border-b border-white/3 text-slate-300">
-                {data.result.schema.fields?.map((f: any, fIdx: number) => (
-                  <td key={fIdx} className="px-4 py-2.5 whitespace-nowrap">
-                    {row[f.name] !== undefined ? String(row[f.name]) : "-"}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
-
 // Unified Visualizer widget (Chart + Table tabs)
 interface VisualizerWidgetProps {
   chart: any;
@@ -555,11 +523,12 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
   const chartRef = useRef<HTMLDivElement>(null);
 
   const getTableData = () => {
-    if (data?.result?.data && data?.result?.schema?.fields) {
-      return {
-        headers: data.result.schema.fields.map((f: any) => f.name),
-        rows: data.result.data
-      };
+    if (data?.result?.data) {
+      const rows = data.result.data;
+      const headers = data?.result?.schema?.fields 
+        ? data.result.schema.fields.map((f: any) => f.name)
+        : (Array.isArray(rows) && rows.length > 0 ? Object.keys(rows[0]) : []);
+      return { headers, rows };
     }
 
     const vegaConfig = chart?.result?.vegaConfig;
@@ -579,7 +548,42 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
   };
 
   const tableData = getTableData();
-  const hasChart = !!chart?.result?.vegaConfig;
+
+  const getEffectiveVegaConfig = () => {
+    if (chart?.result?.vegaConfig) return chart.result.vegaConfig;
+    if (!tableData || !tableData.rows || tableData.rows.length === 0) return null;
+
+    const firstRow = tableData.rows[0];
+    const keys = Object.keys(firstRow);
+    let nominalField = "";
+    let quantitativeField = "";
+
+    for (const key of keys) {
+      const val = firstRow[key];
+      if (typeof val === "number" && !quantitativeField) {
+        quantitativeField = key;
+      } else if (typeof val === "string" && !nominalField) {
+        nominalField = key;
+      }
+    }
+
+    if (nominalField && quantitativeField) {
+      return {
+        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+        title: `${quantitativeField} by ${nominalField}`,
+        data: { values: tableData.rows },
+        mark: { type: "bar", cornerRadiusEnd: 4 },
+        encoding: {
+          x: { field: nominalField, type: "nominal", sort: "-y", title: nominalField },
+          y: { field: quantitativeField, type: "quantitative", title: quantitativeField }
+        }
+      };
+    }
+    return null;
+  };
+
+  const effectiveVegaConfig = getEffectiveVegaConfig();
+  const hasChart = !!effectiveVegaConfig;
   const hasData = !!tableData;
 
   useEffect(() => {
@@ -591,7 +595,7 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
   }, [hasChart, hasData]);
 
   useEffect(() => {
-    if (activeTab !== "chart" || !chartRef.current || !chart?.result?.vegaConfig) return;
+    if (activeTab !== "chart" || !chartRef.current || !effectiveVegaConfig) return;
 
     const element = chartRef.current;
     
@@ -615,7 +619,7 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
 
     const runEmbed = async () => {
       try {
-        const vegaSpec = JSON.parse(JSON.stringify(chart.result.vegaConfig));
+        const vegaSpec = JSON.parse(JSON.stringify(effectiveVegaConfig));
         const hexColor = getHexColorFromHsl(primaryColorHsl);
         
         if (vegaSpec.config && vegaSpec.config.range) {
@@ -632,7 +636,7 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
     };
 
     runEmbed();
-  }, [activeTab, chart, primaryColorHsl]);
+  }, [activeTab, effectiveVegaConfig, primaryColorHsl]);
 
   if (!hasChart && !hasData) return null;
 
@@ -3202,7 +3206,7 @@ const App: React.FC = () => {
       )}
 
       {/* -------------------- MAIN WORKSPACE -------------------- */}
-      <main className="flex-1 flex flex-col h-full min-w-0">
+      <main className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
         {currentPage === "home" && (
           <Dashboard 
             activeBrand={activeBrand} 
@@ -3547,16 +3551,12 @@ const App: React.FC = () => {
                                   {msg.systemMessage?.data?.generatedSql && (
                                     <SqlWidget data={msg.systemMessage.data} />
                                   )}
-                                  {msg.systemMessage?.chart ? (
+                                  {(msg.systemMessage?.chart || msg.systemMessage?.data?.result?.data) && (
                                     <VisualizerWidget 
-                                      chart={msg.systemMessage.chart} 
-                                      data={msg.systemMessage.data} 
+                                      chart={msg.systemMessage?.chart} 
+                                      data={msg.systemMessage?.data} 
                                       primaryColorHsl={branding?.brands[appActiveBrandKey]?.primaryColor || "217 89% 61%"} 
                                     />
-                                  ) : (
-                                    msg.systemMessage?.data?.result?.data && (
-                                      <DataTableOnlyWidget data={msg.systemMessage.data} />
-                                    )
                                   )}
                                   {parsed.insights && (
                                     <div dangerouslySetInnerHTML={{ __html: marked.parse(formatMarkdown(parsed.insights)) }} />
@@ -3650,14 +3650,12 @@ const App: React.FC = () => {
                             )}
                             {parsedStreaming.schema && <SchemaWidget schema={parsedStreaming.schema} />}
                             {parsedStreaming.data?.generatedSql && <SqlWidget data={parsedStreaming.data} />}
-                            {parsedStreaming.chart ? (
+                            {(parsedStreaming.chart || parsedStreaming.data?.result?.data) && (
                               <VisualizerWidget 
                                 chart={parsedStreaming.chart} 
                                 data={parsedStreaming.data} 
                                 primaryColorHsl={branding?.brands[appActiveBrandKey]?.primaryColor || "217 89% 61%"} 
                               />
-                            ) : (
-                              parsedStreaming.data?.result?.data && <DataTableOnlyWidget data={parsedStreaming.data} />
                             )}
                             {parsedStreaming.insights && (
                               <div dangerouslySetInnerHTML={{ __html: marked.parse(formatMarkdown(parsedStreaming.insights)) }} />

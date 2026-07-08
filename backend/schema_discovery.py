@@ -348,6 +348,7 @@ def discover_bq_graph_schema(project_id: str, dataset_id: str) -> Optional[dict]
 def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
     """Enriches a data agent with dynamically generated suggested questions and welcome subtitles."""
     display_name = agent.get("displayName", "Data Agent")
+    name_lower = display_name.lower()
     description = agent.get("description", "")
     
     # 1. Safely locate system instructions and table references
@@ -372,6 +373,26 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
                 table_str = f"{project}.{dataset}.{table}" if project else f"{dataset}.{table}"
                 if table_str not in tables:
                     tables.append(table_str)
+
+    # Self-Healing Dataset Table Resolution: If the agent has no explicit tables listed in metadata,
+    # match its display name against the datasets in the active project!
+    if not tables and not skip_db_scan:
+        try:
+            from google.cloud import bigquery
+            bq_client = bigquery.Client(project=get_project_id())
+            datasets = [d.dataset_id for d in bq_client.list_datasets()]
+            agent_tokens = set(name_lower.replace("-", " ").replace("_", " ").split())
+            best_dataset = None
+            for ds in datasets:
+                ds_lower = ds.lower()
+                if any(tok in ds_lower for tok in agent_tokens if len(tok) > 3 and tok not in ["agent", "graph", "data"]):
+                    best_dataset = ds
+                    break
+            if best_dataset:
+                logger.info(f"Self-healing table discovery: matched agent '{display_name}' to dataset '{best_dataset}'")
+                tables = [f"{get_project_id()}.{best_dataset}.{t.table_id}" for t in bq_client.list_tables(best_dataset)]
+        except Exception as ex:
+            logger.warning(f"Self-healing table discovery failed: {ex}")
                     
     # 2. Extract suggested queries from the agent's description first
     suggestions = []

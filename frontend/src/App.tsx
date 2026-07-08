@@ -509,8 +509,12 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
     if (chart?.result?.vegaConfig) return chart.result.vegaConfig;
     if (!tableData || !tableData.rows || tableData.rows.length === 0) return null;
 
+    // Only auto-synthesize a chart if the result set is compact (<= 12 rows, <= 6 columns)
+    // so we never produce overly wide charts that cause horizontal scrollbars
     const firstRow = tableData.rows[0];
     const keys = Object.keys(firstRow);
+    if (tableData.rows.length > 12 || keys.length > 6) return null;
+
     let nominalField = "";
     let quantitativeField = "";
 
@@ -527,6 +531,7 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
       return {
         $schema: "https://vega.github.io/schema/vega-lite/v5.json",
         title: `${quantitativeField} by ${nominalField}`,
+        width: "container",
         data: { values: tableData.rows },
         mark: { type: "bar", cornerRadiusEnd: 4 },
         encoding: {
@@ -3478,17 +3483,17 @@ const App: React.FC = () => {
                   return (
                     <div 
                       key={idx}
-                      className={`flex gap-4 max-w-[85%] ${isUser ? "self-end flex-row-reverse" : "self-start"} animate-slideIn`}
+                      className={`flex gap-4 max-w-[85%] min-w-0 ${isUser ? "self-end flex-row-reverse" : "self-start"} animate-slideIn`}
                     >
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center font-heading font-semibold text-xs shrink-0 select-none ${isUser ? "bg-brand-primary text-white" : "bg-white/5 border border-white/6 text-slate-200"}`}>
                         {isUser ? "ME" : renderLogoSvg(appActiveBrandKey)}
                       </div>
                       
-                      <div className={`px-5 py-4 rounded-2xl shadow-sm text-[0.95rem] leading-relaxed ${isUser ? "bg-brand-primary/10 border border-brand-primary/25 rounded-tr-sm" : "bg-white/3 border border-white/6 rounded-tl-sm"}`}>
+                      <div className={`px-5 py-4 rounded-2xl shadow-sm text-[0.95rem] leading-relaxed max-w-full min-w-0 overflow-hidden break-words ${isUser ? "bg-brand-primary/10 border border-brand-primary/25 rounded-tr-sm" : "bg-white/3 border border-white/6 rounded-tl-sm"}`}>
                         {isUser ? (
-                          <p>{cleanUserMessage(msg.userMessage?.text)}</p>
+                          <p className="break-words">{cleanUserMessage(msg.userMessage?.text)}</p>
                         ) : (
-                          <div className="markdown-body">
+                          <div className="markdown-body max-w-full min-w-0 overflow-x-auto break-words">
                             {(() => {
                               const parsed = {
                                 statuses: msg.systemMessage?.statuses || [],
@@ -3501,7 +3506,7 @@ const App: React.FC = () => {
                                 <>
                                   <MessageThinkingBlock statuses={parsed.statuses} thoughts={parsed.thoughts} tourStep={tourStep} setTourStep={setTourStep} />
                                   {parsed.answer && (
-                                    <div dangerouslySetInnerHTML={{ __html: marked.parse(formatMarkdown(parsed.answer)) }} />
+                                    <div className="max-w-full overflow-x-auto break-words" dangerouslySetInnerHTML={{ __html: marked.parse(formatMarkdown(parsed.answer)) }} />
                                   )}
                                   {msg.systemMessage?.schema && (
                                     <SchemaWidget schema={msg.systemMessage.schema} />
@@ -3583,8 +3588,8 @@ const App: React.FC = () => {
                     {renderLogoSvg(appActiveBrandKey)}
                   </div>
                   
-                  <div className="px-5 py-4 rounded-2xl bg-white/3 border border-white/6 rounded-tl-sm shadow-sm text-[0.95rem] leading-relaxed">
-                    <div className="markdown-body">
+                  <div className="px-5 py-4 rounded-2xl bg-white/3 border border-white/6 rounded-tl-sm shadow-sm text-[0.95rem] leading-relaxed max-w-full min-w-0 overflow-hidden break-words">
+                    <div className="markdown-body max-w-full min-w-0 overflow-x-auto break-words">
                       {(() => {
                         const parsedStreamingList = groupConversationalMessages(
                           streamingMessages.map(m => ({ systemMessage: m }))
@@ -3604,7 +3609,7 @@ const App: React.FC = () => {
                           <>
                             <MessageThinkingBlock statuses={parsedStreaming.statuses} thoughts={parsedStreaming.thoughts} isStreaming={true} tourStep={tourStep} setTourStep={setTourStep} />
                             {parsedStreaming.answer && (
-                              <div dangerouslySetInnerHTML={{ __html: marked.parse(formatMarkdown(parsedStreaming.answer)) }} />
+                              <div className="max-w-full overflow-x-auto break-words" dangerouslySetInnerHTML={{ __html: marked.parse(formatMarkdown(parsedStreaming.answer)) }} />
                             )}
                             {parsedStreaming.schema && <SchemaWidget schema={parsedStreaming.schema} />}
                             {parsedStreaming.data?.generatedSql && <SqlWidget data={parsedStreaming.data} />}
@@ -3616,7 +3621,7 @@ const App: React.FC = () => {
                               />
                             )}
                             {parsedStreaming.insights && (
-                              <div dangerouslySetInnerHTML={{ __html: marked.parse(formatMarkdown(parsedStreaming.insights)) }} />
+                              <div className="max-w-full overflow-x-auto break-words" dangerouslySetInnerHTML={{ __html: marked.parse(formatMarkdown(parsedStreaming.insights)) }} />
                             )}
                           </>
                         );

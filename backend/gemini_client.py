@@ -32,7 +32,7 @@ def call_gemini(prompt: str, system_instruction: str = None, response_mime_type:
             }
             
         logger.info(f"Calling Vertex AI Gemini API for custom suggestions...")
-        resp = session.post(url, json=payload, timeout=30)
+        resp = session.post(url, json=payload, timeout=5)
         if resp.status_code == 200:
             resp_data = resp.json()
             candidates = resp_data.get("candidates", [])

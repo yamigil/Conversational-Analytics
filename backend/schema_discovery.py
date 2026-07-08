@@ -332,12 +332,9 @@ def discover_bq_graph_schema(project_id: str, dataset_id: str) -> Optional[dict]
             "datasetId": dataset_id
         }
         
-        # Self-healing Cache Policy: Only cache if Gemini succeeded in generating suggestions.
-        # This prevents locking the cache with permanent fallback values on transient API timeouts.
-        if raw_suggestions:
-            _GRAPH_SCHEMA_CACHE[cache_key] = res
-        else:
-            logger.warning(f"Gemini API failed during graph suggestions generation for {dataset_id}. Fallbacks loaded, but cache bypass active for self-healing.")
+        _GRAPH_SCHEMA_CACHE[cache_key] = res
+        if not raw_suggestions:
+            logger.info(f"Gemini API returned fallback questions for {dataset_id}; cached schema to ensure instantaneous UI rendering.")
             
         return res
         

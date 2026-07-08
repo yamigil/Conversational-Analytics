@@ -191,16 +191,18 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
         currentSystemMsg.chart = { ...(currentSystemMsg.chart || {}), ...sys.chart };
       }
 
-      if (sys.text && sys.text.parts) {
-        const parts: string[] = sys.text.parts;
+      if (sys.text && Array.isArray(sys.text.parts)) {
+        const parts: string[] = sys.text.parts.filter((p: any) => typeof p === 'string' && p.trim().length > 0);
+        if (parts.length === 0) continue;
+
         const areAllSuggestions = parts.length >= 3 && parts.every((p: string) => p.trim().length < 120 && !p.includes('\n') && !p.toLowerCase().includes('select ') && !p.toLowerCase().includes('from '));
         if (areAllSuggestions) {
           currentSystemMsg.suggestions.push(...parts.map((p: string) => p.trim()));
           continue;
         }
 
-        if (parts.length === 2 && isStatus(parts[0])) {
-          currentSystemMsg.statuses.push(parts[0].trim(), parts[1].trim());
+        if (parts.length === 2 && parts[0] && isStatus(parts[0])) {
+          currentSystemMsg.statuses.push(parts[0].trim(), (parts[1] || "").trim());
           continue;
         }
 
@@ -213,21 +215,22 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
     // All earlier narrative chunks are intermediate reasoning/thoughts.
     for (let idx = 0; idx < narrativeChunks.length; idx++) {
       const parts = narrativeChunks[idx];
+      if (!parts || parts.length === 0) continue;
       const isFinalChunk = idx === narrativeChunks.length - 1;
 
       if (!isFinalChunk) {
-        if (parts.length === 2) {
+        if (parts.length === 2 && parts[0] && parts[1]) {
           currentSystemMsg.thoughts.push({ title: parts[0].trim(), body: parts[1].trim() });
-        } else {
-          const firstLine = parts[0].split('\n')[0].trim();
+        } else if (parts[0]) {
+          const firstLine = (parts[0].split('\n')[0] || "").trim();
           currentSystemMsg.thoughts.push({
-            title: firstLine.length < 80 ? firstLine : "Reasoning Step",
+            title: firstLine.length > 0 && firstLine.length < 80 ? firstLine : "Reasoning Step",
             body: parts.join("\n\n")
           });
         }
       } else {
         // Final Chunk -> Answer
-        const cleanAnswerText = (parts.length === 2 && !parts[0].startsWith("#") && parts[0].length < 60)
+        const cleanAnswerText = (parts.length === 2 && parts[0] && parts[1] && !parts[0].startsWith("#") && parts[0].length < 60)
           ? parts[1].trim()
           : parts.join("\n\n").trim();
 

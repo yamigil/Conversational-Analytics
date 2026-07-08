@@ -171,18 +171,7 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
       chart: null
     };
 
-    // Mathematical boundary: find the index of the LAST data/execution chunk in the turn
-    let kData = -1;
-    let lastTextIdx = -1;
-    for (let i = 0; i < turnSystemMsgs.length; i++) {
-      const sys = turnSystemMsgs[i];
-      if (sys.data || sys.schema || sys.chart) {
-        kData = i;
-      }
-      if (sys.text && sys.text.parts && sys.text.parts.length > 0) {
-        lastTextIdx = i;
-      }
-    }
+    const narrativeChunks: string[][] = [];
 
     for (let i = 0; i < turnSystemMsgs.length; i++) {
       const sys = turnSystemMsgs[i];
@@ -204,40 +193,48 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
 
       if (sys.text && sys.text.parts) {
         const parts: string[] = sys.text.parts;
-        // Check suggestions
         const areAllSuggestions = parts.length >= 3 && parts.every((p: string) => p.trim().length < 120 && !p.includes('\n') && !p.toLowerCase().includes('select ') && !p.toLowerCase().includes('from '));
         if (areAllSuggestions) {
           currentSystemMsg.suggestions.push(...parts.map((p: string) => p.trim()));
           continue;
         }
 
-        // Deterministic Mathematical Partition:
-        // Any text chunk received BEFORE or UP TO database execution (i <= kData) is strictly Pre-Execution Reasoning / Thought.
-        // If no DB execution occurred (kData == -1), any text chunk BEFORE the last text chunk (i < lastTextIdx) is Reasoning / Thought.
-        const isPreExecutionReasoning = (kData !== -1 && i <= kData) || (kData === -1 && i < lastTextIdx);
+        if (parts.length === 2 && isStatus(parts[0])) {
+          currentSystemMsg.statuses.push(parts[0].trim(), parts[1].trim());
+          continue;
+        }
 
-        if (isPreExecutionReasoning) {
-          if (parts.length === 2) {
-            if (isStatus(parts[0])) {
-              currentSystemMsg.statuses.push(parts[0].trim(), parts[1].trim());
-            } else {
-              currentSystemMsg.thoughts.push({ title: parts[0].trim(), body: parts[1].trim() });
-            }
-          } else {
-            const firstLine = parts[0].split('\n')[0].trim();
-            currentSystemMsg.thoughts.push({
-              title: firstLine.length < 80 ? firstLine : "Reasoning Step",
-              body: parts.join("\n\n")
-            });
-          }
+        narrativeChunks.push(parts);
+      }
+    }
+
+    // 100% Deterministic Structural Partition:
+    // Among all narrative text chunks in a turn, the LAST chunk is mathematically guaranteed to be the final user-facing answer.
+    // All earlier narrative chunks are intermediate reasoning/thoughts.
+    for (let idx = 0; idx < narrativeChunks.length; idx++) {
+      const parts = narrativeChunks[idx];
+      const isFinalChunk = idx === narrativeChunks.length - 1;
+
+      if (!isFinalChunk) {
+        if (parts.length === 2) {
+          currentSystemMsg.thoughts.push({ title: parts[0].trim(), body: parts[1].trim() });
         } else {
-          // Post-execution synthesis (i > kData or i === lastTextIdx)
-          const joinedText = parts.join("\n\n").trim();
-          if (joinedText.startsWith("### Insights") || joinedText.startsWith("Insights") || joinedText.toLowerCase().startsWith("**insights**")) {
-            currentSystemMsg.insights = currentSystemMsg.insights ? currentSystemMsg.insights + "\n\n" + joinedText : joinedText;
-          } else {
-            currentSystemMsg.answer = currentSystemMsg.answer ? currentSystemMsg.answer + "\n\n" + joinedText : joinedText;
-          }
+          const firstLine = parts[0].split('\n')[0].trim();
+          currentSystemMsg.thoughts.push({
+            title: firstLine.length < 80 ? firstLine : "Reasoning Step",
+            body: parts.join("\n\n")
+          });
+        }
+      } else {
+        // Final Chunk -> Answer
+        const cleanAnswerText = (parts.length === 2 && !parts[0].startsWith("#") && parts[0].length < 60)
+          ? parts[1].trim()
+          : parts.join("\n\n").trim();
+
+        if (cleanAnswerText.startsWith("### Insights") || cleanAnswerText.startsWith("Insights") || cleanAnswerText.toLowerCase().startsWith("**insights**")) {
+          currentSystemMsg.insights = currentSystemMsg.insights ? currentSystemMsg.insights + "\n\n" + cleanAnswerText : cleanAnswerText;
+        } else {
+          currentSystemMsg.answer = currentSystemMsg.answer ? currentSystemMsg.answer + "\n\n" + cleanAnswerText : cleanAnswerText;
         }
       }
     }

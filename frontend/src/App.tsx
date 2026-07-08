@@ -3257,10 +3257,10 @@ const App: React.FC = () => {
                       </div>
                       <h3 className="text-sm font-bold text-slate-100 mb-2 tracking-widest uppercase flex items-center gap-2">
                         <Sparkles size={14} className="text-amber-400 animate-pulse" />
-                        Constructing Graph Schema
+                        Getting Things Ready...
                       </h3>
                       <p className="text-[11px] text-slate-400 text-center max-w-sm leading-relaxed">
-                        Scanning BigQuery tables dynamically to resolve entities, properties, and relationships. Building your custom graph blueprint...
+                        Scanning your connected data sources to prepare custom relationships and AI suggestions...
                       </p>
                     </div>
                   );
@@ -3420,14 +3420,20 @@ const App: React.FC = () => {
                   
                   {selectedAgent ? (
                     loadingAgentSchema ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
-                        {[1, 2, 3, 4].map(i => (
-                          <div key={i} className="p-4 bg-white/2 border border-white/6 rounded-2xl h-24 animate-pulse flex flex-col gap-2">
-                            <div className="h-3 w-3/4 bg-white/5 rounded" />
-                            <div className="h-3 w-1/2 bg-white/5 rounded mt-1" />
-                            <div className="h-2.5 w-16 bg-brand-primary/10 rounded mt-auto" />
-                          </div>
-                        ))}
+                      <div className="flex flex-col items-center gap-4 w-full">
+                        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-primary/10 border border-brand-primary/25 text-brand-primary text-xs font-semibold animate-pulse">
+                          <Sparkles size={14} />
+                          <span>Getting things ready... Preparing custom workspace & AI suggestions</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
+                          {[1, 2, 3, 4].map(i => (
+                            <div key={i} className="p-4 bg-white/2 border border-white/6 rounded-2xl h-24 animate-pulse flex flex-col gap-2">
+                              <div className="h-3 w-3/4 bg-white/5 rounded" />
+                              <div className="h-3 w-1/2 bg-white/5 rounded mt-1" />
+                              <div className="h-2.5 w-16 bg-brand-primary/10 rounded mt-auto" />
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ) : (
                       (() => {

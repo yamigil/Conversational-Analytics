@@ -481,14 +481,19 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
             unique_suggestions.append(s)
     suggestions = unique_suggestions[:3]
     
-    # 4. Fallback: Custom table-based queries for custom agents
+    # 4. Fallback: Dynamic rich table-based queries for custom agents
     if len(suggestions) < 3 and tables:
         primary_table = tables[0].split(".")[-1]
-        table_suggestions = [
-            f"Can you give me a summary of the data in the {primary_table} table?",
-            f"What are the key metrics and columns available in {primary_table}?",
-            f"Show me the top 10 most recent records from {primary_table}."
-        ]
+        if skip_db_scan:
+            # Quick lightweight placeholder on startup listing
+            table_suggestions = [
+                f"Can you give me a summary of the data in the {primary_table} table?",
+                f"What are the key metrics and columns available in {primary_table}?",
+                f"Show me the top 10 most recent records from {primary_table}."
+            ]
+        else:
+            # On-demand full schema load -> dynamically generate deep analytical questions via Gemini 2.5 Flash-Lite!
+            table_suggestions = get_table_specific_suggestions(primary_table, display_name)
         for ts in table_suggestions:
             if ts not in suggestions:
                 suggestions.append(ts)

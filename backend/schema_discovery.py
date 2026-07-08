@@ -312,17 +312,63 @@ def discover_bq_graph_schema(project_id: str, dataset_id: str) -> Optional[dict]
         raw_suggestions = generate_graph_node_suggestions(nodes, edges)
         node_suggestions = {**raw_suggestions}
         
-        # Ensure every node has suggestions (in case Gemini missed some or failed)
+        # Ensure every node has rich suggestions (custom Gemini suggestions or domain-tailored presets)
+        domain_presets = {
+            "customer": [
+                "What is the total lifetime value and financing history of our top Penske customers?",
+                "Which customers have overdue vehicle service reminders or multiple vehicles?",
+                "Show me customer profiles segmented by repair spend and service visit frequency."
+            ],
+            "vehicle": [
+                "Which vehicle models and VINs have the highest maintenance frequency and warranty claims?",
+                "List all vehicles currently owned or leased along with their assigned dealerships.",
+                "Show me vehicle mileage trends and common service types across all dealerships."
+            ],
+            "servicevisit": [
+                "What is the average repair cost and turnaround time across all service visits?",
+                "Which service centers and dealerships handle the most high-priority repair jobs?",
+                "Show me the latest service visit records and total labor costs for this month."
+            ],
+            "service_visit": [
+                "What is the average repair cost and turnaround time across all service visits?",
+                "Which service centers and dealerships handle the most high-priority repair jobs?",
+                "Show me the latest service visit records and total labor costs for this month."
+            ],
+            "dealjacket": [
+                "What are the most common financing terms and deal structures for our vehicle sales?",
+                "Show me the top deal jackets sorted by total contract value and customer retention.",
+                "Can you summarize recent deal jackets and their associated customer profiles?"
+            ],
+            "deal_jacket": [
+                "What are the most common financing terms and deal structures for our vehicle sales?",
+                "Show me the top deal jackets sorted by total contract value and customer retention.",
+                "Can you summarize recent deal jackets and their associated customer profiles?"
+            ],
+            "webevent": [
+                "Which online search terms and web events lead to the highest dealership conversion rates?",
+                "Show the most frequent web events and user journey paths before a vehicle purchase.",
+                "Analyze customer digital engagement trends and recent website interactions."
+            ],
+            "web_event": [
+                "Which online search terms and web events lead to the highest dealership conversion rates?",
+                "Show the most frequent web events and user journey paths before a vehicle purchase.",
+                "Analyze customer digital engagement trends and recent website interactions."
+            ]
+        }
+
         for n in nodes:
             table_id = n["id"]
             lookup_id = table_id.lower().strip()
             if lookup_id not in node_suggestions or len(node_suggestions[lookup_id]) < 3:
                 clean_label = n["label"].replace("_", " ").title()
-                node_suggestions[lookup_id] = [
-                    f"What are the most common relationships and connections starting from {clean_label.lower()}?",
-                    f"Can you summarize the top 10 attributes and key columns inside the {clean_label.lower()} table?",
-                    f"Show me the latest activity trends and records in {clean_label.lower()}."
-                ]
+                if lookup_id in domain_presets:
+                    node_suggestions[lookup_id] = domain_presets[lookup_id]
+                else:
+                    node_suggestions[lookup_id] = [
+                        f"What are the most common relationships and connections starting from {clean_label.lower()}?",
+                        f"Can you summarize the top 10 attributes and key columns inside the {clean_label.lower()} table?",
+                        f"Show me the latest activity trends and records in {clean_label.lower()}."
+                    ]
             
         res = {
             "nodes": nodes,
@@ -332,9 +378,12 @@ def discover_bq_graph_schema(project_id: str, dataset_id: str) -> Optional[dict]
             "datasetId": dataset_id
         }
         
-        _GRAPH_SCHEMA_CACHE[cache_key] = res
-        if not raw_suggestions:
-            logger.info(f"Gemini API returned fallback questions for {dataset_id}; cached schema to ensure instantaneous UI rendering.")
+        # Self-healing cache policy: only cache when Gemini successfully generates custom suggestions
+        # so temporary timeouts never lock fallback questions into cache
+        if raw_suggestions:
+            _GRAPH_SCHEMA_CACHE[cache_key] = res
+        else:
+            logger.info(f"Gemini API returned fallback questions for {dataset_id}; bypassing schema cache so subsequent requests retry Gemini.")
             
         return res
         

@@ -55,7 +55,14 @@ def get_insights(agent_name: str, user: dict = Depends(get_current_user), client
             }
             
         most_recent_convo = active_convos[0]
-        msgs = client.list_messages(most_recent_convo["name"])
+        try:
+            msgs = client.list_messages(most_recent_convo["name"])
+        except Exception as ex:
+            logger.warning(f"Could not fetch messages for recent conversation {most_recent_convo['name']}: {ex}")
+            return {
+                "summary": "No recent interactions found for this agent.",
+                "insights": []
+            }
         
         insights = []
         for msg in reversed(msgs):
@@ -132,7 +139,14 @@ def get_messages(convo_name: str, user: dict = Depends(get_current_user), client
 
         if convo_name in get_deleted_conversations():
             raise HTTPException(status_code=404, detail="Conversation has been deleted")
-        return client.list_messages(convo_name)
+        try:
+            return client.list_messages(convo_name)
+        except Exception as e:
+            err_str = str(e).lower()
+            if "not found" in err_str or "404" in err_str:
+                logger.warning(f"Conversation {convo_name} not found on server (expired/purged). Returning empty list.")
+                return []
+            raise e
     except HTTPException:
         raise
     except Exception as e:

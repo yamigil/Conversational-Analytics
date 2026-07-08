@@ -600,7 +600,7 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
     <div className="w-full flex flex-col mt-4 bg-slate-900/40 border border-white/6 rounded-2xl overflow-hidden shadow-lg">
       <div className="px-5 py-3 bg-white/2 border-b border-white/6 flex justify-between items-center">
         <span className="text-xs font-semibold text-slate-400">
-          {hasChart ? (chart.result?.vegaConfig?.title || "Data Insights") : "Data Grid"}
+          {hasChart ? (chart?.result?.vegaConfig?.title || effectiveVegaConfig?.title || "Data Insights") : "Data Grid"}
         </span>
         {hasChart && hasData && (
           <div className="flex gap-1.5 p-0.5 bg-slate-950/60 rounded-lg border border-white/6">

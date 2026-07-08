@@ -2266,12 +2266,17 @@ const App: React.FC = () => {
         }
       }
 
-      // Once streaming finishes, commit the full message to the main message array
-      const groupedStreaming = groupConversationalMessages(
-        receivedMessages.map(m => ({ systemMessage: m }))
-      );
-      if (groupedStreaming.length > 0) {
-        setMessages(prev => [...prev, ...groupedStreaming]);
+      // Once streaming finishes, automatically fetch the complete official turn from GCP
+      // This guarantees 100% parity with page refresh and prevents network stream truncation
+      if (activeConvo) {
+        await fetchMessages(activeConvo);
+      } else {
+        const groupedStreaming = groupConversationalMessages(
+          receivedMessages.map(m => ({ systemMessage: m }))
+        );
+        if (groupedStreaming.length > 0) {
+          setMessages(prev => [...prev, ...groupedStreaming]);
+        }
       }
       setStreamingMessages([]);
 

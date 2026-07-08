@@ -64,12 +64,36 @@ def extract_questions_from_text(text: str) -> list:
                     
     return questions
 
-def get_table_specific_suggestions(table_name: str) -> list:
-    """Returns premium, highly-analytical table-level suggested queries dynamically without any hardcoding."""
+def get_table_specific_suggestions(table_name: str, agent_name: str = "") -> list:
+    """Returns premium, highly-analytical table-level suggested queries dynamically for ANY connected agent.
+    First attempts dynamic AI generation via Gemini 2.5 Flash-Lite; falls back to semantic intent heuristics if offline.
+    """
     clean_name = table_name.lower().strip()
     
-    # We detect semantic intent from the words in the table name:
-    # 1. Transactions / Orders / Sales / Service
+    # 1. Dynamically generate via Gemini 2.5 Flash-Lite for zero hardcoding adaptability to brand new agents
+    try:
+        import json
+        from gemini_client import call_gemini
+        prompt = (
+            f"Generate exactly 3 analytical, domain-specific business questions that an enterprise analyst would ask "
+            f"about the BigQuery table '{table_name}' connected to the data agent '{agent_name}'. "
+            f"Return ONLY a JSON array of exactly 3 natural language question strings, without markdown backticks. "
+            f"Example: [\"What is the total revenue by region?\", \"Which records have overdue status?\", \"Show daily volume trends.\"]"
+        )
+        raw_json = call_gemini(prompt, "You are a senior data analyst.", response_mime_type="application/json", temperature=0.3)
+        if raw_json:
+            cleaned = raw_json.strip()
+            if cleaned.startswith("```json"):
+                cleaned = cleaned[7:]
+            if cleaned.endswith("```"):
+                cleaned = cleaned[:-3]
+            parsed = json.loads(cleaned.strip())
+            if isinstance(parsed, list) and len(parsed) >= 2:
+                return [str(q).strip() for q in parsed[:3]]
+    except Exception as ex:
+        logger.debug(f"Dynamic table suggestion generation fallback for {table_name}: {ex}")
+
+    # 2. Semantic intent heuristics (offline/fallback only)
     if any(k in clean_name for k in ["order", "sale", "trans", "invoice", "deal", "visit"]):
         return [
             f"What are our total sales and volumes from {clean_name} this month?",
@@ -77,7 +101,6 @@ def get_table_specific_suggestions(table_name: str) -> list:
             f"What is the distribution of transaction status or categories in {clean_name}?"
         ]
         
-    # 2. Products / Inventory / Items / Vehicles
     if any(k in clean_name for k in ["product", "item", "inventory", "stock", "part", "vehicle"]):
         return [
             f"What are the top 10 most common or high-value items in the {clean_name} table?",
@@ -85,7 +108,6 @@ def get_table_specific_suggestions(table_name: str) -> list:
             f"Show me the average pricing, retail value, or costs inside the {clean_name} table."
         ]
         
-    # 3. Users / Customers / Profiles / Clients
     if any(k in clean_name for k in ["user", "customer", "profile", "client", "member"]):
         return [
             f"What is the distribution of {clean_name} by region, country, or traffic source?",
@@ -93,7 +115,6 @@ def get_table_specific_suggestions(table_name: str) -> list:
             f"What are the most active and high-value records in the {clean_name} table?"
         ]
         
-    # 4. Web events / Traffic / Analytics / Logs
     if any(k in clean_name for k in ["event", "session", "click", "page", "log", "activity"]):
         return [
             f"What is the total count of activities and events in the {clean_name} table?",
@@ -101,7 +122,6 @@ def get_table_specific_suggestions(table_name: str) -> list:
             f"Show me the daily trend of website activities from {clean_name} for the last 30 days."
         ]
         
-    # 5. Marketing / actuals / spends / adwords
     if any(k in clean_name for k in ["marketing", "spend", "ad", "campaign", "actual", "cost"]):
         return [
             f"What is the sum of costs, impressions, and clicks in the {clean_name} campaigns?",
@@ -109,7 +129,7 @@ def get_table_specific_suggestions(table_name: str) -> list:
             f"Compare the daily performance and conversion trends from the {clean_name} table."
         ]
 
-    # Default fallback for custom/unknown tables (completely generic, safe and analytical!)
+    # Default fallback for custom/unknown tables
     return [
         f"Show me a detailed summary and column types of the {clean_name} table.",
         f"What are the top 10 most recent records from the {clean_name} table?",
@@ -589,7 +609,7 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
                     "description": f"Connected database table representing {clean_label.lower()} entities available for analytical queries."
                 })
                 
-                node_suggs[clean_name] = get_table_specific_suggestions(clean_name)
+                node_suggs[clean_name] = get_table_specific_suggestions(clean_name, display_name)
                 
             # Draw dynamic rings/relationships to connect them beautifully
             for i in range(len(fallback_nodes)):
@@ -652,7 +672,7 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
             "nodes": table_nodes,
             "edges": table_edges,
             "nodeSuggestions": {
-                clean_name: get_table_specific_suggestions(clean_name) 
+                clean_name: get_table_specific_suggestions(clean_name, display_name) 
                 for clean_name in [t.split(".")[-1] if "." in t else t for t in tables]
             }
         }

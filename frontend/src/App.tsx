@@ -196,11 +196,16 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
         const parts: string[] = sys.text.parts.filter((p: any) => typeof p === 'string' && p.trim().length > 0);
         if (parts.length === 0) continue;
 
-        // Check if this chunk is a list of follow-up suggestions (e.g. 2+ short prompt strings)
-        const areAllSuggestions = parts.length >= 2 && parts.every((p: string) => 
-          p.trim().length < 130 && !p.includes('\n\n') && !p.toLowerCase().includes('select ') && !p.toLowerCase().includes('from ') &&
-          (p.trim().endsWith('?') || p.trim().endsWith('.') || parts.length >= 3)
-        );
+        // Check if this chunk is strictly a list of follow-up suggestion questions
+        const areAllSuggestions = parts.length >= 2 && parts.every((p: string) => {
+          const trimmed = p.trim();
+          return trimmed.length < 125 &&
+                 !trimmed.includes('\n\n') &&
+                 !trimmed.toLowerCase().includes('select ') &&
+                 !trimmed.toLowerCase().includes('from ') &&
+                 !trimmed.endsWith('.') && // Declarative sentences ending in '.' are narrative answers, never suggestions
+                 (trimmed.endsWith('?') || /^(What|Which|Who|How|Can|Show|Find|List|Tell)\b/i.test(trimmed));
+        });
         if (areAllSuggestions) {
           currentSystemMsg.suggestions.push(...parts.map((p: string) => p.trim()));
           continue;
@@ -241,6 +246,14 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
     // Fallback: if answer is empty but insights exists, display insights as answer
     if (!currentSystemMsg.answer && currentSystemMsg.insights) {
       currentSystemMsg.answer = currentSystemMsg.insights;
+    }
+
+    // Self-healing fallback: if answer is still empty after chunking, promote the last reasoning block to answer
+    if (!currentSystemMsg.answer && currentSystemMsg.thoughts.length > 0) {
+      const promoted = currentSystemMsg.thoughts.pop();
+      if (promoted && promoted.body) {
+        currentSystemMsg.answer = promoted.body;
+      }
     }
 
     const hasContent = Boolean(

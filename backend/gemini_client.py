@@ -11,8 +11,8 @@ def call_gemini(prompt: str, system_instruction: str = None, response_mime_type:
         credentials, project = google.auth.default(scopes=['https://www.googleapis.com/auth/cloud-platform'])
         session = AuthorizedSession(credentials)
         
-        # Use gemini-2.5-flash (the stable foundation model available in this project)
-        url = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{project}/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent"
+        # Use gemini-2.5-flash-lite (lightning-fast low-latency foundation model)
+        url = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{project}/locations/us-central1/publishers/google/models/gemini-2.5-flash-lite:generateContent"
         
         parts = [{"text": prompt}]
         payload = {

@@ -64,11 +64,17 @@ def extract_questions_from_text(text: str) -> list:
                     
     return questions
 
+_TABLE_SUGGESTIONS_CACHE = {}
+
 def get_table_specific_suggestions(table_name: str, agent_name: str = "") -> list:
     """Returns premium, highly-analytical table-level suggested queries dynamically for ANY connected agent.
     First attempts dynamic AI generation via Gemini 2.5 Flash-Lite; falls back to semantic intent heuristics if offline.
     """
     clean_name = table_name.lower().strip()
+    cache_key = (clean_name, agent_name.lower().strip())
+    if cache_key in _TABLE_SUGGESTIONS_CACHE:
+        logger.info(f"Returning cached table suggestions for '{clean_name}' (cache hit!)")
+        return _TABLE_SUGGESTIONS_CACHE[cache_key]
     
     # 1. Dynamically generate via Gemini 2.5 Flash-Lite for zero hardcoding adaptability to brand new agents
     try:
@@ -89,17 +95,21 @@ def get_table_specific_suggestions(table_name: str, agent_name: str = "") -> lis
                 cleaned = cleaned[:-3]
             parsed = json.loads(cleaned.strip())
             if isinstance(parsed, list) and len(parsed) >= 2:
-                return [str(q).strip() for q in parsed[:3]]
+                res = [str(q).strip() for q in parsed[:3]]
+                _TABLE_SUGGESTIONS_CACHE[cache_key] = res
+                return res
     except Exception as ex:
         logger.debug(f"Dynamic table suggestion generation fallback for {table_name}: {ex}")
 
     # 2. Semantic intent heuristics (offline/fallback only)
     if any(k in clean_name for k in ["order", "sale", "trans", "invoice", "deal", "visit"]):
-        return [
+        res = [
             f"What are our total sales and volumes from {clean_name} this month?",
             f"Show me the daily trend of transactions in the {clean_name} table.",
             f"What is the distribution of transaction status or categories in {clean_name}?"
         ]
+        _TABLE_SUGGESTIONS_CACHE[cache_key] = res
+        return res
         
     if any(k in clean_name for k in ["product", "item", "inventory", "stock", "part", "vehicle"]):
         return [
@@ -521,7 +531,8 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
     
     # Dynamic Graph Detection: if not detected by keywords, check if there is a property graph
     # in the project whose dataset or graph name matches the agent's name/keywords.
-    if not is_graph_agent and not skip_db_scan:
+    # ONLY scan if the agent does not already have specific flat tables configured in its API metadata!
+    if not is_graph_agent and not skip_db_scan and not tables:
         active_project = get_project_id()
         discovered_graphs = discover_project_graphs(active_project)
         for g in discovered_graphs:
@@ -553,7 +564,7 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
                     dataset_id = parts[0]
                 
         # 100% Dynamic, Zero-Hardcode Database Graph Scan Fallback
-        if not dataset_id and not skip_db_scan:
+        if not dataset_id and not skip_db_scan and not tables:
             active_project = get_project_id()
             # Scan the active BigQuery project for any Property Graphs!
             discovered_graphs = discover_project_graphs(active_project)

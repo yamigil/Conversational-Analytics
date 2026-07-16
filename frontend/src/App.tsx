@@ -24,7 +24,9 @@ import {
 import { Dashboard } from "./components/Dashboard";
 import { ArchitectureModal } from "./components/ArchitectureModal";
 import { GraphVisualizer } from "./components/GraphVisualizer";
+import { RightPanel } from "./components/debug/RightPanel";
 import { auth, signInWithGoogle, requestGCPToken } from "./firebase";
+import { authenticatedFetch } from "./utils/api";
 
 // Interfaces
 interface BrandConfig {
@@ -248,14 +250,6 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
       currentSystemMsg.answer = currentSystemMsg.insights;
     }
 
-    // Self-healing fallback: if answer is still empty after chunking, promote the last reasoning block to answer
-    if (!currentSystemMsg.answer && currentSystemMsg.thoughts.length > 0) {
-      const promoted = currentSystemMsg.thoughts.pop();
-      if (promoted && promoted.body) {
-        currentSystemMsg.answer = promoted.body;
-      }
-    }
-
     const hasContent = Boolean(
       currentSystemMsg.answer ||
       currentSystemMsg.insights ||
@@ -387,7 +381,7 @@ const MessageThinkingBlock: React.FC<{
               {displayThoughts.map((t, idx) => (
                 <div key={idx} className="flex flex-col gap-1.5">
                   <h4 className="font-heading font-semibold text-slate-200">{t.title}</h4>
-                  <p className="leading-relaxed whitespace-pre-wrap text-slate-400">{formatMarkdown(t.body)}</p>
+                  <div className="markdown-body text-slate-400 max-w-full overflow-x-auto break-words leading-relaxed" dangerouslySetInnerHTML={{ __html: marked.parse(formatMarkdown(t.body)) }} />
                 </div>
               ))}
             </div>
@@ -689,96 +683,7 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
 };
 
 // Authenticated fetch wrapper that automatically injects the Firebase ID Token
-const authenticatedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
-  if (import.meta.env.VITE_MOCK_AUTH === "true") {
-    options.headers = {
-      ...options.headers,
-      "Authorization": `Bearer mock-token-123`,
-    };
-    
-    // Inject mock selected GCP project if present
-    const selectedProject = localStorage.getItem("gcp_selected_project");
-    if (selectedProject) {
-      options.headers = {
-        "X-GCP-Project-Id": selectedProject,
-        ...options.headers,
-      };
-    }
 
-    // Inject mock selected GCP location if present
-    const selectedLocation = localStorage.getItem("gcp_selected_location");
-    if (selectedLocation) {
-      options.headers = {
-        "X-GCP-Location": selectedLocation,
-        ...options.headers,
-      };
-    }
-  } else {
-    const currentUser = auth.currentUser;
-    if (currentUser) {
-      try {
-        const token = await currentUser.getIdToken();
-        options.headers = {
-          ...options.headers,
-          "Authorization": `Bearer ${token}`,
-        };
-
-        // Inject the GCP user access token if user SSO credentials mode is active
-        const ssoMode = localStorage.getItem("gcp_credentials_mode") === "user_sso";
-        const gcpToken = sessionStorage.getItem("gcp_user_access_token");
-        if (ssoMode && gcpToken) {
-          options.headers = {
-            "X-GCP-User-Token": gcpToken,
-            ...options.headers,
-          };
-        }
-
-        // Inject the dynamically selected GCP Project ID and Location only if user SSO credentials mode is active
-        if (ssoMode) {
-          const selectedProject = localStorage.getItem("gcp_selected_project");
-          if (selectedProject) {
-            options.headers = {
-              "X-GCP-Project-Id": selectedProject,
-              ...options.headers,
-            };
-          }
-
-          const selectedLocation = localStorage.getItem("gcp_selected_location");
-          if (selectedLocation) {
-            options.headers = {
-              "X-GCP-Location": selectedLocation,
-              ...options.headers,
-            };
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch Firebase ID Token for request:", error);
-      }
-    }
-  }
-  
-  const response = await fetch(url, options);
-  
-  // Intercept Google Cloud 401 Unauthenticated errors (expired or missing Google OAuth token)
-  if (response.status === 401 && localStorage.getItem("gcp_credentials_mode") === "user_sso") {
-    console.warn("Detected expired or missing Google Cloud credentials (401). Triggering automatic re-authentication...");
-    try {
-      // Trigger Google Consent screen popup to get a fresh GCP access token!
-      await requestGCPToken();
-      
-      // Retry the original request with the fresh token!
-      const freshToken = sessionStorage.getItem("gcp_user_access_token");
-      if (freshToken && options.headers) {
-        (options.headers as any)["X-GCP-User-Token"] = freshToken;
-      }
-      return fetch(url, options);
-    } catch (err) {
-      console.error("Silent Google Cloud re-authentication was cancelled or failed:", err);
-    }
-  }
-  
-  return response;
-};
 
 interface CustomSelectProps {
   value: string;
@@ -863,6 +768,10 @@ const App: React.FC = () => {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSchemaExpanded, setIsSchemaExpanded] = useState(false);
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
+  const [isInstantSandbox, setIsInstantSandbox] = useState(false);
+  const [inlineTableId, setInlineTableId] = useState("bigquery-public-data.faa.us_airports");
+  const [pythonAnalysis, setPythonAnalysis] = useState(false);
 
   const isAllowedDomain = (email: string | null | undefined): boolean => {
     if (!email) return false;
@@ -2174,7 +2083,7 @@ const App: React.FC = () => {
   // Send message & stream parser
   const handleSendMessage = async (overrideText?: unknown) => {
     const text = (typeof overrideText === "string" ? overrideText : inputText).trim();
-    if (!text || !selectedAgent) return;
+    if (!text || (!selectedAgent && !isInstantSandbox)) return;
 
     if (tourStep === 19) {
       setTourStep(20);
@@ -2191,8 +2100,8 @@ const App: React.FC = () => {
 
     let activeConvo = selectedConvo;
 
-    // Automatically spin up a new conversation if none is selected
-    if (!activeConvo) {
+    // Automatically spin up a new conversation if none is selected and not in sandbox mode
+    if (!activeConvo && !isInstantSandbox) {
       try {
         const res = await authenticatedFetch("/api/conversations", {
           method: "POST",
@@ -2223,10 +2132,12 @@ const App: React.FC = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          conversation_name: activeConvo,
-          agent_name: selectedAgent,
+          conversation_name: activeConvo || null,
+          agent_name: selectedAgent || null,
           message_text: text,
-          chat_mode: chatMode // Send reasoning mode (fast vs thinking)
+          chat_mode: chatMode, // Send reasoning mode (fast vs thinking)
+          inline_table_id: isInstantSandbox ? inlineTableId : null,
+          python_analysis: pythonAnalysis
         })
       });
 
@@ -2266,19 +2177,21 @@ const App: React.FC = () => {
         }
       }
 
-      // Once streaming finishes, automatically fetch the complete official turn from GCP
-      // This guarantees 100% parity with page refresh and prevents network stream truncation
-      if (activeConvo) {
-        await fetchMessages(activeConvo);
-      } else {
-        const groupedStreaming = groupConversationalMessages(
-          receivedMessages.map(m => ({ systemMessage: m }))
-        );
-        if (groupedStreaming.length > 0) {
-          setMessages(prev => [...prev, ...groupedStreaming]);
-        }
+      // Once streaming finishes, immediately commit what was streamed over the wire so the UI never blinks or shows empty!
+      const groupedStreaming = groupConversationalMessages(
+        receivedMessages.map(m => ({ systemMessage: m }))
+      );
+      if (groupedStreaming.length > 0) {
+        setMessages(prev => [...prev, ...groupedStreaming]);
       }
       setStreamingMessages([]);
+
+      // Sync with official persisted GCP database history with a 1500ms delay so GCP finishes writing the stream to storage
+      if (activeConvo) {
+        setTimeout(async () => {
+          await fetchMessages(activeConvo);
+        }, 1500);
+      }
 
     } catch (err) {
       console.error(err);
@@ -3088,17 +3001,64 @@ const App: React.FC = () => {
             </button>
           </div>
           
-          <div className="mb-7 flex flex-col">
-            <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-2">Active Data Agent</label>
-            <div className={`relative ${tourStep === 9 || tourStep === 14 ? 'tour-highlight rounded-xl' : ''}`} id="agent-select-container">
-              <CustomSelect
-                value={selectedAgent}
-                onChange={handleAgentChange}
-                placeholder="Select a data agent"
-                options={agents.map(a => ({
-                  value: a.name,
-                  label: a.displayName || a.name.split("/").pop() || ""
-                }))}
+          <div className="mb-6 flex flex-col gap-3">
+            <div className="flex justify-between items-center">
+              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                {isInstantSandbox ? "Instant Table Sandbox" : "Active Data Agent"}
+              </label>
+              <button
+                onClick={() => {
+                  setIsInstantSandbox(!isInstantSandbox);
+                  if (!isInstantSandbox) {
+                    setSelectedAgent("");
+                  } else if (agents.length > 0) {
+                    setSelectedAgent(agents[0].name);
+                  }
+                }}
+                className={`text-[10px] font-mono px-2 py-0.5 rounded border transition cursor-pointer ${isInstantSandbox ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold' : 'bg-white/4 text-slate-400 border-white/8 hover:text-white'}`}
+                title="Query arbitrary BigQuery tables instantly via zero-config inline_context"
+              >
+                {isInstantSandbox ? "⚡ Sandbox ON" : "⚡ Sandbox Mode"}
+              </button>
+            </div>
+
+            {isInstantSandbox ? (
+              <div className="flex flex-col gap-1.5 animate-fadeIn">
+                <input
+                  type="text"
+                  value={inlineTableId}
+                  onChange={(e) => setInlineTableId(e.target.value)}
+                  placeholder="project.dataset.table"
+                  className="w-full bg-slate-900/80 border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 transition font-mono shadow-inner"
+                />
+                <span className="text-[10px] text-slate-400 font-mono">Bypasses pre-created Data Agent via inline_context</span>
+              </div>
+            ) : (
+              <div className={`relative ${tourStep === 9 || tourStep === 14 ? 'tour-highlight rounded-xl' : ''}`} id="agent-select-container">
+                <CustomSelect
+                  value={selectedAgent}
+                  onChange={handleAgentChange}
+                  placeholder="Select a data agent"
+                  options={agents.map(a => ({
+                    value: a.name,
+                    label: a.displayName || a.name.split("/").pop() || ""
+                  }))}
+                />
+              </div>
+            )}
+
+            {/* Advanced Analysis Options Toggle */}
+            <div className="flex items-center justify-between p-2.5 bg-slate-900/50 border border-white/6 rounded-xl mt-1 select-none">
+              <div className="flex items-center gap-2">
+                <span className="text-xs">🐍</span>
+                <span className="text-[11px] font-medium text-slate-300">Python Analysis Option</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={pythonAnalysis}
+                onChange={(e) => setPythonAnalysis(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-white/20 bg-slate-950 text-brand-primary focus:ring-0 cursor-pointer"
+                title="Instruct CA API to enable server-side Python execution for complex statistical calculations"
               />
             </div>
           </div>
@@ -3233,23 +3193,34 @@ const App: React.FC = () => {
                     </span>
                   </div>
                   
-                  {activeAgentObj?.graphData && (
+                  <div className="flex items-center gap-2">
                     <button
-                      id="toggle-schema-btn"
-                      onClick={() => {
-                        setIsSchemaExpanded(!isSchemaExpanded);
-                        if (tourStep === 17) {
-                          setTourStep(18);
-                        } else if (tourStep === 18) {
-                          setTourStep(19);
-                        }
-                      }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 bg-white/4 hover:bg-white/8 border border-white/6 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-300 transition cursor-pointer border-none ${(tourStep === 17 || tourStep === 18) ? 'tour-highlight border-amber-500/50' : ''}`}
+                      onClick={() => setIsRightPanelOpen(!isRightPanelOpen)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 bg-white/4 hover:bg-white/8 border border-white/6 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-300 transition cursor-pointer border-none ${isRightPanelOpen ? 'bg-sky-500/20 text-sky-300 border-sky-500/40' : ''}`}
+                      title="Inspect OpenTelemetry Spans & Raw LLM Payloads"
                     >
-                      <Network size={12} className={isSchemaExpanded ? "text-amber-400 animate-pulse" : "text-slate-400"} />
-                      <span>{isSchemaExpanded ? "Hide Schema" : "Show Schema"}</span>
+                      <Sparkles size={12} className={isRightPanelOpen ? "text-sky-400 animate-spin" : "text-sky-400"} />
+                      <span>{isRightPanelOpen ? "Hide Trace" : "Trace Inspector"}</span>
                     </button>
-                  )}
+
+                    {activeAgentObj?.graphData && (
+                      <button
+                        id="toggle-schema-btn"
+                        onClick={() => {
+                          setIsSchemaExpanded(!isSchemaExpanded);
+                          if (tourStep === 17) {
+                            setTourStep(18);
+                          } else if (tourStep === 18) {
+                            setTourStep(19);
+                          }
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 bg-white/4 hover:bg-white/8 border border-white/6 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-300 transition cursor-pointer border-none ${(tourStep === 17 || tourStep === 18) ? 'tour-highlight border-amber-500/50' : ''}`}
+                      >
+                        <Network size={12} className={isSchemaExpanded ? "text-amber-400 animate-pulse" : "text-slate-400"} />
+                        <span>{isSchemaExpanded ? "Hide Schema" : "Show Schema"}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })()}
@@ -4179,6 +4150,12 @@ const App: React.FC = () => {
           </div>
         )}
       </main>
+
+      <RightPanel 
+        isOpen={isRightPanelOpen} 
+        onClose={() => setIsRightPanelOpen(false)} 
+        conversationName={selectedConvo || ""} 
+      />
 
       {/* Reference Architecture Modal overlay */}
       <ArchitectureModal 

@@ -165,31 +165,37 @@ class ConversationalAnalyticsClient:
         # Reverse to get chronological order (API lists in descending order of create time)
         return list(reversed(results))
 
-    def chat_stream(self, conversation_name: str, agent_name: str, message_text: str, looker_credentials: dict = None, inline_context: geminidataanalytics.Context = None):
+    def chat_stream(self, conversation_name: Optional[str], agent_name: Optional[str], message_text: str, looker_credentials: dict = None, inline_context: Optional[geminidataanalytics.Context] = None, python_analysis: bool = False):
         """Sends a message to the conversation and yields chunks of the response."""
-        loc = self._get_location_from_name(conversation_name)
+        loc = self._get_location_from_name(conversation_name) if conversation_name else "global"
+        if not loc or loc == "unknown":
+            loc = "global"
         parent = f"projects/{self.project_id}/locations/{loc}"
         
         user_msg = geminidataanalytics.Message(user_message={"text": message_text})
         
-        convo_ref = geminidataanalytics.ConversationReference()
-        convo_ref.conversation = conversation_name
-        convo_ref.data_agent_context.data_agent = agent_name
-        
-        # Inject Looker credentials if provided
-        if looker_credentials:
-            credentials = geminidataanalytics.Credentials()
-            credentials.oauth.secret.client_id = looker_credentials.get("client_id")
-            credentials.oauth.secret.client_secret = looker_credentials.get("client_secret")
-            convo_ref.data_agent_context.credentials = credentials
-
         request_args = {
             "parent": parent,
             "messages": [user_msg],
-            "conversation_reference": convo_ref,
         }
         if inline_context:
             request_args["inline_context"] = inline_context
+            if conversation_name:
+                convo_ref = geminidataanalytics.ConversationReference()
+                convo_ref.conversation = conversation_name
+                request_args["conversation_reference"] = convo_ref
+        elif agent_name and conversation_name:
+            convo_ref = geminidataanalytics.ConversationReference()
+            convo_ref.conversation = conversation_name
+            convo_ref.data_agent_context.data_agent = agent_name
+            if python_analysis:
+                convo_ref.data_agent_context.options.analysis.python.enabled = True
+            if looker_credentials:
+                credentials = geminidataanalytics.Credentials()
+                credentials.oauth.secret.client_id = looker_credentials.get("client_id")
+                credentials.oauth.secret.client_secret = looker_credentials.get("client_secret")
+                convo_ref.data_agent_context.credentials = credentials
+            request_args["conversation_reference"] = convo_ref
 
         request = geminidataanalytics.ChatRequest(**request_args)
         

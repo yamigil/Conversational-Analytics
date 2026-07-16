@@ -30,11 +30,13 @@ class GenerateGreetingRequest(BaseModel):
     brand_name: str
 
 class ChatRequestModel(BaseModel):
-    conversation_name: str
-    agent_name: str
+    conversation_name: Optional[str] = None
+    agent_name: Optional[str] = None
     message_text: str
     looker_credentials: Optional[dict] = None
     chat_mode: Optional[str] = "fast"
+    inline_table_id: Optional[str] = None
+    python_analysis: Optional[bool] = False
 
 class AuditLogModel(BaseModel):
     event_type: str

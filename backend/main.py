@@ -28,24 +28,6 @@ from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Warm up schema discovery caches in a background thread to prevent blocking startup
-    import threading
-    def warmup():
-        try:
-            logger.info("Warming up schema discovery caches in the background...")
-            from schema_discovery import discover_project_graphs, discover_bq_graph_schema
-            project_id = get_project_id()
-            if project_id:
-                graphs = discover_project_graphs(project_id)
-                for g in graphs:
-                    discover_bq_graph_schema(project_id, g["dataset_id"])
-                logger.info("Schema discovery caches successfully warmed up!")
-            else:
-                logger.warning("No default GCP project found; skipping cache warmup.")
-        except Exception as e:
-            logger.warning(f"Failed background cache warmup: {e}")
-
-    threading.Thread(target=warmup, daemon=True).start()
     yield
 
 app = FastAPI(title="Conversational Analytics Showcase", lifespan=lifespan)

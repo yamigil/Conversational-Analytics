@@ -95,10 +95,30 @@ def generate_record_suggestions(table_name: str, rows: list) -> list:
                 logger.info(f"Successfully generated custom record suggestions via Gemini for {len(rows)} rows of table '{table_name}'")
                 return parsed
     except Exception as ex:
-        logger.warning(f"Failed to generate custom record suggestions with Gemini: {ex}")
+        logger.warning(f"Gemini API fallback for record suggestions on table '{table_name}' ({ex}). Using dynamic row-aware fallbacks.")
     
-    return [[] for _ in rows]
+    # Robust high-fidelity domain-aware fallback if Gemini rate limit (429) is encountered or cache is warming
+    fallback_suggestions = []
+    for r in rows:
+        if not isinstance(r, dict) or not r:
+            fallback_suggestions.append([
+                f"What is the historical trend and distribution for records in table {table_name}?",
+                f"Show me all related metrics and connected graph nodes for {table_name}.",
+                f"Count the total records in {table_name} grouped by status or category."
+            ])
+            continue
+        # Pick the most meaningful identifier column from the row (id, name, title, code, uuid, or first string)
+        id_key = next((k for k in r.keys() if any(term in k.lower() for term in ["id", "name", "code", "title", "sku", "vin", "email"])), list(r.keys())[0])
+        val = str(r.get(id_key, "this record"))[:30]
+        fallback_suggestions.append([
+            f"What is the complete historical activity and metrics for {id_key} '{val}' in {table_name}?",
+            f"List all related transactions, connected graph entities, and details linked to '{val}'.",
+            f"Compare {id_key} '{val}' against other top records in {table_name} by volume or spend."
+        ])
+    return fallback_suggestions
 
+
+_TABLE_PREVIEW_CACHE = {}
 
 @router.get("/api/preview")
 def get_table_preview(
@@ -162,6 +182,11 @@ def get_table_preview(
             status_code=400, 
             detail=f"Could not resolve dataset context for table '{table_name}'. Please ensure agent_name is specified."
         )
+
+    cache_key = (project_id, dataset_id, clean_name)
+    if cache_key in _TABLE_PREVIEW_CACHE:
+        logger.info(f"Returning cached preview and suggestions for {project_id}.{dataset_id}.{clean_name} (cache hit!)")
+        return _TABLE_PREVIEW_CACHE[cache_key]
         
     # 3. Call our clean, modular live BigQuery preview function (timeout-enforced, 100% live!)
     preview_data = get_live_table_preview(project_id, dataset_id, clean_name, user_token=x_gcp_user_token)
@@ -175,5 +200,6 @@ def get_table_preview(
         # Pad with empty lists if there are more rows in the preview than target_rows
         preview_data["recordSuggestions"] = suggestions + [[] for _ in range(len(rows) - len(suggestions))]
         
+    _TABLE_PREVIEW_CACHE[cache_key] = preview_data
     return preview_data
 

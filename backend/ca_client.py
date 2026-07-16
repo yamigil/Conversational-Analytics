@@ -1,5 +1,6 @@
 import os
 import logging
+from typing import Optional
 from google.cloud import geminidataanalytics
 from google.protobuf.json_format import MessageToDict
 

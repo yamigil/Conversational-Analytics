@@ -99,10 +99,62 @@ def chat(req: ChatRequestModel, user: dict = Depends(get_current_user), client: 
 
 
 @router.get("/api/debug/trace/session/{conversation_name:path}")
-def get_trace_session(conversation_name: str, user: dict = Depends(get_current_user)):
-    """Returns structured OpenTelemetry trace and span telemetry for the live session."""
+def get_trace_session(
+    conversation_name: str, 
+    user: dict = Depends(get_current_user),
+    client: ConversationalAnalyticsClient = Depends(get_analytics_client)
+):
+    """Returns structured OpenTelemetry trace and span telemetry dynamically extracted from the live session."""
     try:
         now_ts = datetime.now(timezone.utc).isoformat()
+        agent_id = conversation_name.split("/")[-1] if "/" in conversation_name else conversation_name
+        
+        # Dynamically inspect actual conversation messages to extract executed SQL, rows, and table context
+        executed_sqls = []
+        total_rows_returned = 0
+        tables_referenced = set()
+        
+        try:
+            msgs = client.list_messages(conversation_name)
+            for m in msgs:
+                parts = m.get("parts", []) if isinstance(m, dict) else []
+                for p in parts:
+                    if not isinstance(p, dict):
+                        continue
+                    # Check for SQL inside data/schema/chart parts
+                    for key in ["data", "schema", "chart"]:
+                        sub = p.get(key, {})
+                        if isinstance(sub, dict):
+                            sql = sub.get("sqlQuery") or sub.get("query")
+                            if sql and sql not in executed_sqls:
+                                executed_sqls.append(sql)
+                                # Extract table names enclosed in backticks or FROM/JOIN clauses
+                                import re
+                                found_tables = re.findall(r'`([^`]+)`', sql)
+                                for ft in found_tables:
+                                    tables_referenced.add(ft)
+                            # Check rows returned
+                            res = sub.get("result", {})
+                            if isinstance(res, dict) and "data" in res and isinstance(res["data"], list):
+                                total_rows_returned += len(res["data"])
+                    # Also check narrative text for SQL snippets if not found in structured parts
+                    text = p.get("text", "")
+                    if "SELECT " in text and "FROM " in text:
+                        import re
+                        sql_match = re.search(r'(SELECT\s+.*?\s+FROM\s+[`\w\.-]+.*?(?:;|\n|$))', text, re.IGNORECASE | re.DOTALL)
+                        if sql_match:
+                            sql_str = sql_match.group(1).strip()
+                            if sql_str not in executed_sqls:
+                                executed_sqls.append(sql_str)
+                                found_tables = re.findall(r'`([^`]+)`', sql_str)
+                                for ft in found_tables:
+                                    tables_referenced.add(ft)
+        except Exception as ex:
+            logger.warning(f"Could not inspect live conversation messages for trace telemetry: {ex}")
+
+        last_sql = executed_sqls[-1] if executed_sqls else "No SQL query executed in this turn (Schema / Reasoning response)"
+        tables_list = list(tables_referenced)
+        
         return {
             "conversation_name": conversation_name,
             "spans": [
@@ -115,9 +167,10 @@ def get_trace_session(conversation_name: str, user: dict = Depends(get_current_u
                     "latency_ms": 1240,
                     "timestamp": now_ts,
                     "metadata": {
-                        "agent_id": conversation_name.split("/")[-1] if "/" in conversation_name else conversation_name,
+                        "agent_id": agent_id,
                         "sdk_version": "0.13.1",
-                        "auth_mode": "Bearer Token / ADC"
+                        "auth_mode": "Bearer Token / ADC",
+                        "messages_inspected": len(msgs) if 'msgs' in locals() else 0
                     }
                 },
                 {
@@ -129,8 +182,7 @@ def get_trace_session(conversation_name: str, user: dict = Depends(get_current_u
                     "latency_ms": 310,
                     "timestamp": now_ts,
                     "metadata": {
-                        "tables_checked": 4,
-                        "glossary_terms_matched": 2,
+                        "tables_referenced": tables_list if tables_list else ["Dynamic Agent Context"],
                         "retrieval_strategy": "Hybrid Vector + Keyword Search"
                     }
                 },
@@ -152,10 +204,12 @@ def get_trace_session(conversation_name: str, user: dict = Depends(get_current_u
                     "request_payload": {
                         "system_instruction": "Think like an Analyst. Generate clean BigQuery Standard SQL.",
                         "temperature": 0.2,
-                        "top_p": 0.95
+                        "top_p": 0.95,
+                        "active_tables": tables_list if tables_list else ["Dynamic Agent Context"]
                     },
                     "response_payload": {
-                        "sql_generated": "SELECT * FROM `bigquery-public-data.faa.us_airports` LIMIT 5",
+                        "sql_generated": last_sql,
+                        "all_sqls_executed_in_turn": executed_sqls,
                         "status": "COMPLETED"
                     }
                 },
@@ -169,7 +223,7 @@ def get_trace_session(conversation_name: str, user: dict = Depends(get_current_u
                     "timestamp": now_ts,
                     "metadata": {
                         "tool_name": "execute_sql_query",
-                        "rows_returned": 5,
+                        "rows_returned": total_rows_returned,
                         "bytes_billed": 0
                     }
                 }

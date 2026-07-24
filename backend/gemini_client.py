@@ -6,7 +6,7 @@ from google.auth.transport.requests import AuthorizedSession
 logger = logging.getLogger("ca-web-app-gemini")
 
 def call_gemini(prompt: str, system_instruction: str = None, response_mime_type: str = "text/plain", temperature: float = 0.2) -> str:
-    """Calls the Vertex AI Gemini 1.5 Flash API to generate content dynamically."""
+    """Calls the Vertex AI Gemini 2.5 Flash Lite API to generate content dynamically."""
     try:
         credentials, project = google.auth.default(scopes=['https://www.googleapis.com/auth/cloud-platform'])
         session = AuthorizedSession(credentials)

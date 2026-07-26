@@ -723,10 +723,10 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                           </button>
                         </div>
                       </div>
-                      <div className="flex-1 w-full min-h-[150px]">
+                      <div className="flex-1 w-full min-h-[160px]">
                         <ResponsiveContainer width="100%" height="100%">
                           {chartType === "bar" ? (
-                            <BarChart data={previewChartFields.rows} margin={{ top: 5, right: 20, left: 0, bottom: 20 }}>
+                            <BarChart data={previewChartFields.rows} margin={{ top: 5, right: 20, left: 5, bottom: 40 }}>
                               <defs>
                                 <linearGradient id="prevBarGrad" x1="0" y1="0" x2="0" y2="1">
                                   <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.95}/>
@@ -734,21 +734,21 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                                 </linearGradient>
                               </defs>
                               <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
-                              <XAxis dataKey={previewChartFields.nominalField} stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={{ stroke: '#475569' }} angle={-15} textAnchor="end" interval={0} />
+                              <XAxis dataKey={previewChartFields.nominalField} stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={{ stroke: '#475569' }} angle={-15} textAnchor="end" interval={0} tickFormatter={(val: any) => typeof val === 'string' && val.length > 14 ? val.substring(0, 12) + '...' : val} />
                               <YAxis stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
                               <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px', fontSize: '11px', color: '#f8fafc' }} />
                               <Bar dataKey={previewChartFields.quantitativeField} fill="url(#prevBarGrad)" radius={[4, 4, 0, 0]} animationDuration={600} />
                             </BarChart>
                           ) : chartType === "line" ? (
-                            <LineChart data={previewChartFields.rows} margin={{ top: 5, right: 20, left: 0, bottom: 20 }}>
+                            <LineChart data={previewChartFields.rows} margin={{ top: 5, right: 20, left: 5, bottom: 40 }}>
                               <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
-                              <XAxis dataKey={previewChartFields.nominalField} stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={{ stroke: '#475569' }} angle={-15} textAnchor="end" interval={0} />
+                              <XAxis dataKey={previewChartFields.nominalField} stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={{ stroke: '#475569' }} angle={-15} textAnchor="end" interval={0} tickFormatter={(val: any) => typeof val === 'string' && val.length > 14 ? val.substring(0, 12) + '...' : val} />
                               <YAxis stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
                               <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px', fontSize: '11px', color: '#f8fafc' }} />
                               <Line type="monotone" dataKey={previewChartFields.quantitativeField} stroke="#60a5fa" strokeWidth={2.5} dot={{ fill: '#8b5cf6', r: 4 }} animationDuration={600} />
                             </LineChart>
                           ) : (
-                            <AreaChart data={previewChartFields.rows} margin={{ top: 5, right: 20, left: 0, bottom: 20 }}>
+                            <AreaChart data={previewChartFields.rows} margin={{ top: 5, right: 20, left: 5, bottom: 40 }}>
                               <defs>
                                 <linearGradient id="prevAreaGrad" x1="0" y1="0" x2="0" y2="1">
                                   <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.7}/>
@@ -756,7 +756,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                                 </linearGradient>
                               </defs>
                               <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
-                              <XAxis dataKey={previewChartFields.nominalField} stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={{ stroke: '#475569' }} angle={-15} textAnchor="end" interval={0} />
+                              <XAxis dataKey={previewChartFields.nominalField} stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={{ stroke: '#475569' }} angle={-15} textAnchor="end" interval={0} tickFormatter={(val: any) => typeof val === 'string' && val.length > 14 ? val.substring(0, 12) + '...' : val} />
                               <YAxis stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
                               <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px', fontSize: '11px', color: '#f8fafc' }} />
                               <Area type="monotone" dataKey={previewChartFields.quantitativeField} stroke="#3b82f6" strokeWidth={2} fill="url(#prevAreaGrad)" animationDuration={600} />

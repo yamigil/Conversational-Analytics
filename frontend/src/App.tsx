@@ -697,10 +697,10 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
       <div className="p-5">
         {activeTab === "chart" && hasChart && (
           chartFields ? (
-            <div className="w-full h-72 pt-4 pb-2 px-2 bg-transparent animate-scaleIn">
+            <div className="w-full h-80 pt-4 pb-2 px-2 bg-transparent animate-scaleIn">
               <ResponsiveContainer width="100%" height="100%">
                 {chartType === "bar" ? (
-                  <BarChart data={chartFields.rows} margin={{ top: 10, right: 30, left: 10, bottom: 25 }}>
+                  <BarChart data={chartFields.rows} margin={{ top: 10, right: 30, left: 15, bottom: 55 }}>
                     <defs>
                       <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.95}/>
@@ -717,6 +717,7 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
                       angle={-20}
                       textAnchor="end"
                       interval={0}
+                      tickFormatter={(val: any) => typeof val === 'string' && val.length > 18 ? val.substring(0, 16) + '...' : val}
                     />
                     <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
                     <Tooltip 
@@ -727,7 +728,7 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
                     <Bar dataKey={chartFields.quantitativeField} fill="url(#barGradient)" radius={[6, 6, 0, 0]} animationDuration={800} />
                   </BarChart>
                 ) : chartType === "line" ? (
-                  <LineChart data={chartFields.rows} margin={{ top: 10, right: 30, left: 10, bottom: 25 }}>
+                  <LineChart data={chartFields.rows} margin={{ top: 10, right: 30, left: 15, bottom: 55 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
                     <XAxis 
                       dataKey={chartFields.nominalField} 
@@ -738,6 +739,7 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
                       angle={-20}
                       textAnchor="end"
                       interval={0}
+                      tickFormatter={(val: any) => typeof val === 'string' && val.length > 18 ? val.substring(0, 16) + '...' : val}
                     />
                     <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
                     <Tooltip 
@@ -747,7 +749,7 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
                     <Line type="monotone" dataKey={chartFields.quantitativeField} stroke="#60a5fa" strokeWidth={3} dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 5 }} activeDot={{ r: 8, fill: '#3b82f6' }} animationDuration={800} />
                   </LineChart>
                 ) : (
-                  <AreaChart data={chartFields.rows} margin={{ top: 10, right: 30, left: 10, bottom: 25 }}>
+                  <AreaChart data={chartFields.rows} margin={{ top: 10, right: 30, left: 15, bottom: 55 }}>
                     <defs>
                       <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.7}/>
@@ -764,6 +766,7 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
                       angle={-20}
                       textAnchor="end"
                       interval={0}
+                      tickFormatter={(val: any) => typeof val === 'string' && val.length > 18 ? val.substring(0, 16) + '...' : val}
                     />
                     <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
                     <Tooltip 

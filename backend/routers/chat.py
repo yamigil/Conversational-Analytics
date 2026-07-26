@@ -168,6 +168,7 @@ def get_trace_session(
         turns_list = []
         cur_turn = None
         turn_idx = 0
+        msgs = []
         
         try:
             msgs = client.list_messages(conversation_name)

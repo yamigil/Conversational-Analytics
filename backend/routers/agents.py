@@ -198,6 +198,8 @@ def get_table_preview(
                         dataset_id = graph_data["datasetId"]
                         project_id = graph_data.get("projectId")
                         logger.info(f"Resolved dataset '{dataset_id}' from graphData for preview of table '{clean_name}'")
+        except Exception as e:
+            logger.warning(f"Could not resolve dataset_id from agent metadata: {e}")
             
     # 2. Fallback to extracting dataset ID from input table string if present
     if not dataset_id and "." in table_name:

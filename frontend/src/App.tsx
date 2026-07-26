@@ -200,17 +200,17 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
         if (parts.length === 0) continue;
 
         // Check if this chunk is strictly a list of follow-up suggestion questions
-        const areAllSuggestions = parts.length >= 2 && parts.every((p: string) => {
-          const trimmed = p.trim();
-          return trimmed.length < 125 &&
+        const areAllSuggestions = parts.length >= 1 && parts.every((p: string) => {
+          const trimmed = p.trim().replace(/^[0-9]+[\.\)\-]\s*/, ""); // Strip bullet numbers
+          return trimmed.length > 3 &&
+                 trimmed.length < 160 &&
                  !trimmed.includes('\n\n') &&
                  !trimmed.toLowerCase().includes('select ') &&
                  !trimmed.toLowerCase().includes('from ') &&
-                 !trimmed.endsWith('.') && // Declarative sentences ending in '.' are narrative answers, never suggestions
-                 (trimmed.endsWith('?') || /^(What|Which|Who|How|Can|Show|Find|List|Tell)\b/i.test(trimmed));
+                 (trimmed.endsWith('?') || /^(What|Which|Who|How|Can|Show|Find|List|Tell|Why|Where|Give|Explain|Are|Do|Does|Is|Summarize|Compare|Analyze|Describe|Get|Check|View)\b/i.test(trimmed));
         });
         if (areAllSuggestions) {
-          currentSystemMsg.suggestions.push(...parts.map((p: string) => p.trim()));
+          currentSystemMsg.suggestions.push(...parts.map((p: string) => p.trim().replace(/^[0-9]+[\.\)\-]\s*/, "")));
           continue;
         }
 

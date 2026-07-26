@@ -3004,7 +3004,7 @@ const App: React.FC = () => {
           <div className="mb-6 flex flex-col gap-3">
             <div className="flex justify-between items-center">
               <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
-                {isInstantSandbox ? "Instant Table Sandbox" : "Active Data Agent"}
+                {isInstantSandbox ? "Free Form Table Mode" : "Active Data Agent"}
               </label>
               <button
                 onClick={() => {
@@ -3018,9 +3018,9 @@ const App: React.FC = () => {
                   }
                 }}
                 className={`text-[10px] font-mono px-2 py-0.5 rounded border transition cursor-pointer ${isInstantSandbox ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold' : 'bg-white/4 text-slate-400 border-white/8 hover:text-white'}`}
-                title="Query arbitrary BigQuery tables instantly via zero-config inline_context"
+                title="Query arbitrary BigQuery tables instantly in Free Form mode via zero-config inline_context"
               >
-                {isInstantSandbox ? "⚡ Sandbox ON" : "⚡ Sandbox Mode"}
+                {isInstantSandbox ? "⚡ Free Form ON" : "⚡ Free Form Mode"}
               </button>
             </div>
 
@@ -3363,13 +3363,13 @@ const App: React.FC = () => {
                         <Sparkles size={26} className="text-brand-primary animate-pulse" />
                       </div>
                       
-                      {selectedAgent ? (
+                      {selectedAgent || isInstantSandbox ? (
                         <>
                           <h2 className="font-heading text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 mb-3 tracking-tight leading-none">
                             What would you like to analyze today?
                           </h2>
                           <p className="text-xs md:text-sm text-slate-400 mb-5 md:mb-8 max-w-md leading-relaxed">
-                            {activeAgentObj?.welcomeSubtitle || activeAgentObj?.description || "Ask any analytical question about your connected data tables."}
+                            {isInstantSandbox ? `Ask any analytical question or explore patterns inside ${inlineTableId || "your BigQuery table"}.` : (activeAgentObj?.welcomeSubtitle || activeAgentObj?.description || "Ask any analytical question about your connected data tables.")}
                           </p>
                         </>
                       ) : (
@@ -3409,7 +3409,7 @@ const App: React.FC = () => {
                     </div>
                   )}
                   
-                  {selectedAgent ? (
+                  {selectedAgent || isInstantSandbox ? (
                     loadingAgentSchema ? (
                       <div className="flex flex-col items-center gap-4 w-full">
                         <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-primary/10 border border-brand-primary/25 text-brand-primary text-xs font-semibold animate-pulse">
@@ -3434,6 +3434,15 @@ const App: React.FC = () => {
                         return (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
                             {( (() => {
+                              if (isInstantSandbox) {
+                                const tbl = inlineTableId.split(".").pop() || "table";
+                                return [
+                                  `What are the key numerical trends and aggregations available in ${tbl}?`,
+                                  `Show me a summary and sample distribution of rows in ${tbl}.`,
+                                  `Can you identify any interesting patterns or outliers in ${tbl}?`,
+                                  `What are the top categories or grouped metrics inside ${tbl}?`
+                                ];
+                              }
                               if (activeAgentObj && Array.isArray(activeAgentObj.suggestions) && activeAgentObj.suggestions.length > 0) {
                                 return activeAgentObj.suggestions;
                               }

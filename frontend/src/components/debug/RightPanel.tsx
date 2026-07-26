@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Activity, Clock, Cpu, Database, ChevronRight, ChevronDown, RefreshCw, X, Code, CheckCircle2 } from "lucide-react";
+import { Activity, Clock, Cpu, Database, ChevronRight, ChevronDown, RefreshCw, X, Code, CheckCircle2, Maximize2, Minimize2 } from "lucide-react";
 import { authenticatedFetch } from "../../utils/api";
 
 interface TraceSpan {
@@ -29,6 +29,7 @@ interface RightPanelProps {
 export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, conversationName }) => {
   const [traceData, setTraceData] = useState<TraceSessionData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isExpandedWidth, setIsExpandedWidth] = useState(false);
   const [expandedSpans, setExpandedSpans] = useState<Record<string, boolean>>({
     "span-root-invoke-agent": true,
     "span-call-llm": true
@@ -111,7 +112,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                   {span.metadata && (
                     <div className="flex flex-col gap-1">
                       <span className="text-[10px] uppercase tracking-wider font-sans font-semibold text-slate-400">Span Metadata</span>
-                      <pre className="p-2 bg-black/40 rounded-lg border border-white/5 text-slate-300 text-[11px] overflow-x-auto whitespace-pre-wrap">
+                      <pre className="p-2.5 bg-black/50 rounded-lg border border-white/10 text-slate-300 text-[11px] overflow-x-auto overflow-y-auto max-h-52 custom-scrollbar whitespace-pre-wrap leading-relaxed">
                         {JSON.stringify(span.metadata, null, 2)}
                       </pre>
                     </div>
@@ -121,7 +122,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                       <span className="text-[10px] uppercase tracking-wider font-sans font-semibold text-sky-400 flex items-center gap-1">
                         <Code size={11} /> Raw LLM Request / System Instruction
                       </span>
-                      <pre className="p-2 bg-black/40 rounded-lg border border-white/5 text-sky-300/90 text-[11px] overflow-x-auto whitespace-pre-wrap">
+                      <pre className="p-2.5 bg-black/50 rounded-lg border border-white/10 text-sky-300/90 text-[11px] overflow-x-auto overflow-y-auto max-h-52 custom-scrollbar whitespace-pre-wrap leading-relaxed">
                         {JSON.stringify(span.request_payload, null, 2)}
                       </pre>
                     </div>
@@ -131,7 +132,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                       <span className="text-[10px] uppercase tracking-wider font-sans font-semibold text-emerald-400 flex items-center gap-1">
                         <CheckCircle2 size={11} /> Raw LLM Response / SQL Output
                       </span>
-                      <pre className="p-2 bg-black/40 rounded-lg border border-white/5 text-emerald-300/90 text-[11px] overflow-x-auto whitespace-pre-wrap">
+                      <pre className="p-2.5 bg-black/50 rounded-lg border border-white/10 text-emerald-300/90 text-[11px] overflow-x-auto overflow-y-auto max-h-52 custom-scrollbar whitespace-pre-wrap leading-relaxed">
                         {JSON.stringify(span.response_payload, null, 2)}
                       </pre>
                     </div>
@@ -148,7 +149,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
   };
 
   return (
-    <aside className="w-96 shrink-0 bg-slate-950/95 border-l border-white/10 flex flex-col h-full z-30 shadow-2xl animate-slideInRight backdrop-blur-xl">
+    <aside className={`${isExpandedWidth ? "w-[760px]" : "w-[450px]"} shrink-0 bg-slate-950/95 border-l border-white/10 flex flex-col h-full z-30 shadow-2xl animate-slideInRight backdrop-blur-xl transition-all duration-300`}>
       {/* Header */}
       <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/2">
         <div className="flex items-center gap-2">
@@ -156,6 +157,13 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
           <h3 className="font-heading font-semibold text-sm text-white tracking-tight">OpenTelemetry Trace Inspector</h3>
         </div>
         <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setIsExpandedWidth(!isExpandedWidth)}
+            title={isExpandedWidth ? "Compact View (450px)" : "Widescreen Deep Inspection (760px)"}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition cursor-pointer flex items-center gap-1 text-[11px]"
+          >
+            {isExpandedWidth ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+          </button>
           <button 
             onClick={fetchTrace}
             disabled={loading}
@@ -225,7 +233,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
             </div>
 
             <div className="p-4 bg-slate-900/60 border border-white/8 rounded-xl flex flex-col gap-3">
-              <h4 className="text-xs font-heading font-semibold text-slate-200">LLM Token Breakdown (`call_llm`)</h4>
+              <div className="flex justify-between items-center">
+                <h4 className="text-xs font-heading font-semibold text-slate-200">Conversational Analytics Token Breakdown</h4>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-500/15 text-purple-300 border border-purple-500/25">Gemini 2.0 Pro</span>
+              </div>
               <div className="flex flex-col gap-2 font-mono text-xs">
                 <div className="flex justify-between items-center py-1 border-b border-white/5">
                   <span className="text-slate-400">Prompt Tokens (Input)</span>
@@ -239,6 +250,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                   <span className="text-slate-300 font-semibold">Total Context Used</span>
                   <span className="text-purple-400 font-bold">{totalTokens.toLocaleString()}</span>
                 </div>
+              </div>
+              <div className="mt-1 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center gap-2">
+                <span className="text-xs">⚡</span>
+                <span className="text-[10px] text-emerald-300 leading-tight">Displays tokens exclusively consumed by your live Conversational Analytics turn (excludes background UI suggestion generation).</span>
               </div>
             </div>
 

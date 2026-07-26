@@ -527,22 +527,32 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
     if (!tableData || !tableData.rows || tableData.rows.length === 0) return null;
     const firstRow = tableData.rows[0];
     const keys = Object.keys(firstRow);
-    if (tableData.rows.length > 30 || keys.length > 8) return null;
+    if (tableData.rows.length > 250 || keys.length > 15) return null;
 
     let nominalField = "";
     let quantitativeField = "";
+    const isNum = (val: any) => typeof val === "number" || (typeof val === "string" && !isNaN(Number(val)) && val.trim() !== "");
+
     for (const key of keys) {
       const val = firstRow[key];
-      if (typeof val === "number" && !quantitativeField) {
+      if (isNum(val) && !quantitativeField) {
         quantitativeField = key;
-      } else if (typeof val === "string" && !nominalField) {
+      } else if (!isNum(val) && !nominalField) {
         nominalField = key;
       }
     }
+    if (!nominalField && keys.length >= 2) {
+      nominalField = keys[0];
+      quantitativeField = keys[1];
+    }
     if (nominalField && quantitativeField) {
       const avgLen = tableData.rows.reduce((acc: number, r: any) => acc + String(r[nominalField] || "").length, 0) / tableData.rows.length;
-      if (avgLen > 25) return null;
-      return { nominalField, quantitativeField, rows: tableData.rows };
+      if (avgLen > 30) return null;
+      const rowsForChart = tableData.rows.slice(0, 50).map((r: any) => ({
+        ...r,
+        [quantitativeField]: Number(r[quantitativeField]) || 0
+      }));
+      return { nominalField, quantitativeField, rows: rowsForChart };
     }
     return null;
   };
@@ -883,7 +893,6 @@ const App: React.FC = () => {
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
   const [isInstantSandbox, setIsInstantSandbox] = useState(false);
   const [inlineTableId, setInlineTableId] = useState("bigquery-public-data.faa.us_airports");
-  const [pythonAnalysis, setPythonAnalysis] = useState(false);
   const [freeFormSuggestions, setFreeFormSuggestions] = useState<string[]>([]);
 
   const isAllowedDomain = (email: string | null | undefined): boolean => {
@@ -2269,8 +2278,7 @@ const App: React.FC = () => {
           agent_name: selectedAgent || null,
           message_text: text,
           chat_mode: chatMode, // Send reasoning mode (fast vs thinking)
-          inline_table_id: isInstantSandbox ? inlineTableId : null,
-          python_analysis: pythonAnalysis
+          inline_table_id: isInstantSandbox ? inlineTableId : null
         })
       });
 
@@ -3201,21 +3209,6 @@ const App: React.FC = () => {
                 />
               </div>
             )}
-
-            {/* Advanced Analysis Options Toggle */}
-            <div className="flex items-center justify-between p-2.5 bg-slate-900/50 border border-white/6 rounded-xl mt-1 select-none">
-              <div className="flex items-center gap-2">
-                <span className="text-xs">🐍</span>
-                <span className="text-[11px] font-medium text-slate-300">Python Analysis Option</span>
-              </div>
-              <input
-                type="checkbox"
-                checked={pythonAnalysis}
-                onChange={(e) => setPythonAnalysis(e.target.checked)}
-                className="w-3.5 h-3.5 rounded border-white/20 bg-slate-950 text-brand-primary focus:ring-0 cursor-pointer"
-                title="Instruct CA API to enable server-side Python execution for complex statistical calculations"
-              />
-            </div>
           </div>
 
           <div 

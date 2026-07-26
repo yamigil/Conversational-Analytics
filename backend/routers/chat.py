@@ -155,6 +155,22 @@ def get_trace_session(
         last_sql = executed_sqls[-1] if executed_sqls else "No SQL query executed in this turn (Schema / Reasoning response)"
         tables_list = list(tables_referenced)
         
+        real_sys_inst = "Think like an Analyst. Generate clean BigQuery Standard SQL."
+        try:
+            conv_detail = client.get_conversation(conversation_name)
+            if conv_detail and conv_detail.get("agents"):
+                agent_ref = conv_detail["agents"][0]
+                agent_obj = client.get_agent(agent_ref)
+                if agent_obj and agent_obj.get("dataAnalyticsAgent"):
+                    da_agent = agent_obj["dataAnalyticsAgent"]
+                    for ctx_key in ["publishedContext", "stagingContext", "lastPublishedContext"]:
+                        ctx = da_agent.get(ctx_key, {})
+                        if ctx.get("systemInstruction"):
+                            real_sys_inst = ctx["systemInstruction"]
+                            break
+        except Exception as ex:
+            logger.warning(f"Could not extract live system instruction for trace: {ex}")
+
         return {
             "conversation_name": conversation_name,
             "spans": [
@@ -200,7 +216,7 @@ def get_trace_session(
                         "engine_scope": "Conversational Analytics Data Agent Turn"
                     },
                     "request_payload": {
-                        "system_instruction": "Think like an Analyst. Generate clean BigQuery Standard SQL.",
+                        "system_instruction": real_sys_inst,
                         "temperature": 0.2,
                         "top_p": 0.95,
                         "active_tables": tables_list if tables_list else ["Dynamic Agent Context"]

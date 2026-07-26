@@ -24,9 +24,10 @@ interface RightPanelProps {
   isOpen: boolean;
   onClose: () => void;
   conversationName: string;
+  messagesLength?: number;
 }
 
-export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, conversationName }) => {
+export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, conversationName, messagesLength }) => {
   const [traceData, setTraceData] = useState<TraceSessionData | null>(null);
   const [loading, setLoading] = useState(false);
   const [isExpandedWidth, setIsExpandedWidth] = useState(false);
@@ -56,7 +57,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
     if (isOpen && conversationName) {
       fetchTrace();
     }
-  }, [isOpen, conversationName]);
+  }, [isOpen, conversationName, messagesLength]);
 
   if (!isOpen) return null;
 
@@ -235,7 +236,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
             <div className="p-4 bg-slate-900/60 border border-white/8 rounded-xl flex flex-col gap-3">
               <div className="flex justify-between items-center">
                 <h4 className="text-xs font-heading font-semibold text-slate-200">Conversational Analytics Token Breakdown</h4>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-500/15 text-purple-300 border border-purple-500/25">Gemini 2.0 Pro</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-500/15 text-purple-300 border border-purple-500/25">Gemini 1.5 Pro</span>
               </div>
               <div className="flex flex-col gap-2 font-mono text-xs">
                 <div className="flex justify-between items-center py-1 border-b border-white/5">

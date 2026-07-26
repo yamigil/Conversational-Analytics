@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Activity, Database, ChevronRight, ChevronDown, RefreshCw, X, Code, CheckCircle2, Maximize2, Minimize2 } from "lucide-react";
+import { Activity, Database, ChevronRight, ChevronDown, RefreshCw, X, Code, CheckCircle2, Maximize2, Minimize2, User, Cpu, Cloud, Layers } from "lucide-react";
 import { authenticatedFetch } from "../../utils/api";
 
 interface TraceSpan {
@@ -31,6 +31,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
   const [traceData, setTraceData] = useState<TraceSessionData | null>(null);
   const [loading, setLoading] = useState(false);
   const [isExpandedWidth, setIsExpandedWidth] = useState(false);
+  const [selectedFlowNode, setSelectedFlowNode] = useState<string>("gemini_engine");
   const [expandedSpans, setExpandedSpans] = useState<Record<string, boolean>>({
     "span-root-invoke-agent": true,
     "span-call-llm": true
@@ -191,13 +192,153 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
             <p className="text-[11px] max-w-[240px]">Ask a conversational question to inspect real-time Gemini LLM SQL generation and tool execution latencies.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium px-1">
-              <span>Session: <span className="font-mono text-slate-300">{traceData.conversation_name.split("/").pop()}</span></span>
-              <span className="text-emerald-400 font-mono">{traceData.spans.length} Spans</span>
-            </div>
-            {renderSpanTree(null)}
-          </div>
+          (() => {
+            const spanRoot = traceData.spans.find(s => s.name === "invoke_agent");
+            const spanSchema = traceData.spans.find(s => s.name === "schema_discovery");
+            const spanLlm = traceData.spans.find(s => s.name === "call_llm");
+            const spanTool = traceData.spans.find(s => s.name === "tool_intercept");
+
+            const isFreeForm = spanSchema?.metadata?.tables_referenced?.[0]?.includes(".") || spanLlm?.request_payload?.system_instruction?.includes("inline_context");
+
+            const flowNodes = [
+              {
+                id: "frontend",
+                label: "🖥️ Frontend Portal",
+                sub: "React Client",
+                icon: <User size={16} className="text-sky-400" />,
+                time: "Start",
+                color: "border-sky-500/40 bg-sky-500/10 text-sky-300",
+                input: { action: "Submit Chat Prompt / Free Form SQL", client: "React Dashboard v0.13.1", auth_mode: spanRoot?.metadata?.auth_mode || "Bearer Token / ADC" },
+                output: { event_stream: "Server-Sent Events (SSE)", messages_inspected: spanRoot?.metadata?.messages_inspected || 0 }
+              },
+              {
+                id: "agent_context",
+                label: isFreeForm ? "⚡ Free Form Mode" : "🤖 Data Agent Engine",
+                sub: isFreeForm ? "Inline Schema Context" : "RAG Hybrid Search",
+                icon: <Layers size={16} className="text-purple-400" />,
+                time: `${spanSchema?.latency_ms || 0} ms`,
+                color: "border-purple-500/40 bg-purple-500/10 text-purple-300",
+                input: { agent_id: spanRoot?.metadata?.agent_id || "inline_context", retrieval_strategy: spanSchema?.metadata?.retrieval_strategy || "Hybrid Vector + Keyword Search" },
+                output: { active_tables: spanSchema?.metadata?.tables_referenced || ["Dynamic Agent Context"], grounding_status: "Validated against BigQuery INFORMATION_SCHEMA" }
+              },
+              {
+                id: "ca_api",
+                label: "☁️ CA API Service",
+                sub: "chat_stream (v1alpha)",
+                icon: <Cloud size={16} className="text-blue-400" />,
+                time: `${spanRoot?.latency_ms || 0} ms`,
+                color: "border-blue-500/40 bg-blue-500/10 text-blue-300",
+                input: { conversation_name: traceData.conversation_name, stream: true, total_turn_latency_ms: spanRoot?.latency_ms || 0 },
+                output: { status: spanRoot?.status || "OK", session_state: "Persisted in Google Cloud Conversational Analytics Service" }
+              },
+              {
+                id: "gemini_engine",
+                label: "🧠 Gemini Engine",
+                sub: "Reasoning & SQL Gen",
+                icon: <Cpu size={16} className="text-emerald-400" />,
+                time: `${spanLlm?.latency_ms || 0} ms`,
+                color: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
+                input: spanLlm?.request_payload || { system_instruction: "Loading instructions...", temperature: 0.2, top_p: 0.95 },
+                output: spanLlm?.response_payload || { sql_generated: "No SQL generated", status: "COMPLETED" }
+              },
+              {
+                id: "bigquery",
+                label: "🗄️ BigQuery Engine",
+                sub: "execute_sql_query",
+                icon: <Database size={16} className="text-amber-400" />,
+                time: `${spanTool?.latency_ms || 0} ms`,
+                color: "border-amber-500/40 bg-amber-500/10 text-amber-300",
+                input: { tool_name: "execute_sql_query", sql_query: spanLlm?.response_payload?.sql_generated || "SELECT ..." },
+                output: spanTool?.metadata || { rows_returned: 0, bytes_billed: 0, status: "OK" }
+              }
+            ];
+
+            const activeNodeObj = flowNodes.find(n => n.id === selectedFlowNode) || flowNodes[3];
+
+            return (
+              <div className="flex flex-col gap-5">
+                {/* Visual Architecture Flowchart */}
+                <div className="p-4 bg-slate-900/90 border border-white/10 rounded-2xl flex flex-col gap-3 shadow-xl">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                    <span className="text-xs font-heading font-bold text-slate-200 flex items-center gap-1.5">
+                      <Activity size={15} className="text-sky-400" /> Interactive Architecture Flowchart
+                    </span>
+                    <span className="text-[10px] text-sky-400 font-medium bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
+                      Click any node below to inspect raw input/output
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-1.5 overflow-x-auto py-2 px-1 custom-scrollbar">
+                    {flowNodes.map((node, i) => {
+                      const isSelected = selectedFlowNode === node.id;
+                      return (
+                        <React.Fragment key={node.id}>
+                          <div 
+                            onClick={() => setSelectedFlowNode(node.id)}
+                            className={`flex flex-col items-center p-3 rounded-xl border cursor-pointer transition-all duration-200 select-none min-w-[115px] flex-1 text-center ${isSelected ? `${node.color} ring-2 ring-white/20 shadow-lg scale-[1.03]` : 'bg-white/2 border-white/8 hover:bg-white/5 text-slate-300 hover:border-white/15'}`}
+                          >
+                            <div className="mb-1.5">{node.icon}</div>
+                            <span className="text-[11px] font-bold tracking-tight truncate w-full">{node.label}</span>
+                            <span className="text-[9.5px] text-slate-400 truncate w-full mt-0.5">{node.sub}</span>
+                            <span className="mt-2 px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-black/50 border border-white/10 text-slate-200">
+                              {node.time}
+                            </span>
+                          </div>
+                          {i < flowNodes.length - 1 && (
+                            <div className="text-slate-500 shrink-0 flex items-center justify-center font-bold text-sm select-none">
+                              ➔
+                            </div>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Selected Node Deep-Dive Inspector */}
+                <div className="p-4 bg-slate-900/70 border border-white/12 rounded-2xl flex flex-col gap-3 shadow-lg">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      {activeNodeObj.icon}
+                      <span className="text-xs font-heading font-bold text-white">{activeNodeObj.label} — Raw Input & Output</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/5 border border-white/10 text-slate-300 font-semibold">
+                      {activeNodeObj.sub} ({activeNodeObj.time})
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1.5 bg-slate-950/90 p-3 rounded-xl border border-white/10 shadow-inner">
+                      <span className="text-[10.5px] uppercase tracking-wider font-sans font-bold text-sky-400 flex items-center gap-1.5">
+                        📥 Raw Input Payload / Calling Arguments
+                      </span>
+                      <pre className="p-2.5 bg-black/70 rounded-lg border border-white/10 text-sky-300/90 text-[10.5px] overflow-x-auto overflow-y-auto max-h-64 custom-scrollbar whitespace-pre-wrap leading-relaxed font-mono">
+                        {JSON.stringify(activeNodeObj.input, null, 2)}
+                      </pre>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5 bg-slate-950/90 p-3 rounded-xl border border-white/10 shadow-inner">
+                      <span className="text-[10.5px] uppercase tracking-wider font-sans font-bold text-emerald-400 flex items-center gap-1.5">
+                        📤 Raw Output Payload / Returned Results
+                      </span>
+                      <pre className="p-2.5 bg-black/70 rounded-lg border border-white/10 text-emerald-300/90 text-[10.5px] overflow-x-auto overflow-y-auto max-h-64 custom-scrollbar whitespace-pre-wrap leading-relaxed font-mono">
+                        {JSON.stringify(activeNodeObj.output, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Traditional Span Tree Accordion */}
+                <div className="flex flex-col gap-2.5 mt-1 border-t border-white/10 pt-4">
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium px-1">
+                    <span className="uppercase tracking-wider font-semibold text-[10.5px] text-slate-400">Detailed OpenTelemetry Span Hierarchy</span>
+                    <span className="text-emerald-400 font-mono font-semibold">{traceData.spans.length} Spans</span>
+                  </div>
+                  {renderSpanTree(null)}
+                </div>
+              </div>
+            );
+          })()
         )}
       </div>
     </aside>

@@ -542,13 +542,32 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
     const nominalFields = keys.filter(k => !isNum(firstRow[k]));
     const quantitativeFields = keys.filter(k => isNum(firstRow[k]));
 
-    let nominalField = nominalFields[0] || (keys.length >= 2 ? keys[0] : "");
+    let nominalField = "";
+    for (const nf of nominalFields) {
+      const uniqueVals = new Set(tableData.rows.map((r: any) => String(r[nf] || ""))).size;
+      if (uniqueVals > 1) {
+        nominalField = nf;
+        break;
+      }
+    }
+    if (!nominalField) nominalField = nominalFields[0] || (keys.length >= 2 ? keys[0] : "");
+
+    let seriesField = "";
+    for (const nf of nominalFields) {
+      if (nf !== nominalField) {
+        const uniqueVals = new Set(tableData.rows.map((r: any) => String(r[nf] || ""))).size;
+        if (uniqueVals > 1) {
+          seriesField = nf;
+          break;
+        }
+      }
+    }
+
     let quantitativeField = quantitativeFields[0] || (keys.length >= 2 ? keys[1] : "");
-    const seriesField = nominalFields.length >= 2 ? nominalFields[1] : "";
 
     if (nominalField && quantitativeField) {
       const avgLen = tableData.rows.reduce((acc: number, r: any) => acc + String(r[nominalField] || "").length, 0) / tableData.rows.length;
-      if (avgLen > 30) return null;
+      if (avgLen > 35) return null;
 
       let rowsForChart: any[] = [];
       let seriesNames: string[] = [];
@@ -568,11 +587,14 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
         rowsForChart = Array.from(pivotedMap.values());
         seriesNames = Array.from(sNamesSet);
       } else {
-        rowsForChart = tableData.rows.slice(0, 50).map((r: any) => ({
-          ...r,
-          [quantitativeField]: Number(r[quantitativeField]) || 0
-        }));
-        seriesNames = [quantitativeField];
+        rowsForChart = tableData.rows.slice(0, 50).map((r: any) => {
+          const rowObj: any = { ...r };
+          for (const qf of quantitativeFields) {
+            rowObj[qf] = Number(r[qf]) || 0;
+          }
+          return rowObj;
+        });
+        seriesNames = quantitativeFields.length > 0 ? quantitativeFields.slice(0, 4) : [quantitativeField];
       }
 
       return { nominalField, quantitativeField, seriesField, seriesNames, rows: rowsForChart };
@@ -2293,7 +2315,7 @@ const App: React.FC = () => {
     setConnectionStatus("loading");
     setStreamingMessages([]);
 
-    let activeConvo = selectedConvo;
+    let activeConvo = isInstantSandbox ? (selectedConvo || "free_form_session") : selectedConvo;
 
     // Automatically spin up a new conversation if none is selected and not in sandbox mode
     if (!activeConvo && !isInstantSandbox) {
@@ -2322,12 +2344,17 @@ const App: React.FC = () => {
       }
     }
 
+    if (isInstantSandbox && !selectedConvo) {
+      setSelectedConvo("free_form_session");
+      activeConvo = "free_form_session";
+    }
+
     try {
       const response = await authenticatedFetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          conversation_name: activeConvo || null,
+          conversation_name: isInstantSandbox ? "free_form_session" : (activeConvo || null),
           agent_name: selectedAgent || null,
           message_text: text,
           chat_mode: chatMode, // Send reasoning mode (fast vs thinking)
@@ -3204,7 +3231,7 @@ const App: React.FC = () => {
                 onClick={() => {
                   const nextVal = !isInstantSandbox;
                   setIsInstantSandbox(nextVal);
-                  setSelectedConvo("");
+                  setSelectedConvo(nextVal ? "free_form_session" : "");
                   setMessages([]);
                   if (nextVal) {
                     setSelectedAgent("");

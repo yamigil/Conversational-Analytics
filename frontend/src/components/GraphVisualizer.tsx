@@ -253,13 +253,32 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     const nominalFields = keys.filter(k => !isNum(firstRow[k]));
     const quantitativeFields = keys.filter(k => isNum(firstRow[k]));
 
-    let nominalField = nominalFields[0] || (keys.length >= 2 ? keys[0] : "");
+    let nominalField = "";
+    for (const nf of nominalFields) {
+      const uniqueVals = new Set(previewData.rows.map((r: any) => String(r[nf] || ""))).size;
+      if (uniqueVals > 1) {
+        nominalField = nf;
+        break;
+      }
+    }
+    if (!nominalField) nominalField = nominalFields[0] || (keys.length >= 2 ? keys[0] : "");
+
+    let seriesField = "";
+    for (const nf of nominalFields) {
+      if (nf !== nominalField) {
+        const uniqueVals = new Set(previewData.rows.map((r: any) => String(r[nf] || ""))).size;
+        if (uniqueVals > 1) {
+          seriesField = nf;
+          break;
+        }
+      }
+    }
+
     let quantitativeField = quantitativeFields[0] || (keys.length >= 2 ? keys[1] : "");
-    const seriesField = nominalFields.length >= 2 ? nominalFields[1] : "";
 
     if (nominalField && quantitativeField) {
       const avgLen = previewData.rows.reduce((acc: number, r: any) => acc + String(r[nominalField] || "").length, 0) / previewData.rows.length;
-      if (avgLen > 25) return null;
+      if (avgLen > 35) return null;
 
       let rowsForChart: any[] = [];
       let seriesNames: string[] = [];
@@ -279,11 +298,14 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
         rowsForChart = Array.from(pivotedMap.values());
         seriesNames = Array.from(sNamesSet);
       } else {
-        rowsForChart = previewData.rows.map((r: any) => ({
-          ...r,
-          [quantitativeField]: Number(r[quantitativeField]) || 0
-        }));
-        seriesNames = [quantitativeField];
+        rowsForChart = previewData.rows.map((r: any) => {
+          const rowObj: any = { ...r };
+          for (const qf of quantitativeFields) {
+            rowObj[qf] = Number(r[qf]) || 0;
+          }
+          return rowObj;
+        });
+        seriesNames = quantitativeFields.length > 0 ? quantitativeFields.slice(0, 4) : [quantitativeField];
       }
 
       return { nominalField, quantitativeField, seriesField, seriesNames, rows: rowsForChart };

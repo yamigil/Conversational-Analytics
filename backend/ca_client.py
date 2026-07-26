@@ -181,10 +181,6 @@ class ConversationalAnalyticsClient:
         }
         if inline_context:
             request_args["inline_context"] = inline_context
-            if conversation_name:
-                convo_ref = geminidataanalytics.ConversationReference()
-                convo_ref.conversation = conversation_name
-                request_args["conversation_reference"] = convo_ref
         elif agent_name and conversation_name:
             convo_ref = geminidataanalytics.ConversationReference()
             convo_ref.conversation = conversation_name

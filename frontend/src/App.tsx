@@ -2187,7 +2187,7 @@ const App: React.FC = () => {
       setStreamingMessages([]);
 
       // Sync with official persisted GCP database history with a 1500ms delay so GCP finishes writing the stream to storage
-      if (activeConvo) {
+      if (activeConvo && !isInstantSandbox) {
         setTimeout(async () => {
           await fetchMessages(activeConvo);
         }, 1500);
@@ -3009,6 +3009,8 @@ const App: React.FC = () => {
               <button
                 onClick={() => {
                   setIsInstantSandbox(!isInstantSandbox);
+                  setSelectedConvo("");
+                  setMessages([]);
                   if (!isInstantSandbox) {
                     setSelectedAgent("");
                   } else if (agents.length > 0) {
@@ -3550,6 +3552,14 @@ const App: React.FC = () => {
                 const suggestionsToRender = lastParsed.suggestions.length > 0 
                   ? lastParsed.suggestions 
                   : (() => {
+                      if (isInstantSandbox) {
+                        const tbl = inlineTableId.split(".").pop() || "table";
+                        return [
+                          `What are the key numerical trends and aggregations available in ${tbl}?`,
+                          `Show me a summary and sample distribution of rows in ${tbl}.`,
+                          `Can you identify any interesting patterns or outliers in ${tbl}?`
+                        ];
+                      }
                       const activeAgentObj = agents.find(a => a.name === selectedAgent);
                       if (activeAgentObj && Array.isArray(activeAgentObj.suggestions) && activeAgentObj.suggestions.length > 0) {
                         return activeAgentObj.suggestions;

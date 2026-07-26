@@ -51,7 +51,7 @@ def chat(req: ChatRequestModel, user: dict = Depends(get_current_user), client: 
         if req.inline_table_id:
             parts = req.inline_table_id.split(".")
             if len(parts) == 3:
-                from google.cloud import geminidataanalytics_v1 as geminidataanalytics
+                from google.cloud import geminidataanalytics
                 table_ref = geminidataanalytics.BigQueryTableReference(
                     project_id=parts[0], dataset_id=parts[1], table_id=parts[2]
                 )

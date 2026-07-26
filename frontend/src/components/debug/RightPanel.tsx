@@ -50,6 +50,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
   };
 
   useEffect(() => {
+    if (!conversationName || messagesLength === 0) {
+      setTraceData(null);
+      return;
+    }
     if (isOpen && conversationName) {
       fetchTrace();
     }

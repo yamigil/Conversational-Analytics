@@ -206,6 +206,12 @@ def get_trace_session(
         except Exception as ex:
             logger.warning(f"Could not extract live system instruction for trace: {ex}")
 
+        if conversation_name not in SESSION_TRACE_TIMINGS and len(msgs) == 0:
+            return {
+                "conversation_name": conversation_name,
+                "spans": []
+            }
+
         timings = SESSION_TRACE_TIMINGS.get(conversation_name, {
             "invoke_agent": 1240,
             "schema_discovery": 310,

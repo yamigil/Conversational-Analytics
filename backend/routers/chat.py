@@ -93,7 +93,9 @@ def chat(req: ChatRequestModel, user: dict = Depends(get_current_user), client: 
                     "invoke_agent": total_ms,
                     "schema_discovery": schema_ms,
                     "call_llm": llm_ms,
-                    "tool_intercept": tool_ms
+                    "tool_intercept": tool_ms,
+                    "agent_name": req.agent_name,
+                    "inline_table_id": req.inline_table_id
                 }
             except Exception as e:
                 logger.error(f"Error in chat stream generator: {e}")
@@ -167,11 +169,18 @@ def get_trace_session(
         last_sql = executed_sqls[-1] if executed_sqls else "No SQL query executed in this turn (Schema / Reasoning response)"
         tables_list = list(tables_referenced)
         
-        real_sys_inst = "Think like an Analyst. Generate clean BigQuery Standard SQL."
+        real_sys_inst = "Dynamic Conversational Analytics Agent Instructions (Managed RAG Context)"
         try:
-            conv_detail = client.get_conversation(conversation_name)
-            if conv_detail and conv_detail.get("agents"):
-                agent_ref = conv_detail["agents"][0]
+            cached_session = SESSION_TRACE_TIMINGS.get(conversation_name, {})
+            agent_ref = cached_session.get("agent_name")
+            if not agent_ref:
+                convs = client.list_conversations()
+                for c in convs:
+                    if c.get("name") == conversation_name or conversation_name.endswith(c.get("name", "").split("/")[-1]):
+                        if c.get("agents"):
+                            agent_ref = c["agents"][0]
+                            break
+            if agent_ref:
                 agent_obj = client.get_agent(agent_ref)
                 if agent_obj and agent_obj.get("dataAnalyticsAgent"):
                     da_agent = agent_obj["dataAnalyticsAgent"]
@@ -180,6 +189,8 @@ def get_trace_session(
                         if ctx.get("systemInstruction"):
                             real_sys_inst = ctx["systemInstruction"]
                             break
+            elif cached_session.get("inline_table_id"):
+                real_sys_inst = f"You are an expert data analyst querying `{cached_session['inline_table_id']}` directly via zero-config inline_context."
         except Exception as ex:
             logger.warning(f"Could not extract live system instruction for trace: {ex}")
 

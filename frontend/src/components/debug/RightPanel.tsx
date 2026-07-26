@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Activity, Database, ChevronRight, ChevronDown, RefreshCw, X, Code, CheckCircle2, Maximize2, Minimize2, User, Cpu, Cloud, Layers } from "lucide-react";
+import { Activity, Database, RefreshCw, X, Maximize2, Minimize2, User, Cpu, Cloud, Layers } from "lucide-react";
 import { authenticatedFetch } from "../../utils/api";
 
 interface TraceSpan {
@@ -32,10 +32,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
   const [loading, setLoading] = useState(false);
   const [isExpandedWidth, setIsExpandedWidth] = useState(false);
   const [selectedFlowNode, setSelectedFlowNode] = useState<string>("gemini_engine");
-  const [expandedSpans, setExpandedSpans] = useState<Record<string, boolean>>({
-    "span-root-invoke-agent": true,
-    "span-call-llm": true
-  });
 
   const fetchTrace = async () => {
     if (!conversationName) return;
@@ -61,88 +57,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
 
   if (!isOpen) return null;
 
-  const toggleSpan = (id: string) => {
-    setExpandedSpans(prev => ({ ...prev, [id]: !prev[id] }));
-  };
 
-  const renderSpanTree = (parentSpanId: string | null = null, depth = 0) => {
-    const childSpans = traceData?.spans.filter(s => s.parent_span_id === parentSpanId) || [];
-    if (childSpans.length === 0) return null;
-
-    return (
-      <div className={`flex flex-col ${depth > 0 ? "ml-4 border-l border-white/10 pl-3 mt-2 gap-2" : "gap-3"}`}>
-        {childSpans.map(span => {
-          const isExpanded = !!expandedSpans[span.span_id];
-          const hasChildren = traceData?.spans.some(s => s.parent_span_id === span.span_id);
-          const hasPayload = span.request_payload || span.response_payload || span.metadata;
-
-          return (
-            <div key={span.span_id} className="flex flex-col bg-slate-900/60 border border-white/8 rounded-xl overflow-hidden shadow-sm transition-all duration-200 hover:border-white/15">
-              <div 
-                onClick={() => (hasChildren || hasPayload) && toggleSpan(span.span_id)}
-                className="flex items-center justify-between p-3 cursor-pointer select-none bg-white/2 hover:bg-white/5 transition-colors"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="text-slate-400 shrink-0">
-                    {(hasChildren || hasPayload) ? (
-                      isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />
-                    ) : (
-                      <Activity size={14} className="text-sky-400" />
-                    )}
-                  </span>
-                  <span className="font-heading font-semibold text-xs text-slate-200 truncate">{span.name}</span>
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-sky-500/15 text-sky-300 border border-sky-500/25 shrink-0">
-                    {span.service}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0 text-xs">
-                  <span className="flex items-center gap-1 text-emerald-400 font-mono text-[11px]">
-                    <CheckCircle2 size={12} /> {span.latency_ms} ms
-                  </span>
-                </div>
-              </div>
-
-              {isExpanded && hasPayload && (
-                <div className="p-3 bg-slate-950/60 border-t border-white/6 flex flex-col gap-3 text-xs font-mono">
-                  {span.metadata && (
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] uppercase tracking-wider font-sans font-semibold text-slate-400">Span Metadata</span>
-                      <pre className="p-2.5 bg-black/50 rounded-lg border border-white/10 text-slate-300 text-[11px] overflow-x-auto overflow-y-auto max-h-52 custom-scrollbar whitespace-pre-wrap leading-relaxed">
-                        {JSON.stringify(span.metadata, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                  {span.request_payload && (
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] uppercase tracking-wider font-sans font-semibold text-sky-400 flex items-center gap-1">
-                        <Code size={11} /> Raw LLM Request / System Instruction
-                      </span>
-                      <pre className="p-2.5 bg-black/50 rounded-lg border border-white/10 text-sky-300/90 text-[11px] overflow-x-auto overflow-y-auto max-h-52 custom-scrollbar whitespace-pre-wrap leading-relaxed">
-                        {JSON.stringify(span.request_payload, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                  {span.response_payload && (
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] uppercase tracking-wider font-sans font-semibold text-emerald-400 flex items-center gap-1">
-                        <CheckCircle2 size={11} /> Raw LLM Response / SQL Output
-                      </span>
-                      <pre className="p-2.5 bg-black/50 rounded-lg border border-white/10 text-emerald-300/90 text-[11px] overflow-x-auto overflow-y-auto max-h-52 custom-scrollbar whitespace-pre-wrap leading-relaxed">
-                        {JSON.stringify(span.response_payload, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {isExpanded && hasChildren && renderSpanTree(span.span_id, depth + 1)}
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
 
   return (
     <aside className={`${isExpandedWidth ? "w-[760px]" : "w-[450px]"} shrink-0 bg-slate-950/95 border-l border-white/10 flex flex-col h-full z-30 shadow-2xl animate-slideInRight backdrop-blur-xl transition-all duration-300`}>
@@ -198,16 +113,16 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
             const spanLlm = traceData.spans.find(s => s.name === "call_llm");
             const spanTool = traceData.spans.find(s => s.name === "tool_intercept");
 
-            const isFreeForm = spanSchema?.metadata?.tables_referenced?.[0]?.includes(".") || spanLlm?.request_payload?.system_instruction?.includes("inline_context");
+            const isFreeForm = spanRoot?.metadata?.mode === "Free Form Mode" || spanSchema?.metadata?.mode === "Free Form Mode";
 
             const flowNodes = [
               {
                 id: "frontend",
                 label: "🖥️ Frontend Portal",
                 sub: "React Client",
-                icon: <User size={16} className="text-sky-400" />,
+                icon: <User size={22} className="text-sky-400" />,
                 time: "Start",
-                color: "border-sky-500/40 bg-sky-500/10 text-sky-300",
+                color: "border-sky-500/50 bg-sky-500/15 text-sky-300",
                 input: { action: "Submit Chat Prompt / Free Form SQL", client: "React Dashboard v0.13.1", auth_mode: spanRoot?.metadata?.auth_mode || "Bearer Token / ADC" },
                 output: { event_stream: "Server-Sent Events (SSE)", messages_inspected: spanRoot?.metadata?.messages_inspected || 0 }
               },
@@ -215,9 +130,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                 id: "agent_context",
                 label: isFreeForm ? "⚡ Free Form Mode" : "🤖 Data Agent Engine",
                 sub: isFreeForm ? "Inline Schema Context" : "RAG Hybrid Search",
-                icon: <Layers size={16} className="text-purple-400" />,
+                icon: <Layers size={22} className="text-purple-400" />,
                 time: `${spanSchema?.latency_ms || 0} ms`,
-                color: "border-purple-500/40 bg-purple-500/10 text-purple-300",
+                color: "border-purple-500/50 bg-purple-500/15 text-purple-300",
                 input: { agent_id: spanRoot?.metadata?.agent_id || "inline_context", retrieval_strategy: spanSchema?.metadata?.retrieval_strategy || "Hybrid Vector + Keyword Search" },
                 output: { active_tables: spanSchema?.metadata?.tables_referenced || ["Dynamic Agent Context"], grounding_status: "Validated against BigQuery INFORMATION_SCHEMA" }
               },
@@ -225,9 +140,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                 id: "ca_api",
                 label: "☁️ CA API Service",
                 sub: "chat_stream (v1alpha)",
-                icon: <Cloud size={16} className="text-blue-400" />,
+                icon: <Cloud size={22} className="text-blue-400" />,
                 time: `${spanRoot?.latency_ms || 0} ms`,
-                color: "border-blue-500/40 bg-blue-500/10 text-blue-300",
+                color: "border-blue-500/50 bg-blue-500/15 text-blue-300",
                 input: { conversation_name: traceData.conversation_name, stream: true, total_turn_latency_ms: spanRoot?.latency_ms || 0 },
                 output: { status: spanRoot?.status || "OK", session_state: "Persisted in Google Cloud Conversational Analytics Service" }
               },
@@ -235,9 +150,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                 id: "gemini_engine",
                 label: "🧠 Gemini Engine",
                 sub: "Reasoning & SQL Gen",
-                icon: <Cpu size={16} className="text-emerald-400" />,
+                icon: <Cpu size={22} className="text-emerald-400" />,
                 time: `${spanLlm?.latency_ms || 0} ms`,
-                color: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
+                color: "border-emerald-500/50 bg-emerald-500/15 text-emerald-300",
                 input: spanLlm?.request_payload || { system_instruction: "Loading instructions...", temperature: 0.2, top_p: 0.95 },
                 output: spanLlm?.response_payload || { sql_generated: "No SQL generated", status: "COMPLETED" }
               },
@@ -245,9 +160,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                 id: "bigquery",
                 label: "🗄️ BigQuery Engine",
                 sub: "execute_sql_query",
-                icon: <Database size={16} className="text-amber-400" />,
+                icon: <Database size={22} className="text-amber-400" />,
                 time: `${spanTool?.latency_ms || 0} ms`,
-                color: "border-amber-500/40 bg-amber-500/10 text-amber-300",
+                color: "border-amber-500/50 bg-amber-500/15 text-amber-300",
                 input: { tool_name: "execute_sql_query", sql_query: spanLlm?.response_payload?.sql_generated || "SELECT ..." },
                 output: spanTool?.metadata || { rows_returned: 0, bytes_billed: 0, status: "OK" }
               }
@@ -263,7 +178,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                     <span className="text-xs font-heading font-bold text-slate-200 flex items-center gap-1.5">
                       <Activity size={15} className="text-sky-400" /> Interactive Architecture Flowchart
                     </span>
-                    <span className="text-[10px] text-sky-400 font-medium bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
+                    <span className="text-[10px] text-sky-400 font-medium bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-500/20">
                       Click any node below to inspect raw input/output
                     </span>
                   </div>
@@ -275,17 +190,17 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                         <React.Fragment key={node.id}>
                           <div 
                             onClick={() => setSelectedFlowNode(node.id)}
-                            className={`flex flex-col items-center p-3 rounded-xl border cursor-pointer transition-all duration-200 select-none min-w-[115px] flex-1 text-center ${isSelected ? `${node.color} ring-2 ring-white/20 shadow-lg scale-[1.03]` : 'bg-white/2 border-white/8 hover:bg-white/5 text-slate-300 hover:border-white/15'}`}
+                            className={`flex flex-col items-center p-3 rounded-xl border cursor-pointer transition-all duration-200 select-none min-w-[125px] flex-1 text-center ${isSelected ? `${node.color} ring-2 ring-white/20 shadow-lg scale-[1.03]` : 'bg-white/2 border-white/8 hover:bg-white/5 text-slate-300 hover:border-white/15'}`}
                           >
-                            <div className="mb-1.5">{node.icon}</div>
-                            <span className="text-[11px] font-bold tracking-tight truncate w-full">{node.label}</span>
-                            <span className="text-[9.5px] text-slate-400 truncate w-full mt-0.5">{node.sub}</span>
-                            <span className="mt-2 px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-black/50 border border-white/10 text-slate-200">
+                            <div className="mb-2 p-1.5 rounded-lg bg-black/30 border border-white/5">{node.icon}</div>
+                            <span className="text-[11.5px] font-bold tracking-tight text-center leading-snug w-full whitespace-normal">{node.label}</span>
+                            <span className="text-[9.5px] text-slate-400 text-center leading-tight w-full whitespace-normal mt-1">{node.sub}</span>
+                            <span className="mt-2.5 px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-black/50 border border-white/10 text-slate-200">
                               {node.time}
                             </span>
                           </div>
                           {i < flowNodes.length - 1 && (
-                            <div className="text-slate-500 shrink-0 flex items-center justify-center font-bold text-sm select-none">
+                            <div className="text-slate-500 shrink-0 flex items-center justify-center font-bold text-sm select-none px-0.5">
                               ➔
                             </div>
                           )}
@@ -312,7 +227,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                       <span className="text-[10.5px] uppercase tracking-wider font-sans font-bold text-sky-400 flex items-center gap-1.5">
                         📥 Raw Input Payload / Calling Arguments
                       </span>
-                      <pre className="p-2.5 bg-black/70 rounded-lg border border-white/10 text-sky-300/90 text-[10.5px] overflow-x-auto overflow-y-auto max-h-64 custom-scrollbar whitespace-pre-wrap leading-relaxed font-mono">
+                      <pre className="p-2.5 bg-black/70 rounded-lg border border-white/10 text-sky-300/90 text-[10.5px] overflow-x-auto overflow-y-auto max-h-72 custom-scrollbar whitespace-pre-wrap leading-relaxed font-mono">
                         {JSON.stringify(activeNodeObj.input, null, 2)}
                       </pre>
                     </div>
@@ -321,20 +236,11 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                       <span className="text-[10.5px] uppercase tracking-wider font-sans font-bold text-emerald-400 flex items-center gap-1.5">
                         📤 Raw Output Payload / Returned Results
                       </span>
-                      <pre className="p-2.5 bg-black/70 rounded-lg border border-white/10 text-emerald-300/90 text-[10.5px] overflow-x-auto overflow-y-auto max-h-64 custom-scrollbar whitespace-pre-wrap leading-relaxed font-mono">
+                      <pre className="p-2.5 bg-black/70 rounded-lg border border-white/10 text-emerald-300/90 text-[10.5px] overflow-x-auto overflow-y-auto max-h-72 custom-scrollbar whitespace-pre-wrap leading-relaxed font-mono">
                         {JSON.stringify(activeNodeObj.output, null, 2)}
                       </pre>
                     </div>
                   </div>
-                </div>
-
-                {/* Traditional Span Tree Accordion */}
-                <div className="flex flex-col gap-2.5 mt-1 border-t border-white/10 pt-4">
-                  <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium px-1">
-                    <span className="uppercase tracking-wider font-semibold text-[10.5px] text-slate-400">Detailed OpenTelemetry Span Hierarchy</span>
-                    <span className="text-emerald-400 font-mono font-semibold">{traceData.spans.length} Spans</span>
-                  </div>
-                  {renderSpanTree(null)}
                 </div>
               </div>
             );

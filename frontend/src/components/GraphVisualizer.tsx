@@ -22,7 +22,8 @@ import {
   Loader2,
   Table
 } from "lucide-react";
-import { ResponsiveContainer, BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { ResponsiveContainer, BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
+
 
 interface Node {
   id: string;
@@ -248,30 +249,44 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     const keys = previewData.columns || Object.keys(firstRow);
     if (previewData.rows.length > 50 || keys.length > 15) return null;
 
-    let nominalField = "";
-    let quantitativeField = "";
     const isNum = (val: any) => typeof val === "number" || (typeof val === "string" && !isNaN(Number(val)) && val.trim() !== "");
+    const nominalFields = keys.filter(k => !isNum(firstRow[k]));
+    const quantitativeFields = keys.filter(k => isNum(firstRow[k]));
 
-    for (const key of keys) {
-      const val = firstRow[key];
-      if (isNum(val) && !quantitativeField) {
-        quantitativeField = key;
-      } else if (!isNum(val) && !nominalField) {
-        nominalField = key;
-      }
-    }
-    if (!nominalField && keys.length >= 2) {
-      nominalField = keys[0];
-      quantitativeField = keys[1];
-    }
+    let nominalField = nominalFields[0] || (keys.length >= 2 ? keys[0] : "");
+    let quantitativeField = quantitativeFields[0] || (keys.length >= 2 ? keys[1] : "");
+    const seriesField = nominalFields.length >= 2 ? nominalFields[1] : "";
+
     if (nominalField && quantitativeField) {
       const avgLen = previewData.rows.reduce((acc: number, r: any) => acc + String(r[nominalField] || "").length, 0) / previewData.rows.length;
       if (avgLen > 25) return null;
-      const formattedRows = previewData.rows.map((r: any) => ({
-        ...r,
-        [quantitativeField]: Number(r[quantitativeField]) || 0
-      }));
-      return { nominalField, quantitativeField, rows: formattedRows };
+
+      let rowsForChart: any[] = [];
+      let seriesNames: string[] = [];
+
+      if (seriesField) {
+        const pivotedMap = new Map<string, any>();
+        const sNamesSet = new Set<string>();
+        for (const r of previewData.rows.slice(0, 100)) {
+          const xVal = String(r[nominalField] || "");
+          const sVal = String(r[seriesField] || "Value");
+          sNamesSet.add(sVal);
+          if (!pivotedMap.has(xVal)) {
+            pivotedMap.set(xVal, { [nominalField]: xVal });
+          }
+          pivotedMap.get(xVal)[sVal] = Number(r[quantitativeField]) || 0;
+        }
+        rowsForChart = Array.from(pivotedMap.values());
+        seriesNames = Array.from(sNamesSet);
+      } else {
+        rowsForChart = previewData.rows.map((r: any) => ({
+          ...r,
+          [quantitativeField]: Number(r[quantitativeField]) || 0
+        }));
+        seriesNames = [quantitativeField];
+      }
+
+      return { nominalField, quantitativeField, seriesField, seriesNames, rows: rowsForChart };
     }
     return null;
   };
@@ -737,7 +752,16 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                               <XAxis dataKey={previewChartFields.nominalField} stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={{ stroke: '#475569' }} angle={-15} textAnchor="end" interval={0} tickFormatter={(val: any) => typeof val === 'string' && val.length > 14 ? val.substring(0, 12) + '...' : val} />
                               <YAxis stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
                               <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px', fontSize: '11px', color: '#f8fafc' }} />
-                              <Bar dataKey={previewChartFields.quantitativeField} fill="url(#prevBarGrad)" radius={[4, 4, 0, 0]} animationDuration={600} />
+                              {previewChartFields.seriesNames.length > 1 ? (
+                                <>
+                                  <Legend wrapperStyle={{ fontSize: '10px', paddingBottom: '4px' }} />
+                                  {previewChartFields.seriesNames.map((sName: string, idx: number) => (
+                                    <Bar key={sName} dataKey={sName} fill={["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#ec4899"][idx % 5]} radius={[3, 3, 0, 0]} animationDuration={600} />
+                                  ))}
+                                </>
+                              ) : (
+                                <Bar dataKey={previewChartFields.quantitativeField} fill="url(#prevBarGrad)" radius={[4, 4, 0, 0]} animationDuration={600} />
+                              )}
                             </BarChart>
                           ) : chartType === "line" ? (
                             <LineChart data={previewChartFields.rows} margin={{ top: 5, right: 20, left: 5, bottom: 40 }}>
@@ -745,7 +769,16 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                               <XAxis dataKey={previewChartFields.nominalField} stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={{ stroke: '#475569' }} angle={-15} textAnchor="end" interval={0} tickFormatter={(val: any) => typeof val === 'string' && val.length > 14 ? val.substring(0, 12) + '...' : val} />
                               <YAxis stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
                               <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px', fontSize: '11px', color: '#f8fafc' }} />
-                              <Line type="monotone" dataKey={previewChartFields.quantitativeField} stroke="#60a5fa" strokeWidth={2.5} dot={{ fill: '#8b5cf6', r: 4 }} animationDuration={600} />
+                              {previewChartFields.seriesNames.length > 1 ? (
+                                <>
+                                  <Legend wrapperStyle={{ fontSize: '10px', paddingBottom: '4px' }} />
+                                  {previewChartFields.seriesNames.map((sName: string, idx: number) => (
+                                    <Line key={sName} type="monotone" dataKey={sName} stroke={["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#ec4899"][idx % 5]} strokeWidth={2} dot={{ r: 3 }} animationDuration={600} />
+                                  ))}
+                                </>
+                              ) : (
+                                <Line type="monotone" dataKey={previewChartFields.quantitativeField} stroke="#60a5fa" strokeWidth={2.5} dot={{ fill: '#8b5cf6', r: 4 }} animationDuration={600} />
+                              )}
                             </LineChart>
                           ) : (
                             <AreaChart data={previewChartFields.rows} margin={{ top: 5, right: 20, left: 5, bottom: 40 }}>
@@ -759,7 +792,16 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                               <XAxis dataKey={previewChartFields.nominalField} stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={{ stroke: '#475569' }} angle={-15} textAnchor="end" interval={0} tickFormatter={(val: any) => typeof val === 'string' && val.length > 14 ? val.substring(0, 12) + '...' : val} />
                               <YAxis stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
                               <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px', fontSize: '11px', color: '#f8fafc' }} />
-                              <Area type="monotone" dataKey={previewChartFields.quantitativeField} stroke="#3b82f6" strokeWidth={2} fill="url(#prevAreaGrad)" animationDuration={600} />
+                              {previewChartFields.seriesNames.length > 1 ? (
+                                <>
+                                  <Legend wrapperStyle={{ fontSize: '10px', paddingBottom: '4px' }} />
+                                  {previewChartFields.seriesNames.map((sName: string, idx: number) => (
+                                    <Area key={sName} type="monotone" dataKey={sName} stroke={["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#ec4899"][idx % 5]} fill={["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#ec4899"][idx % 5]} fillOpacity={0.3} strokeWidth={1.5} animationDuration={600} />
+                                  ))}
+                                </>
+                              ) : (
+                                <Area type="monotone" dataKey={previewChartFields.quantitativeField} stroke="#3b82f6" strokeWidth={2} fill="url(#prevAreaGrad)" animationDuration={600} />
+                              )}
                             </AreaChart>
                           )}
                         </ResponsiveContainer>

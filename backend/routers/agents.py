@@ -188,18 +188,16 @@ def get_table_preview(
                 if dataset_id:
                     break
             
-            # If still not found, check if it is a Graph Agent using dynamic binding!
+            # If still not found, check graphData from schema discovery!
             if not dataset_id:
                 from schema_discovery import enrich_agent_metadata
                 enriched_agent = enrich_agent_metadata(agent)
-                if enriched_agent.get("isGraphAgent") and "graphData" in enriched_agent:
+                if "graphData" in enriched_agent and enriched_agent["graphData"]:
                     graph_data = enriched_agent["graphData"]
-                    if "datasetId" in graph_data:
+                    if graph_data.get("datasetId"):
                         dataset_id = graph_data["datasetId"]
                         project_id = graph_data.get("projectId")
-                        logger.info(f"Resolved dataset '{dataset_id}' for graph node preview of table '{clean_name}'")
-        except Exception as e:
-            logger.warning(f"Could not resolve dataset_id from agent metadata: {e}")
+                        logger.info(f"Resolved dataset '{dataset_id}' from graphData for preview of table '{clean_name}'")
             
     # 2. Fallback to extracting dataset ID from input table string if present
     if not dataset_id and "." in table_name:

@@ -123,16 +123,32 @@ def get_trace_session(
         now_ts = datetime.now(timezone.utc).isoformat()
         agent_id = conversation_name.split("/")[-1] if "/" in conversation_name else conversation_name
         
-        # Dynamically inspect actual conversation messages to extract executed SQL, rows, and table context
         executed_sqls = []
         total_rows_returned = 0
+        total_bytes_billed = 0
         tables_referenced = set()
+        turns_list = []
+        cur_turn = None
+        turn_idx = 0
         
         try:
             msgs = client.list_messages(conversation_name)
             for m in msgs:
                 if not isinstance(m, dict):
                     continue
+                if "userMessage" in m:
+                    turn_idx += 1
+                    q_val = m["userMessage"].get("text") if isinstance(m["userMessage"].get("text"), str) else str(m["userMessage"].get("text", {}).get("parts", [""])[0] if isinstance(m["userMessage"].get("text", {}), dict) else "")
+                    cur_turn = {
+                        "turn_index": turn_idx,
+                        "question": q_val or f"Turn {turn_idx}",
+                        "executed_sqls": [],
+                        "rows_returned": 0,
+                        "bytes_billed": 0,
+                        "tables_referenced": set()
+                    }
+                    turns_list.append(cur_turn)
+
                 candidate_subs = []
                 for p in m.get("parts", []):
                     if isinstance(p, dict):
@@ -149,17 +165,40 @@ def get_trace_session(
                     sql = sub.get("sqlQuery") or sub.get("query") or sub.get("generatedSql")
                     if sql and isinstance(sql, str) and sql not in executed_sqls:
                         executed_sqls.append(sql)
+                        if cur_turn and sql not in cur_turn["executed_sqls"]:
+                            cur_turn["executed_sqls"].append(sql)
                         import re
                         found_tables = re.findall(r'`([^`]+)`', sql)
                         for ft in found_tables:
                             tables_referenced.add(ft)
+                            if cur_turn:
+                                cur_turn["tables_referenced"].add(ft)
                     res = sub.get("result")
                     if isinstance(res, list):
                         for r_item in res:
                             if isinstance(r_item, dict) and "data" in r_item and isinstance(r_item["data"], list):
-                                total_rows_returned += len(r_item["data"])
+                                rows_cnt = len(r_item["data"])
+                                total_rows_returned += rows_cnt
+                                if cur_turn:
+                                    cur_turn["rows_returned"] += rows_cnt
                     elif isinstance(res, dict) and "data" in res and isinstance(res["data"], list):
-                        total_rows_returned += len(res["data"])
+                        rows_cnt = len(res["data"])
+                        total_rows_returned += rows_cnt
+                        if cur_turn:
+                            cur_turn["rows_returned"] += rows_cnt
+                    
+                    bq_job = sub.get("bigQueryJob")
+                    if isinstance(bq_job, dict) and bq_job.get("jobId"):
+                        try:
+                            from google.cloud import bigquery
+                            bq_client = bigquery.Client()
+                            job = bq_client.get_job(bq_job["jobId"], location=bq_job.get("location", "us-central1"))
+                            if job and job.total_bytes_billed:
+                                total_bytes_billed += job.total_bytes_billed
+                                if cur_turn:
+                                    cur_turn["bytes_billed"] += job.total_bytes_billed
+                        except Exception as ex:
+                            logger.warning(f"Could not inspect bq job for bytes billed: {ex}")
                 
                 # Also check narrative text for SQL snippets if not found in structured parts
                 for p in m.get("parts", []):
@@ -172,14 +211,28 @@ def get_trace_session(
                                 sql_str = sql_match.group(1).strip()
                                 if sql_str not in executed_sqls:
                                     executed_sqls.append(sql_str)
+                                    if cur_turn and sql_str not in cur_turn["executed_sqls"]:
+                                        cur_turn["executed_sqls"].append(sql_str)
                                     found_tables = re.findall(r'`([^`]+)`', sql_str)
                                     for ft in found_tables:
                                         tables_referenced.add(ft)
+                                        if cur_turn:
+                                            cur_turn["tables_referenced"].add(ft)
         except Exception as ex:
             logger.warning(f"Could not inspect live conversation messages for trace telemetry: {ex}")
 
         last_sql = executed_sqls[-1] if executed_sqls else "No SQL query executed in this turn (Schema / Reasoning response)"
         tables_list = list(tables_referenced)
+        formatted_turns = []
+        for t in turns_list:
+            formatted_turns.append({
+                "turn_index": t["turn_index"],
+                "question": t["question"],
+                "executed_sqls": t["executed_sqls"],
+                "rows_returned": t["rows_returned"],
+                "bytes_billed": t["bytes_billed"],
+                "tables_referenced": list(t["tables_referenced"])
+            })
         
         real_sys_inst = "Dynamic Conversational Analytics Agent Instructions (Managed RAG Context)"
         try:
@@ -221,6 +274,7 @@ def get_trace_session(
 
         return {
             "conversation_name": conversation_name,
+            "turns": formatted_turns,
             "spans": [
                 {
                     "span_id": "span-root-invoke-agent",
@@ -288,7 +342,7 @@ def get_trace_session(
                     "metadata": {
                         "tool_name": "execute_sql_query",
                         "rows_returned": total_rows_returned,
-                        "bytes_billed": 0
+                        "bytes_billed": total_bytes_billed
                     }
                 }
             ]

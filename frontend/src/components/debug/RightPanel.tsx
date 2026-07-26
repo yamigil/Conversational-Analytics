@@ -15,9 +15,19 @@ interface TraceSpan {
   response_payload?: Record<string, any>;
 }
 
+interface TraceTurn {
+  turn_index: number;
+  question: string;
+  executed_sqls: string[];
+  rows_returned: number;
+  bytes_billed: number;
+  tables_referenced: string[];
+}
+
 interface TraceSessionData {
   conversation_name: string;
   spans: TraceSpan[];
+  turns?: TraceTurn[];
 }
 
 interface RightPanelProps {
@@ -32,6 +42,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
   const [loading, setLoading] = useState(false);
   const [isExpandedWidth, setIsExpandedWidth] = useState(false);
   const [selectedFlowNode, setSelectedFlowNode] = useState<string>("gemini_engine");
+  const [selectedTurnIndex, setSelectedTurnIndex] = useState<number | null>(null);
 
   const fetchTrace = async () => {
     if (!conversationName) return;
@@ -117,6 +128,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
             const spanLlm = traceData.spans.find(s => s.name === "call_llm");
             const spanTool = traceData.spans.find(s => s.name === "tool_intercept");
 
+            const activeTurn = selectedTurnIndex !== null && traceData.turns && traceData.turns[selectedTurnIndex] ? traceData.turns[selectedTurnIndex] : null;
             const isFreeForm = spanRoot?.metadata?.mode === "Free Form Mode" || spanSchema?.metadata?.mode === "Free Form Mode";
 
             const flowNodes = [
@@ -127,7 +139,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                 icon: <User size={22} className="text-sky-400" />,
                 time: "Start",
                 color: "border-sky-500/50 bg-sky-500/15 text-sky-300",
-                input: { action: "Submit Chat Prompt / Free Form SQL", client: "React Dashboard v0.13.1", auth_mode: spanRoot?.metadata?.auth_mode || "Bearer Token / ADC" },
+                input: { action: "Submit Chat Prompt / Free Form SQL", client: "React Dashboard v0.13.1", auth_mode: spanRoot?.metadata?.auth_mode || "Bearer Token / ADC", turn_selected: activeTurn ? `Turn ${activeTurn.turn_index}: ${activeTurn.question}` : "Full Session Summary" },
                 output: { event_stream: "Server-Sent Events (SSE)", messages_inspected: spanRoot?.metadata?.messages_inspected || 0 }
               },
               {
@@ -138,7 +150,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                 time: `${spanSchema?.latency_ms || 0} ms`,
                 color: "border-purple-500/50 bg-purple-500/15 text-purple-300",
                 input: { agent_id: spanRoot?.metadata?.agent_id || "inline_context", retrieval_strategy: spanSchema?.metadata?.retrieval_strategy || "Hybrid Vector + Keyword Search" },
-                output: { active_tables: spanSchema?.metadata?.tables_referenced || ["Dynamic Agent Context"], grounding_status: "Validated against BigQuery INFORMATION_SCHEMA" }
+                output: { active_tables: activeTurn ? (activeTurn.tables_referenced.length > 0 ? activeTurn.tables_referenced : (spanSchema?.metadata?.tables_referenced || ["Dynamic Agent Context"])) : (spanSchema?.metadata?.tables_referenced || ["Dynamic Agent Context"]), grounding_status: "Validated against BigQuery INFORMATION_SCHEMA" }
               },
               {
                 id: "ca_api",
@@ -147,7 +159,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                 icon: <Cloud size={22} className="text-blue-400" />,
                 time: `${spanRoot?.latency_ms || 0} ms`,
                 color: "border-blue-500/50 bg-blue-500/15 text-blue-300",
-                input: { conversation_name: traceData.conversation_name, stream: true, total_turn_latency_ms: spanRoot?.latency_ms || 0 },
+                input: { conversation_name: traceData.conversation_name, stream: true, total_turn_latency_ms: spanRoot?.latency_ms || 0, active_turn: activeTurn ? activeTurn.turn_index : "All turns" },
                 output: { status: spanRoot?.status || "OK", session_state: "Persisted in Google Cloud Conversational Analytics Service" }
               },
               {
@@ -157,8 +169,16 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                 icon: <Cpu size={22} className="text-emerald-400" />,
                 time: `${spanLlm?.latency_ms || 0} ms`,
                 color: "border-emerald-500/50 bg-emerald-500/15 text-emerald-300",
-                input: spanLlm?.request_payload || { system_instruction: "Loading instructions...", temperature: 0.2, top_p: 0.95 },
-                output: spanLlm?.response_payload || { sql_generated: "No SQL generated", status: "COMPLETED" }
+                input: {
+                  ...(spanLlm?.request_payload || { system_instruction: "Loading instructions...", temperature: 0.2, top_p: 0.95 }),
+                  active_tables: activeTurn ? (activeTurn.tables_referenced.length > 0 ? activeTurn.tables_referenced : (spanSchema?.metadata?.tables_referenced || ["Dynamic Agent Context"])) : (spanSchema?.metadata?.tables_referenced || ["Dynamic Agent Context"]),
+                  active_question: activeTurn ? activeTurn.question : "Session Summary"
+                },
+                output: {
+                  sql_generated: activeTurn ? (activeTurn.executed_sqls[activeTurn.executed_sqls.length - 1] || "No SQL generated in this turn") : (spanLlm?.response_payload?.sql_generated || "No SQL generated"),
+                  all_sqls_executed: activeTurn ? activeTurn.executed_sqls : spanLlm?.response_payload?.all_sqls_executed_in_turn,
+                  status: "COMPLETED"
+                }
               },
               {
                 id: "bigquery",
@@ -167,8 +187,13 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                 icon: <Database size={22} className="text-amber-400" />,
                 time: `${spanTool?.latency_ms || 0} ms`,
                 color: "border-amber-500/50 bg-amber-500/15 text-amber-300",
-                input: { tool_name: "execute_sql_query", sql_query: spanLlm?.response_payload?.sql_generated || "SELECT ..." },
-                output: spanTool?.metadata || { rows_returned: 0, bytes_billed: 0, status: "OK" }
+                input: { tool_name: "execute_sql_query", sql_query: activeTurn ? (activeTurn.executed_sqls[activeTurn.executed_sqls.length - 1] || "SELECT ...") : (spanLlm?.response_payload?.sql_generated || "SELECT ...") },
+                output: {
+                  rows_returned: activeTurn ? activeTurn.rows_returned : (spanTool?.metadata?.rows_returned || 0),
+                  bytes_billed: activeTurn ? activeTurn.bytes_billed : (spanTool?.metadata?.bytes_billed || 0),
+                  mb_billed: `${Math.round(((activeTurn ? activeTurn.bytes_billed : (spanTool?.metadata?.bytes_billed || 0)) / 1024 / 1024) * 100) / 100} MB`,
+                  status: "OK"
+                }
               }
             ];
 
@@ -176,6 +201,42 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
 
             return (
               <div className="flex flex-col gap-5">
+                {/* Per-Turn Question Switcher */}
+                {traceData.turns && traceData.turns.length > 0 && (
+                  <div className="flex items-center gap-2 p-2 bg-slate-900/90 border border-white/10 rounded-2xl overflow-x-auto custom-scrollbar shadow-md">
+                    <span className="text-[10.5px] uppercase font-bold tracking-wider text-slate-400 px-2 shrink-0 flex items-center gap-1.5">
+                      💬 Filter by Turn:
+                    </span>
+                    <button
+                      onClick={() => setSelectedTurnIndex(null)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer select-none shrink-0 border ${
+                        selectedTurnIndex === null
+                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-md scale-[1.02]"
+                          : "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      🌐 Full Session Summary ({traceData.turns.length} Turns)
+                    </button>
+                    {traceData.turns.map((turn, idx) => {
+                      const isSelected = selectedTurnIndex === idx;
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => setSelectedTurnIndex(idx)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold truncate max-w-[220px] transition cursor-pointer select-none shrink-0 border ${
+                            isSelected
+                              ? "bg-sky-500/20 text-sky-300 border-sky-500/50 shadow-md scale-[1.02]"
+                              : "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white"
+                          }`}
+                          title={turn.question}
+                        >
+                          Turn {idx + 1}: "{turn.question.length > 22 ? turn.question.substring(0, 22) + "..." : turn.question}"
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
                 {/* Visual Architecture Flowchart */}
                 <div className="p-4 bg-slate-900/90 border border-white/10 rounded-2xl flex flex-col gap-3 shadow-xl">
                   <div className="flex items-center justify-between border-b border-white/10 pb-2.5">

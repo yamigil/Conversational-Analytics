@@ -50,6 +50,42 @@ def get_agent_schema(agent_name: str, user: dict = Depends(get_current_user), cl
         handle_route_exception(e, "load agent schema details")
 
 
+@router.get("/api/sandbox/explore")
+def explore_sandbox_table(
+    table_id: str = Query(...), 
+    user: dict = Depends(get_current_user), 
+    client: ConversationalAnalyticsClient = Depends(get_analytics_client)
+):
+    """Dynamically explores an arbitrary BigQuery table in Free Form mode, fetching column schema and AI suggestions."""
+    try:
+        logger.info(f"Free Form table exploration requested for: {table_id}")
+        parts = table_id.strip().split(".")
+        columns = []
+        if len(parts) == 3:
+            try:
+                bq_client = bigquery.Client(project=parts[0])
+                query = f"SELECT column_name, data_type FROM `{parts[0]}.{parts[1]}.INFORMATION_SCHEMA.COLUMNS` WHERE table_name = '{parts[2]}' LIMIT 15"
+                rows = bq_client.query(query).result()
+                columns = [f"{r.column_name} ({r.data_type})" for r in rows]
+            except Exception as ex:
+                logger.debug(f"Could not read INFORMATION_SCHEMA for {table_id}: {ex}")
+
+        from schema_discovery import get_table_specific_suggestions
+        prompt_table_context = table_id
+        if columns:
+            prompt_table_context += f" (Columns: {', '.join(columns[:8])})"
+        
+        suggestions = get_table_specific_suggestions(prompt_table_context, "Free Form Mode")
+        return {
+            "table_id": table_id,
+            "columns": columns,
+            "suggestions": suggestions
+        }
+    except Exception as e:
+        handle_route_exception(e, "explore sandbox table")
+
+
+
 
 def generate_record_suggestions(table_name: str, rows: list) -> list:
     """Uses Gemini to dynamically generate 3 personalized, context-aware business questions

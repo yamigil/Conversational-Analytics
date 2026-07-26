@@ -228,7 +228,8 @@ def get_trace_session(
                         "agent_id": agent_id,
                         "sdk_version": "0.13.1",
                         "auth_mode": "Bearer Token / ADC",
-                        "messages_inspected": len(msgs) if 'msgs' in locals() else 0
+                        "messages_inspected": len(msgs) if 'msgs' in locals() else 0,
+                        "mode": "Free Form Mode" if (cached_session.get("inline_table_id") or not (cached_session.get("agent_name") or agent_ref)) else "Data Agent Mode"
                     }
                 },
                 {
@@ -241,7 +242,8 @@ def get_trace_session(
                     "timestamp": now_ts,
                     "metadata": {
                         "tables_referenced": tables_list if tables_list else ["Dynamic Agent Context"],
-                        "retrieval_strategy": "Hybrid Vector + Keyword Search"
+                        "retrieval_strategy": "Hybrid Vector + Keyword Search",
+                        "mode": "Free Form Mode" if (cached_session.get("inline_table_id") or not (cached_session.get("agent_name") or agent_ref)) else "Data Agent Mode"
                     }
                 },
                 {

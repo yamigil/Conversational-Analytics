@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { marked } from "marked";
 import vegaEmbed from "vega-embed";
-import { ResponsiveContainer, BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { ResponsiveContainer, BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { 
   Send, 
   Plus, 
@@ -538,30 +538,44 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
     const keys = Object.keys(firstRow);
     if (tableData.rows.length > 250 || keys.length > 15) return null;
 
-    let nominalField = "";
-    let quantitativeField = "";
     const isNum = (val: any) => typeof val === "number" || (typeof val === "string" && !isNaN(Number(val)) && val.trim() !== "");
+    const nominalFields = keys.filter(k => !isNum(firstRow[k]));
+    const quantitativeFields = keys.filter(k => isNum(firstRow[k]));
 
-    for (const key of keys) {
-      const val = firstRow[key];
-      if (isNum(val) && !quantitativeField) {
-        quantitativeField = key;
-      } else if (!isNum(val) && !nominalField) {
-        nominalField = key;
-      }
-    }
-    if (!nominalField && keys.length >= 2) {
-      nominalField = keys[0];
-      quantitativeField = keys[1];
-    }
+    let nominalField = nominalFields[0] || (keys.length >= 2 ? keys[0] : "");
+    let quantitativeField = quantitativeFields[0] || (keys.length >= 2 ? keys[1] : "");
+    const seriesField = nominalFields.length >= 2 ? nominalFields[1] : "";
+
     if (nominalField && quantitativeField) {
       const avgLen = tableData.rows.reduce((acc: number, r: any) => acc + String(r[nominalField] || "").length, 0) / tableData.rows.length;
       if (avgLen > 30) return null;
-      const rowsForChart = tableData.rows.slice(0, 50).map((r: any) => ({
-        ...r,
-        [quantitativeField]: Number(r[quantitativeField]) || 0
-      }));
-      return { nominalField, quantitativeField, rows: rowsForChart };
+
+      let rowsForChart: any[] = [];
+      let seriesNames: string[] = [];
+
+      if (seriesField) {
+        const pivotedMap = new Map<string, any>();
+        const sNamesSet = new Set<string>();
+        for (const r of tableData.rows.slice(0, 150)) {
+          const xVal = String(r[nominalField] || "");
+          const sVal = String(r[seriesField] || "Value");
+          sNamesSet.add(sVal);
+          if (!pivotedMap.has(xVal)) {
+            pivotedMap.set(xVal, { [nominalField]: xVal });
+          }
+          pivotedMap.get(xVal)[sVal] = Number(r[quantitativeField]) || 0;
+        }
+        rowsForChart = Array.from(pivotedMap.values());
+        seriesNames = Array.from(sNamesSet);
+      } else {
+        rowsForChart = tableData.rows.slice(0, 50).map((r: any) => ({
+          ...r,
+          [quantitativeField]: Number(r[quantitativeField]) || 0
+        }));
+        seriesNames = [quantitativeField];
+      }
+
+      return { nominalField, quantitativeField, seriesField, seriesNames, rows: rowsForChart };
     }
     return null;
   };
@@ -725,7 +739,16 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
                       itemStyle={{ color: '#60a5fa', fontWeight: 600 }}
                       cursor={{ fill: 'rgba(255, 255, 255, 0.04)' }}
                     />
-                    <Bar dataKey={chartFields.quantitativeField} fill="url(#barGradient)" radius={[6, 6, 0, 0]} animationDuration={800} />
+                    {chartFields.seriesNames.length > 1 ? (
+                      <>
+                        <Legend wrapperStyle={{ fontSize: '11px', paddingBottom: '8px' }} />
+                        {chartFields.seriesNames.map((sName: string, idx: number) => (
+                          <Bar key={sName} dataKey={sName} fill={["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#ec4899", "#06b6d4", "#a855f7"][idx % 7]} radius={[4, 4, 0, 0]} animationDuration={800} />
+                        ))}
+                      </>
+                    ) : (
+                      <Bar dataKey={chartFields.quantitativeField} fill="url(#barGradient)" radius={[6, 6, 0, 0]} animationDuration={800} />
+                    )}
                   </BarChart>
                 ) : chartType === "line" ? (
                   <LineChart data={chartFields.rows} margin={{ top: 10, right: 30, left: 15, bottom: 55 }}>
@@ -746,7 +769,16 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
                       contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '12px', fontSize: '12px', color: '#f8fafc', backdropFilter: 'blur(8px)' }}
                       itemStyle={{ color: '#60a5fa', fontWeight: 600 }}
                     />
-                    <Line type="monotone" dataKey={chartFields.quantitativeField} stroke="#60a5fa" strokeWidth={3} dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 5 }} activeDot={{ r: 8, fill: '#3b82f6' }} animationDuration={800} />
+                    {chartFields.seriesNames.length > 1 ? (
+                      <>
+                        <Legend wrapperStyle={{ fontSize: '11px', paddingBottom: '8px' }} />
+                        {chartFields.seriesNames.map((sName: string, idx: number) => (
+                          <Line key={sName} type="monotone" dataKey={sName} stroke={["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#ec4899", "#06b6d4", "#a855f7"][idx % 7]} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 7 }} animationDuration={800} />
+                        ))}
+                      </>
+                    ) : (
+                      <Line type="monotone" dataKey={chartFields.quantitativeField} stroke="#60a5fa" strokeWidth={3} dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 5 }} activeDot={{ r: 8, fill: '#3b82f6' }} animationDuration={800} />
+                    )}
                   </LineChart>
                 ) : (
                   <AreaChart data={chartFields.rows} margin={{ top: 10, right: 30, left: 15, bottom: 55 }}>
@@ -773,7 +805,16 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
                       contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '12px', fontSize: '12px', color: '#f8fafc', backdropFilter: 'blur(8px)' }}
                       itemStyle={{ color: '#60a5fa', fontWeight: 600 }}
                     />
-                    <Area type="monotone" dataKey={chartFields.quantitativeField} stroke="#3b82f6" strokeWidth={2.5} fill="url(#areaGradient)" animationDuration={800} />
+                    {chartFields.seriesNames.length > 1 ? (
+                      <>
+                        <Legend wrapperStyle={{ fontSize: '11px', paddingBottom: '8px' }} />
+                        {chartFields.seriesNames.map((sName: string, idx: number) => (
+                          <Area key={sName} type="monotone" dataKey={sName} stroke={["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#ec4899", "#06b6d4", "#a855f7"][idx % 7]} fill={["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#ec4899", "#06b6d4", "#a855f7"][idx % 7]} fillOpacity={0.3} strokeWidth={2} animationDuration={800} />
+                        ))}
+                      </>
+                    ) : (
+                      <Area type="monotone" dataKey={chartFields.quantitativeField} stroke="#3b82f6" strokeWidth={2.5} fill="url(#areaGradient)" animationDuration={800} />
+                    )}
                   </AreaChart>
                 )}
               </ResponsiveContainer>

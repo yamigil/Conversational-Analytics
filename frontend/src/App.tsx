@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { marked } from "marked";
 import vegaEmbed from "vega-embed";
+import { ResponsiveContainer, BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { 
   Send, 
   Plus, 
@@ -229,8 +230,22 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
       if (!parts || parts.length === 0) continue;
       const isFinalChunk = idx === narrativeChunks.length - 1;
 
-      if (!isFinalChunk && parts.length === 2 && parts[0] && parts[1] && parts[0].length < 60 && !parts[0].includes('.')) {
-        currentSystemMsg.thoughts.push({ title: parts[0].trim(), body: parts[1].trim() });
+      if (!isFinalChunk) {
+        // Any narrative chunk received before the final answer chunk is intermediate reasoning / thoughts!
+        const fullText = parts.join("\n\n").trim();
+        let title = "Analyzing Query & Schema Context";
+        let body = fullText;
+        if (parts.length >= 2 && parts[0] && parts[0].length < 80 && !parts[0].includes('.')) {
+          title = parts[0].trim();
+          body = parts.slice(1).join("\n\n").trim() || fullText;
+        } else {
+          const firstLine = fullText.split("\n")[0].trim();
+          if (firstLine && firstLine.length < 80 && !firstLine.endsWith(".")) {
+            title = firstLine;
+            body = fullText.slice(firstLine.length).trim() || fullText;
+          }
+        }
+        currentSystemMsg.thoughts.push({ title: title, body: body });
       } else {
         // Substantive narrative chunk -> Answer
         const cleanAnswerText = (parts.length === 2 && parts[0] && parts[1] && !parts[0].startsWith("#") && parts[0].length < 60)
@@ -478,6 +493,7 @@ interface VisualizerWidgetProps {
 
 const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primaryColorHsl }) => {
   const [activeTab, setActiveTab] = useState<"chart" | "table">("chart");
+  const [chartType, setChartType] = useState<"bar" | "line" | "area">("bar");
   const chartRef = useRef<HTMLDivElement>(null);
 
   const getTableData = () => {
@@ -507,19 +523,14 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
 
   const tableData = getTableData();
 
-  const getEffectiveVegaConfig = () => {
-    if (chart?.result?.vegaConfig) return chart.result.vegaConfig;
+  const getChartFields = () => {
     if (!tableData || !tableData.rows || tableData.rows.length === 0) return null;
-
-    // Only auto-synthesize a chart if the result set is compact (<= 8 rows, <= 5 columns)
-    // so we never produce overly wide charts or horizontal scrollbars
     const firstRow = tableData.rows[0];
     const keys = Object.keys(firstRow);
-    if (tableData.rows.length > 8 || keys.length > 5) return null;
+    if (tableData.rows.length > 30 || keys.length > 8) return null;
 
     let nominalField = "";
     let quantitativeField = "";
-
     for (const key of keys) {
       const val = firstRow[key];
       if (typeof val === "number" && !quantitativeField) {
@@ -528,30 +539,24 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
         nominalField = key;
       }
     }
-
     if (nominalField && quantitativeField) {
-      // Check if average label length is too long (> 20 chars), if so table view is cleaner
       const avgLen = tableData.rows.reduce((acc: number, r: any) => acc + String(r[nominalField] || "").length, 0) / tableData.rows.length;
-      if (avgLen > 20) return null;
-
-      return {
-        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-        title: `${quantitativeField} by ${nominalField}`,
-        width: "container",
-        autosize: { type: "fit-x", contains: "padding" },
-        data: { values: tableData.rows },
-        mark: { type: "bar", cornerRadiusEnd: 4 },
-        encoding: {
-          x: { field: nominalField, type: "nominal", sort: "-y", title: nominalField },
-          y: { field: quantitativeField, type: "quantitative", title: quantitativeField }
-        }
-      };
+      if (avgLen > 25) return null;
+      return { nominalField, quantitativeField, rows: tableData.rows };
     }
     return null;
   };
 
+  const chartFields = getChartFields();
+
+  const getEffectiveVegaConfig = () => {
+    if (chart?.result?.vegaConfig) return chart.result.vegaConfig;
+    if (chartFields) return null; // Use Recharts instead for clean tabular data
+    return null;
+  };
+
   const effectiveVegaConfig = getEffectiveVegaConfig();
-  const hasChart = !!effectiveVegaConfig;
+  const hasChart = !!chartFields || !!effectiveVegaConfig;
   const hasData = !!tableData;
 
   useEffect(() => {
@@ -590,7 +595,6 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
         const vegaSpec = JSON.parse(JSON.stringify(effectiveVegaConfig));
         const hexColor = getHexColorFromHsl(primaryColorHsl);
         
-        // Ensure any chart dynamically adapts its width to fit the container
         vegaSpec.width = "container";
         vegaSpec.autosize = { type: "fit-x", contains: "padding" };
         
@@ -616,37 +620,145 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
     <div className="w-full flex flex-col mt-4 bg-slate-900/40 border border-white/6 rounded-2xl overflow-hidden shadow-lg">
       <div className="px-5 py-3 bg-white/2 border-b border-white/6 flex justify-between items-center">
         <span className="text-xs font-semibold text-slate-400">
-          {hasChart ? (chart?.result?.vegaConfig?.title || effectiveVegaConfig?.title || "Data Insights") : "Data Grid"}
+          {hasChart ? (chartFields ? `${chartFields.quantitativeField} by ${chartFields.nominalField}` : chart?.result?.vegaConfig?.title || effectiveVegaConfig?.title || "Data Insights") : "Data Grid"}
         </span>
-        {hasChart && hasData && (
-          <div className="flex gap-1.5 p-0.5 bg-slate-950/60 rounded-lg border border-white/6">
-            <button
-              onClick={() => setActiveTab("chart")}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition select-none cursor-pointer ${
-                activeTab === "chart"
-                  ? "bg-brand-primary text-white shadow-sm"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              Chart
-            </button>
-            <button
-              onClick={() => setActiveTab("table")}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition select-none cursor-pointer ${
-                activeTab === "table"
-                  ? "bg-brand-primary text-white shadow-sm"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              Table
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {chartFields && activeTab === "chart" && (
+            <div className="flex gap-1 p-0.5 bg-slate-950/60 rounded-lg border border-white/6 mr-1">
+              <button
+                onClick={() => setChartType("bar")}
+                className={`px-2 py-0.5 text-[10px] font-medium rounded transition ${chartType === "bar" ? "bg-brand-primary text-white shadow-sm" : "text-slate-400 hover:text-white"}`}
+                title="Bar Chart"
+              >
+                📊 Bar
+              </button>
+              <button
+                onClick={() => setChartType("line")}
+                className={`px-2 py-0.5 text-[10px] font-medium rounded transition ${chartType === "line" ? "bg-brand-primary text-white shadow-sm" : "text-slate-400 hover:text-white"}`}
+                title="Line Chart"
+              >
+                📈 Line
+              </button>
+              <button
+                onClick={() => setChartType("area")}
+                className={`px-2 py-0.5 text-[10px] font-medium rounded transition ${chartType === "area" ? "bg-brand-primary text-white shadow-sm" : "text-slate-400 hover:text-white"}`}
+                title="Area Chart"
+              >
+                📉 Area
+              </button>
+            </div>
+          )}
+          {hasChart && hasData && (
+            <div className="flex gap-1.5 p-0.5 bg-slate-950/60 rounded-lg border border-white/6">
+              <button
+                onClick={() => setActiveTab("chart")}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition select-none cursor-pointer ${
+                  activeTab === "chart"
+                    ? "bg-brand-primary text-white shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Chart
+              </button>
+              <button
+                onClick={() => setActiveTab("table")}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition select-none cursor-pointer ${
+                  activeTab === "table"
+                    ? "bg-brand-primary text-white shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Table
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="p-5">
         {activeTab === "chart" && hasChart && (
-          <div ref={chartRef} className="w-full overflow-x-auto bg-transparent animate-scaleIn"></div>
+          chartFields ? (
+            <div className="w-full h-72 pt-4 pb-2 px-2 bg-transparent animate-scaleIn">
+              <ResponsiveContainer width="100%" height="100%">
+                {chartType === "bar" ? (
+                  <BarChart data={chartFields.rows} margin={{ top: 10, right: 30, left: 10, bottom: 25 }}>
+                    <defs>
+                      <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.95}/>
+                        <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.5}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
+                    <XAxis 
+                      dataKey={chartFields.nominalField} 
+                      stroke="#94a3b8" 
+                      fontSize={11} 
+                      tickLine={false} 
+                      axisLine={{ stroke: '#475569' }}
+                      angle={-20}
+                      textAnchor="end"
+                      interval={0}
+                    />
+                    <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '12px', fontSize: '12px', color: '#f8fafc', backdropFilter: 'blur(8px)', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
+                      itemStyle={{ color: '#60a5fa', fontWeight: 600 }}
+                      cursor={{ fill: 'rgba(255, 255, 255, 0.04)' }}
+                    />
+                    <Bar dataKey={chartFields.quantitativeField} fill="url(#barGradient)" radius={[6, 6, 0, 0]} animationDuration={800} />
+                  </BarChart>
+                ) : chartType === "line" ? (
+                  <LineChart data={chartFields.rows} margin={{ top: 10, right: 30, left: 10, bottom: 25 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
+                    <XAxis 
+                      dataKey={chartFields.nominalField} 
+                      stroke="#94a3b8" 
+                      fontSize={11} 
+                      tickLine={false} 
+                      axisLine={{ stroke: '#475569' }}
+                      angle={-20}
+                      textAnchor="end"
+                      interval={0}
+                    />
+                    <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '12px', fontSize: '12px', color: '#f8fafc', backdropFilter: 'blur(8px)' }}
+                      itemStyle={{ color: '#60a5fa', fontWeight: 600 }}
+                    />
+                    <Line type="monotone" dataKey={chartFields.quantitativeField} stroke="#60a5fa" strokeWidth={3} dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 5 }} activeDot={{ r: 8, fill: '#3b82f6' }} animationDuration={800} />
+                  </LineChart>
+                ) : (
+                  <AreaChart data={chartFields.rows} margin={{ top: 10, right: 30, left: 10, bottom: 25 }}>
+                    <defs>
+                      <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.7}/>
+                        <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
+                    <XAxis 
+                      dataKey={chartFields.nominalField} 
+                      stroke="#94a3b8" 
+                      fontSize={11} 
+                      tickLine={false} 
+                      axisLine={{ stroke: '#475569' }}
+                      angle={-20}
+                      textAnchor="end"
+                      interval={0}
+                    />
+                    <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '12px', fontSize: '12px', color: '#f8fafc', backdropFilter: 'blur(8px)' }}
+                      itemStyle={{ color: '#60a5fa', fontWeight: 600 }}
+                    />
+                    <Area type="monotone" dataKey={chartFields.quantitativeField} stroke="#3b82f6" strokeWidth={2.5} fill="url(#areaGradient)" animationDuration={800} />
+                  </AreaChart>
+                )}
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div ref={chartRef} className="w-full overflow-x-auto bg-transparent animate-scaleIn"></div>
+          )
         )}
 
         {activeTab === "table" && tableData && (

@@ -16,6 +16,7 @@
     "marked": "^18.0.4",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "recharts": "^3.10.1",
     "tailwindcss": "^4.3.0",
     "vega": "^5.21.0",
     "vega-embed": "^7.1.0",

@@ -22,6 +22,7 @@ import {
   Loader2,
   Table
 } from "lucide-react";
+import { ResponsiveContainer, BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 interface Node {
   id: string;
@@ -234,11 +235,48 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [selectedInstance, setSelectedInstance] = useState<any | null>(null);
   
-  const [activeTab, setActiveTab] = useState<"queries" | "preview">("queries");
+  const [activeTab, setActiveTab] = useState<"queries" | "preview" | "chart">("queries");
+  const [chartType, setChartType] = useState<"bar" | "line" | "area">("bar");
   const [previewData, setPreviewData] = useState<{ columns: string[], rows: any[], recordSuggestions?: string[][] } | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState<boolean>(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewsCache, setPreviewsCache] = useState<Record<string, any>>({});
+
+  const getPreviewChartFields = () => {
+    if (!previewData || !previewData.rows || previewData.rows.length === 0) return null;
+    const firstRow = previewData.rows[0];
+    const keys = previewData.columns || Object.keys(firstRow);
+    if (previewData.rows.length > 50 || keys.length > 15) return null;
+
+    let nominalField = "";
+    let quantitativeField = "";
+    const isNum = (val: any) => typeof val === "number" || (typeof val === "string" && !isNaN(Number(val)) && val.trim() !== "");
+
+    for (const key of keys) {
+      const val = firstRow[key];
+      if (isNum(val) && !quantitativeField) {
+        quantitativeField = key;
+      } else if (!isNum(val) && !nominalField) {
+        nominalField = key;
+      }
+    }
+    if (!nominalField && keys.length >= 2) {
+      nominalField = keys[0];
+      quantitativeField = keys[1];
+    }
+    if (nominalField && quantitativeField) {
+      const avgLen = previewData.rows.reduce((acc: number, r: any) => acc + String(r[nominalField] || "").length, 0) / previewData.rows.length;
+      if (avgLen > 25) return null;
+      const formattedRows = previewData.rows.map((r: any) => ({
+        ...r,
+        [quantitativeField]: Number(r[quantitativeField]) || 0
+      }));
+      return { nominalField, quantitativeField, rows: formattedRows };
+    }
+    return null;
+  };
+
+  const previewChartFields = getPreviewChartFields();
 
   // Background pre-fetching of preview data for all nodes when agentName changes
   React.useEffect(() => {
@@ -340,25 +378,27 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
       const otherNodes = graphData.nodes.filter(node => node.id !== "schema_root");
       const otherIdx = otherNodes.findIndex(node => node.id === n.id);
       const center = { x: 400, y: 230 };
-      const radius = 180;
+      const radiusX = 290;
+      const radiusY = 205;
       const angle = (2 * Math.PI * otherIdx) / otherNodes.length - Math.PI / 2;
       
       return {
         ...n,
-        x: Math.round(center.x + radius * Math.cos(angle)),
-        y: Math.round(center.y + radius * Math.sin(angle))
+        x: Math.round(center.x + radiusX * Math.cos(angle)),
+        y: Math.round(center.y + radiusY * Math.sin(angle))
       };
     }
     
-    // Circular Layout distribution for custom graphs
+    // Spacious Elliptical Layout distribution for custom graphs (e.g. The Look Graph 7 nodes)
     const center = { x: 400, y: 230 };
-    const radius = 175;
+    const radiusX = 290;
+    const radiusY = 205;
     const angle = (2 * Math.PI * idx) / graphData.nodes.length - Math.PI / 2;
     
     return {
       ...n,
-      x: Math.round(center.x + radius * Math.cos(angle)),
-      y: Math.round(center.y + radius * Math.sin(angle))
+      x: Math.round(center.x + radiusX * Math.cos(angle)),
+      y: Math.round(center.y + radiusY * Math.sin(angle))
     };
   });
 
@@ -624,9 +664,23 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     <Database size={13} />
                     Data Preview
                   </button>
+                  {previewChartFields && (
+                    <button
+                      onClick={() => setActiveTab("chart")}
+                      className={`flex items-center gap-1.5 pb-1 text-xs font-bold uppercase tracking-wider transition cursor-pointer border-none bg-transparent ${
+                        activeTab === "chart" 
+                          ? "text-slate-200 border-b-2 border-brand-primary" 
+                          : "text-slate-500 hover:text-slate-300"
+                      }`}
+                      style={activeTab === "chart" ? { borderBottomColor: activeNodeColor } : {}}
+                    >
+                      <Activity size={13} />
+                      Visual Chart
+                    </button>
+                  )}
                 </div>
 
-                <div className="flex-1 overflow-y-auto max-h-[180px] custom-scrollbar pr-1">
+                <div className="flex-1 overflow-y-auto max-h-[220px] custom-scrollbar pr-1">
                   {activeTab === "queries" ? (
                     <div className="flex flex-col gap-2">
                       {suggestions.map((q, qIdx) => (
@@ -641,6 +695,75 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                           <ChevronRight size={14} className="text-slate-500 group-hover:text-white transition transform group-hover:translate-x-0.5" />
                         </div>
                       ))}
+                    </div>
+                  ) : activeTab === "chart" && previewChartFields ? (
+                    <div className="w-full h-52 pt-2 pb-1 px-1 bg-transparent flex flex-col">
+                      <div className="flex justify-between items-center mb-2 px-1">
+                        <span className="text-[10px] font-semibold text-slate-400">
+                          {`${previewChartFields.quantitativeField} by ${previewChartFields.nominalField}`}
+                        </span>
+                        <div className="flex gap-1 p-0.5 bg-slate-950/60 rounded border border-white/6">
+                          <button
+                            onClick={() => setChartType("bar")}
+                            className={`px-2 py-0.5 text-[9px] font-medium rounded transition ${chartType === "bar" ? "bg-brand-primary text-white" : "text-slate-400 hover:text-white"}`}
+                          >
+                            📊 Bar
+                          </button>
+                          <button
+                            onClick={() => setChartType("line")}
+                            className={`px-2 py-0.5 text-[9px] font-medium rounded transition ${chartType === "line" ? "bg-brand-primary text-white" : "text-slate-400 hover:text-white"}`}
+                          >
+                            📈 Line
+                          </button>
+                          <button
+                            onClick={() => setChartType("area")}
+                            className={`px-2 py-0.5 text-[9px] font-medium rounded transition ${chartType === "area" ? "bg-brand-primary text-white" : "text-slate-400 hover:text-white"}`}
+                          >
+                            📉 Area
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex-1 w-full min-h-[150px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          {chartType === "bar" ? (
+                            <BarChart data={previewChartFields.rows} margin={{ top: 5, right: 20, left: 0, bottom: 20 }}>
+                              <defs>
+                                <linearGradient id="prevBarGrad" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.95}/>
+                                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.5}/>
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
+                              <XAxis dataKey={previewChartFields.nominalField} stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={{ stroke: '#475569' }} angle={-15} textAnchor="end" interval={0} />
+                              <YAxis stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
+                              <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px', fontSize: '11px', color: '#f8fafc' }} />
+                              <Bar dataKey={previewChartFields.quantitativeField} fill="url(#prevBarGrad)" radius={[4, 4, 0, 0]} animationDuration={600} />
+                            </BarChart>
+                          ) : chartType === "line" ? (
+                            <LineChart data={previewChartFields.rows} margin={{ top: 5, right: 20, left: 0, bottom: 20 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
+                              <XAxis dataKey={previewChartFields.nominalField} stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={{ stroke: '#475569' }} angle={-15} textAnchor="end" interval={0} />
+                              <YAxis stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
+                              <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px', fontSize: '11px', color: '#f8fafc' }} />
+                              <Line type="monotone" dataKey={previewChartFields.quantitativeField} stroke="#60a5fa" strokeWidth={2.5} dot={{ fill: '#8b5cf6', r: 4 }} animationDuration={600} />
+                            </LineChart>
+                          ) : (
+                            <AreaChart data={previewChartFields.rows} margin={{ top: 5, right: 20, left: 0, bottom: 20 }}>
+                              <defs>
+                                <linearGradient id="prevAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.7}/>
+                                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05}/>
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
+                              <XAxis dataKey={previewChartFields.nominalField} stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={{ stroke: '#475569' }} angle={-15} textAnchor="end" interval={0} />
+                              <YAxis stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
+                              <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px', fontSize: '11px', color: '#f8fafc' }} />
+                              <Area type="monotone" dataKey={previewChartFields.quantitativeField} stroke="#3b82f6" strokeWidth={2} fill="url(#prevAreaGrad)" animationDuration={600} />
+                            </AreaChart>
+                          )}
+                        </ResponsiveContainer>
+                      </div>
                     </div>
                   ) : (
                     <div className="w-full h-full min-h-[120px] flex flex-col justify-center">

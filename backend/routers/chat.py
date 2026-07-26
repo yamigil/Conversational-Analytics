@@ -190,16 +190,17 @@ def get_trace_session(
                     "span_id": "span-call-llm",
                     "parent_span_id": "span-root-invoke-agent",
                     "name": "call_llm",
-                    "service": "Vertex AI Gemini Engine",
+                    "service": "Conversational Analytics Engine (Gemini 2.0 Pro)",
                     "status": "OK",
                     "latency_ms": 820,
                     "timestamp": now_ts,
                     "metadata": {
-                        "model": "gemini-2.5-flash-lite",
+                        "model": "gemini-2.0-pro-exp",
                         "promptTokens": 1420,
                         "responseTokens": 380,
                         "totalTokens": 1800,
-                        "temperature": 0.2
+                        "temperature": 0.2,
+                        "engine_scope": "Conversational Analytics Data Agent Turn (Excludes UI Suggestion Tokens)"
                     },
                     "request_payload": {
                         "system_instruction": "Think like an Analyst. Generate clean BigQuery Standard SQL.",

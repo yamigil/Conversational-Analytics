@@ -649,7 +649,9 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
             agent["graphData"] = {
                 "nodes": fallback_nodes,
                 "edges": fallback_edges,
-                "nodeSuggestions": node_suggs
+                "nodeSuggestions": node_suggs,
+                "projectId": project_id,
+                "datasetId": dataset_id
             }
             welcome_subtitle = f"Explore your dynamic database relationships for '{display_name}'. Hover and click table nodes to inspect columns and preview data!"
             
@@ -687,13 +689,25 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
                     "label": "CONTAINS"
                 })
                 
+            rel_proj = None
+            rel_ds = None
+            if tables:
+                p_parts = tables[0].split(".")
+                if len(p_parts) == 3:
+                    rel_proj, rel_ds, _ = p_parts
+                elif len(p_parts) == 2:
+                    rel_proj = get_project_id()
+                    rel_ds, _ = p_parts
+
             agent["graphData"] = {
                 "nodes": table_nodes,
                 "edges": table_edges,
                 "nodeSuggestions": {
                     clean_name: get_table_specific_suggestions(clean_name, display_name) 
                     for clean_name in [t.split(".")[-1] if "." in t else t for t in tables]
-                }
+                },
+                "projectId": rel_proj,
+                "datasetId": rel_ds
             }
             if not welcome_subtitle:
                 welcome_subtitle = f"Explore the connected tables schema for {display_name}. Hover and click table nodes to inspect columns and preview data!"

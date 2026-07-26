@@ -1240,7 +1240,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                   {/* Orbit Track Circle (Slow rotation for premium look) */}
                   {satellites.length > 0 && (
                     <circle
-                      r="92"
+                      r="60"
                       fill="none"
                       stroke={nodeColor}
                       strokeWidth="1.5"
@@ -1255,7 +1255,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
 
                   {/* Satellites Orbiting Nodes (Exploratory Data Nodes - SCALED UP FOR PREMIUM VISIBILITY) */}
                   {satellites.map((sat, sIdx) => {
-                    const satelliteRadius = 92; // Spaced out further
+                    const satelliteRadius = 60; // Clean compact orbit clear of edge labels
                     const angle = (2 * Math.PI * sIdx) / satellites.length - Math.PI / 2;
                     const satX = satelliteRadius * Math.cos(angle);
                     const satY = satelliteRadius * Math.sin(angle);

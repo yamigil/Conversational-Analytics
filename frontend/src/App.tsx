@@ -207,7 +207,7 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
                  !trimmed.includes('\n\n') &&
                  !trimmed.toLowerCase().includes('select ') &&
                  !trimmed.toLowerCase().includes('from ') &&
-                 (trimmed.endsWith('?') || /^(What|Which|Who|How|Can|Show|Find|List|Tell|Why|Where|Give|Explain|Are|Do|Does|Is|Summarize|Compare|Analyze|Describe|Get|Check|View)\b/i.test(trimmed));
+                 (trimmed.endsWith('?') || /^(What|Which|Who|How|Can|Show|Find|List|Tell|Why|Where|Give|Explain|Are|Do|Does|Is|Summarize|Compare|Analyze|Describe|Get|Check|View|Identify|Calculate|Determine|Predict|Evaluate|Highlight|Explore|Break|Rank|Display|Present|Plot|Graph|Chart|Estimate|Detail|Provide|Review|Examine|Assess|Trace|Forecast|Investigate|Name|Outline)\b/i.test(trimmed));
         });
         if (areAllSuggestions) {
           currentSystemMsg.suggestions.push(...parts.map((p: string) => p.trim().replace(/^[0-9]+[\.\)\-]\s*/, "")));
@@ -229,10 +229,19 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
       const parts = narrativeChunks[idx];
       if (!parts || parts.length === 0) continue;
       const isFinalChunk = idx === narrativeChunks.length - 1;
+      const fullText = parts.join("\n\n").trim();
+      const isClearlyAnswerOrInsights = isFinalChunk || 
+                                        fullText.includes("### Insights") || 
+                                        fullText.includes("### Key Insights") || 
+                                        fullText.includes("### Summary") ||
+                                        fullText.includes("### Answer") ||
+                                        fullText.includes("### Analysis") ||
+                                        fullText.includes("### Results") ||
+                                        fullText.toLowerCase().includes("**insights**") ||
+                                        fullText.toLowerCase().includes("key insights:");
 
-      if (!isFinalChunk) {
+      if (!isClearlyAnswerOrInsights) {
         // Any narrative chunk received before the final answer chunk is intermediate reasoning / thoughts!
-        const fullText = parts.join("\n\n").trim();
         let title = "Analyzing Query & Schema Context";
         let body = fullText;
         if (parts.length >= 2 && parts[0] && parts[0].length < 80 && !parts[0].includes('.')) {

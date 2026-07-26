@@ -131,38 +131,50 @@ def get_trace_session(
         try:
             msgs = client.list_messages(conversation_name)
             for m in msgs:
-                parts = m.get("parts", []) if isinstance(m, dict) else []
-                for p in parts:
-                    if not isinstance(p, dict):
-                        continue
-                    # Check for SQL inside data/schema/chart parts
+                if not isinstance(m, dict):
+                    continue
+                candidate_subs = []
+                for p in m.get("parts", []):
+                    if isinstance(p, dict):
+                        for key in ["data", "schema", "chart"]:
+                            if isinstance(p.get(key), dict):
+                                candidate_subs.append(p[key])
+                sys_msg = m.get("systemMessage", {})
+                if isinstance(sys_msg, dict):
                     for key in ["data", "schema", "chart"]:
-                        sub = p.get(key, {})
-                        if isinstance(sub, dict):
-                            sql = sub.get("sqlQuery") or sub.get("query")
-                            if sql and sql not in executed_sqls:
-                                executed_sqls.append(sql)
-                                # Extract table names enclosed in backticks or FROM/JOIN clauses
-                                import re
-                                found_tables = re.findall(r'`([^`]+)`', sql)
-                                for ft in found_tables:
-                                    tables_referenced.add(ft)
-                            # Check rows returned
-                            res = sub.get("result", {})
-                            if isinstance(res, dict) and "data" in res and isinstance(res["data"], list):
-                                total_rows_returned += len(res["data"])
-                    # Also check narrative text for SQL snippets if not found in structured parts
-                    text = p.get("text", "")
-                    if "SELECT " in text and "FROM " in text:
+                        if isinstance(sys_msg.get(key), dict):
+                            candidate_subs.append(sys_msg[key])
+                
+                for sub in candidate_subs:
+                    sql = sub.get("sqlQuery") or sub.get("query") or sub.get("generatedSql")
+                    if sql and isinstance(sql, str) and sql not in executed_sqls:
+                        executed_sqls.append(sql)
                         import re
-                        sql_match = re.search(r'(SELECT\s+.*?\s+FROM\s+[`\w\.-]+.*?(?:;|\n|$))', text, re.IGNORECASE | re.DOTALL)
-                        if sql_match:
-                            sql_str = sql_match.group(1).strip()
-                            if sql_str not in executed_sqls:
-                                executed_sqls.append(sql_str)
-                                found_tables = re.findall(r'`([^`]+)`', sql_str)
-                                for ft in found_tables:
-                                    tables_referenced.add(ft)
+                        found_tables = re.findall(r'`([^`]+)`', sql)
+                        for ft in found_tables:
+                            tables_referenced.add(ft)
+                    res = sub.get("result")
+                    if isinstance(res, list):
+                        for r_item in res:
+                            if isinstance(r_item, dict) and "data" in r_item and isinstance(r_item["data"], list):
+                                total_rows_returned += len(r_item["data"])
+                    elif isinstance(res, dict) and "data" in res and isinstance(res["data"], list):
+                        total_rows_returned += len(res["data"])
+                
+                # Also check narrative text for SQL snippets if not found in structured parts
+                for p in m.get("parts", []):
+                    if isinstance(p, dict):
+                        text = p.get("text", "")
+                        if "SELECT " in text and "FROM " in text:
+                            import re
+                            sql_match = re.search(r'(SELECT\s+.*?\s+FROM\s+[`\w\.-]+.*?(?:;|\n|$))', text, re.IGNORECASE | re.DOTALL)
+                            if sql_match:
+                                sql_str = sql_match.group(1).strip()
+                                if sql_str not in executed_sqls:
+                                    executed_sqls.append(sql_str)
+                                    found_tables = re.findall(r'`([^`]+)`', sql_str)
+                                    for ft in found_tables:
+                                        tables_referenced.add(ft)
         except Exception as ex:
             logger.warning(f"Could not inspect live conversation messages for trace telemetry: {ex}")
 

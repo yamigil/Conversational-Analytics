@@ -772,6 +772,7 @@ const App: React.FC = () => {
   const [isInstantSandbox, setIsInstantSandbox] = useState(false);
   const [inlineTableId, setInlineTableId] = useState("bigquery-public-data.faa.us_airports");
   const [pythonAnalysis, setPythonAnalysis] = useState(false);
+  const [freeFormSuggestions, setFreeFormSuggestions] = useState<string[]>([]);
 
   const isAllowedDomain = (email: string | null | undefined): boolean => {
     if (!email) return false;
@@ -1423,6 +1424,26 @@ const App: React.FC = () => {
       } finally {
         setLoadingAgentSchema(false);
       }
+    }
+  };
+
+  const handleExploreSandboxTable = async (tableId: string) => {
+    if (!tableId.trim()) return;
+    setLoadingAgentSchema(true);
+    setSelectedConvo("");
+    setMessages([]);
+    try {
+      const res = await authenticatedFetch(`/api/sandbox/explore?table_id=${encodeURIComponent(tableId.trim())}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+          setFreeFormSuggestions(data.suggestions);
+        }
+      }
+    } catch (err) {
+      console.error("Error exploring sandbox table:", err);
+    } finally {
+      setLoadingAgentSchema(false);
     }
   };
 
@@ -3008,11 +3029,15 @@ const App: React.FC = () => {
               </label>
               <button
                 onClick={() => {
-                  setIsInstantSandbox(!isInstantSandbox);
+                  const nextVal = !isInstantSandbox;
+                  setIsInstantSandbox(nextVal);
                   setSelectedConvo("");
                   setMessages([]);
-                  if (!isInstantSandbox) {
+                  if (nextVal) {
                     setSelectedAgent("");
+                    if (inlineTableId.trim()) {
+                      handleExploreSandboxTable(inlineTableId);
+                    }
                   } else if (agents.length > 0) {
                     setSelectedAgent(agents[0].name);
                   }
@@ -3025,15 +3050,31 @@ const App: React.FC = () => {
             </div>
 
             {isInstantSandbox ? (
-              <div className="flex flex-col gap-1.5 animate-fadeIn">
-                <input
-                  type="text"
-                  value={inlineTableId}
-                  onChange={(e) => setInlineTableId(e.target.value)}
-                  placeholder="project.dataset.table"
-                  className="w-full bg-slate-900/80 border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 transition font-mono shadow-inner"
-                />
-                <span className="text-[10px] text-slate-400 font-mono">Bypasses pre-created Data Agent via inline_context</span>
+              <div className="flex flex-col gap-2 animate-fadeIn">
+                <div className="relative">
+                  <textarea
+                    rows={2}
+                    value={inlineTableId}
+                    onChange={(e) => setInlineTableId(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleExploreSandboxTable(inlineTableId);
+                      }
+                    }}
+                    placeholder="project.dataset.table"
+                    className="w-full bg-slate-900/90 border border-amber-500/40 rounded-xl p-2.5 text-[11px] text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 transition font-mono shadow-inner resize-none break-all leading-tight"
+                  />
+                </div>
+                <button
+                  onClick={() => handleExploreSandboxTable(inlineTableId)}
+                  disabled={loadingAgentSchema || !inlineTableId.trim()}
+                  className="w-full py-2 px-3 bg-gradient-to-r from-amber-500/20 to-amber-600/20 hover:from-amber-500/30 hover:to-amber-600/30 border border-amber-500/40 hover:border-amber-400 text-amber-300 font-semibold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Sparkles size={13} className={loadingAgentSchema ? "animate-spin" : "animate-pulse"} />
+                  <span>{loadingAgentSchema ? "Exploring Schema..." : "Load Schema & AI Suggestions (↵)"}</span>
+                </button>
+                <span className="text-[10px] text-slate-400 font-mono leading-tight">Press Enter ↵ or click above to scan BigQuery schema & generate AI questions</span>
               </div>
             ) : (
               <div className={`relative ${tourStep === 9 || tourStep === 14 ? 'tour-highlight rounded-xl' : ''}`} id="agent-select-container">
@@ -3435,6 +3476,9 @@ const App: React.FC = () => {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
                             {( (() => {
                               if (isInstantSandbox) {
+                                if (freeFormSuggestions && freeFormSuggestions.length > 0) {
+                                  return freeFormSuggestions;
+                                }
                                 const tbl = inlineTableId.split(".").pop() || "table";
                                 return [
                                   `What are the key numerical trends and aggregations available in ${tbl}?`,
@@ -3562,6 +3606,9 @@ const App: React.FC = () => {
                   ? lastParsed.suggestions 
                   : (() => {
                       if (isInstantSandbox) {
+                        if (freeFormSuggestions && freeFormSuggestions.length > 0) {
+                          return freeFormSuggestions;
+                        }
                         const tbl = inlineTableId.split(".").pop() || "table";
                         return [
                           `What are the key numerical trends and aggregations available in ${tbl}?`,

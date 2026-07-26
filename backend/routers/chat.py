@@ -190,17 +190,14 @@ def get_trace_session(
                     "span_id": "span-call-llm",
                     "parent_span_id": "span-root-invoke-agent",
                     "name": "call_llm",
-                    "service": "Conversational Analytics Engine (Gemini 1.5 Pro)",
+                    "service": "Conversational Analytics Engine (Gemini)",
                     "status": "OK",
                     "latency_ms": 820,
                     "timestamp": now_ts,
                     "metadata": {
-                        "model": "gemini-1.5-pro",
-                        "promptTokens": 1420,
-                        "responseTokens": 380,
-                        "totalTokens": 1800,
+                        "model": "gemini",
                         "temperature": 0.2,
-                        "engine_scope": "Conversational Analytics Data Agent Turn (Excludes UI Suggestion Tokens)"
+                        "engine_scope": "Conversational Analytics Data Agent Turn"
                     },
                     "request_payload": {
                         "system_instruction": "Think like an Analyst. Generate clean BigQuery Standard SQL.",

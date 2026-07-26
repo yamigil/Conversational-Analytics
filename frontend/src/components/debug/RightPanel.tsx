@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Activity, Clock, Cpu, Database, ChevronRight, ChevronDown, RefreshCw, X, Code, CheckCircle2, Maximize2, Minimize2 } from "lucide-react";
+import { Activity, Database, ChevronRight, ChevronDown, RefreshCw, X, Code, CheckCircle2, Maximize2, Minimize2 } from "lucide-react";
 import { authenticatedFetch } from "../../utils/api";
 
 interface TraceSpan {
@@ -35,7 +35,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
     "span-root-invoke-agent": true,
     "span-call-llm": true
   });
-  const [activeTab, setActiveTab] = useState<"spans" | "metrics">("spans");
 
   const fetchTrace = async () => {
     if (!conversationName) return;
@@ -60,11 +59,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
   }, [isOpen, conversationName, messagesLength]);
 
   if (!isOpen) return null;
-
-  const totalTokens = traceData?.spans.find(s => s.name === "call_llm")?.metadata?.totalTokens || 1800;
-  const promptTokens = traceData?.spans.find(s => s.name === "call_llm")?.metadata?.promptTokens || 1420;
-  const responseTokens = traceData?.spans.find(s => s.name === "call_llm")?.metadata?.responseTokens || 380;
-  const totalLatency = traceData?.spans.find(s => s.name === "invoke_agent")?.latency_ms || 1240;
 
   const toggleSpan = (id: string) => {
     setExpandedSpans(prev => ({ ...prev, [id]: !prev[id] }));
@@ -183,22 +177,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-white/8 bg-slate-900/30 px-4 text-xs font-heading font-medium">
-        <button
-          onClick={() => setActiveTab("spans")}
-          className={`py-2.5 px-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer ${activeTab === "spans" ? "border-sky-400 text-sky-400 font-semibold" : "border-transparent text-slate-400 hover:text-slate-200"}`}
-        >
-          <Activity size={13} /> Trace Spans
-        </button>
-        <button
-          onClick={() => setActiveTab("metrics")}
-          className={`py-2.5 px-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer ${activeTab === "metrics" ? "border-sky-400 text-sky-400 font-semibold" : "border-transparent text-slate-400 hover:text-slate-200"}`}
-        >
-          <Cpu size={13} /> Token & Latency Metrics
-        </button>
-      </div>
-
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
         {loading && !traceData ? (
@@ -210,60 +188,15 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
           <div className="flex flex-col items-center justify-center py-12 gap-2 text-slate-500 text-center">
             <Database size={28} className="text-slate-600 mb-1" />
             <p className="text-xs font-medium text-slate-400">No active trace spans detected.</p>
-            <p className="text-[11px] max-w-[240px]">Ask a conversational question to inspect real-time Gemini LLM tokens, SQL generation, and tool execution latencies.</p>
+            <p className="text-[11px] max-w-[240px]">Ask a conversational question to inspect real-time Gemini LLM SQL generation and tool execution latencies.</p>
           </div>
-        ) : activeTab === "spans" ? (
+        ) : (
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium px-1">
               <span>Session: <span className="font-mono text-slate-300">{traceData.conversation_name.split("/").pop()}</span></span>
               <span className="text-emerald-400 font-mono">{traceData.spans.length} Spans</span>
             </div>
             {renderSpanTree(null)}
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-slate-900/60 border border-white/8 rounded-xl flex flex-col gap-1">
-                <span className="text-[10px] uppercase font-semibold text-slate-400 flex items-center gap-1"><Clock size={11} className="text-sky-400" /> Total Latency</span>
-                <span className="text-lg font-mono font-bold text-white">{totalLatency} <span className="text-xs font-normal text-slate-400">ms</span></span>
-              </div>
-              <div className="p-3 bg-slate-900/60 border border-white/8 rounded-xl flex flex-col gap-1">
-                <span className="text-[10px] uppercase font-semibold text-slate-400 flex items-center gap-1"><Cpu size={11} className="text-purple-400" /> Total Tokens</span>
-                <span className="text-lg font-mono font-bold text-white">{totalTokens.toLocaleString()}</span>
-              </div>
-            </div>
-
-            <div className="p-4 bg-slate-900/60 border border-white/8 rounded-xl flex flex-col gap-3">
-              <div className="flex justify-between items-center">
-                <h4 className="text-xs font-heading font-semibold text-slate-200">Conversational Analytics Token Breakdown</h4>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-500/15 text-purple-300 border border-purple-500/25">Gemini 1.5 Pro</span>
-              </div>
-              <div className="flex flex-col gap-2 font-mono text-xs">
-                <div className="flex justify-between items-center py-1 border-b border-white/5">
-                  <span className="text-slate-400">Prompt Tokens (Input)</span>
-                  <span className="text-sky-400 font-bold">{promptTokens.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center py-1 border-b border-white/5">
-                  <span className="text-slate-400">Response Tokens (Output)</span>
-                  <span className="text-emerald-400 font-bold">{responseTokens.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-slate-300 font-semibold">Total Context Used</span>
-                  <span className="text-purple-400 font-bold">{totalTokens.toLocaleString()}</span>
-                </div>
-              </div>
-              <div className="mt-1 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center gap-2">
-                <span className="text-xs">⚡</span>
-                <span className="text-[10px] text-emerald-300 leading-tight">Displays tokens exclusively consumed by your live Conversational Analytics turn (excludes background UI suggestion generation).</span>
-              </div>
-            </div>
-
-            <div className="p-4 bg-slate-900/60 border border-white/8 rounded-xl flex flex-col gap-2 text-xs text-slate-400">
-              <span className="text-slate-200 font-semibold font-heading">OpenTelemetry Architecture Note</span>
-              <p className="text-[11px] leading-relaxed">
-                Every request emitted to the Conversational Analytics API (`/v1alpha/projects/p/locations/l/chat:chat`) is intercepted by our telemetry proxy. Spans record exact Vertex AI Gemini RPC durations and SQL execution timing.
-              </p>
-            </div>
           </div>
         )}
       </div>

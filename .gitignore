@@ -20,4 +20,8 @@ gilbertos-project-*.json
 # Ignore local Dataform pipeline git project
 pipeline/
 
+# AI session logs and working notes
+gemini.md
+
+
 

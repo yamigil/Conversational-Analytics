@@ -172,7 +172,13 @@ def get_table_preview(
     if agent_name:
         try:
             # Fetch agent metadata to find the connected dataset ID and project ID dynamically
-            agent = client.get_agent(agent_name)
+            if not agent_name.startswith("projects/"):
+                all_agents = client.list_agents()
+                agent = next((a for a in all_agents if a.get("displayName") == agent_name or a.get("name", "").split("/")[-1] == agent_name), {})
+                if not agent:
+                    agent = client.get_agent(agent_name)
+            else:
+                agent = client.get_agent(agent_name)
             da_agent = agent.get("dataAnalyticsAgent", {})
             for context_key in ["publishedContext", "lastPublishedContext", "stagingContext"]:
                 context = da_agent.get(context_key, {})

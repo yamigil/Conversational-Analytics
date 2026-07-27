@@ -3,20 +3,24 @@ import json
 import logging
 from typing import Optional
 
-# Automatically locate and set Google Application Credentials if the key file is present in the project root
-key_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../gilbertos-project-340619-2ed76d85322c.json"))
-if os.path.exists(key_path):
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = key_path
-    try:
-        with open(key_path, "r") as f:
-            key_data = json.load(f)
-            project_id = key_data.get("project_id")
-            if project_id:
-                os.environ["GCP_PROJECT_ID"] = project_id
-                os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
-                print(f"Auto-configured GCP credentials using key: {key_path}")
-    except Exception as e:
-        print(f"Warning: Could not load project_id from key file: {e}")
+# Automatically locate and set Google Application Credentials if any service account key file is present in project root
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS") and os.path.exists(root_dir):
+    for file in os.listdir(root_dir):
+        if file.endswith(".json") and "package" not in file and file != "firebase.json" and file != "tsconfig.json":
+            key_path = os.path.join(root_dir, file)
+            try:
+                with open(key_path, "r") as f:
+                    key_data = json.load(f)
+                    if key_data.get("type") == "service_account" and key_data.get("project_id"):
+                        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = key_path
+                        project_id = key_data["project_id"]
+                        os.environ["GCP_PROJECT_ID"] = project_id
+                        os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
+                        print(f"Auto-configured GCP credentials using key: {key_path}")
+                        break
+            except Exception as e:
+                print(f"Warning: Could not inspect json file {key_path} for service account: {e}")
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

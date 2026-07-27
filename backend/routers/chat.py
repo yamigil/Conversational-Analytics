@@ -314,7 +314,7 @@ def get_trace_session(
             "last_sql": "SELECT agent, event_type, COUNT(*) FROM `agent_events` GROUP BY agent, event_type",
             "rows_returned": 5,
             "bytes_billed": 10485760,
-            "tables_referenced": ["gilbertos-project-340619.agent_analytics.agent_events"]
+            "tables_referenced": [f"{get_project_id()}.agent_analytics.agent_events"]
         }
 
         if len(msgs) == 0 and timings:

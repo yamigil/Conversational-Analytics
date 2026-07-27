@@ -341,6 +341,18 @@
 
 ---
 
+## Implemented Checklists & Milestones (Session 92 / Checkpoint 92)
+
+### 52. Advanced OpenTelemetry Telemetry, Recharts Auto-Pivoting & Free Form Stream Recording
+- **Live BigQuery Job Bytes Billed Lookup**: Upgraded `chat.py` message inspection to extract the asynchronous `bigQueryJob` object from API payloads and dynamically call `google.cloud.bigquery.Client().get_job(jobId, location=location)`. Extracted exact execution sizes (e.g. `10485760` bytes) and formatted string sizes (`"10.0 MB"`), resolving the issue where `bytes_billed` reported 0.
+- **Widescreen Toggle & Per-Turn Question Switcher in Trace Inspector**: Upgraded `RightPanel.tsx` with a widescreen toggle (`[ ↔ ]` 760px vs 450px) and an interactive Per-Turn Question Switcher (`💬 Filter by Turn: [ 🌐 Full Session Summary ] | [ Turn 1 ] | [ Turn 2 ]`). Clicking a turn dynamically filters the 5-node architecture flowchart inputs, SQL queries, row counts, and bytes billed to reflect individual questions.
+- **Interactive Architecture Flowchart Refinements & Accordion Removal**: Deleted the redundant bottom `"Detailed OpenTelemetry Span Hierarchy"` accordion list from `RightPanel.tsx`. Enlarge flowchart node cards to use 22px icons and centered multi-line text wrapping (`whitespace-normal`), preventing titles from clipping with trailing ellipses (`...`). Enforced deterministic mode publishing (`"Free Form Mode"` vs `"Data Agent Mode"`) in `chat.py`.
+- **Recharts Constant Column Skipping & Multi-Series Pivoting**: Upgraded `getChartFields` (`App.tsx`) and `getPreviewChartFields` (`GraphVisualizer.tsx`) with distinct value checking (`uniqueVals > 1`). Queries grouping by constant columns (e.g. `agent = 'bq_multi_agent'` across all rows) now automatically skip the constant field, selecting the true varying nominal field (`event_type`) for the X-axis and plotting multi-series quantitative data cleanly with an interactive `<Legend />`.
+- **Stateless Free Form Mode SSE Execution Recording & UnboundLocalError Fix**: Enabled OpenTelemetry trace session inspection in stateless Free Form mode by assigning `"free_form_session"` as the active handle in `App.tsx`. Updated `stream_chat` in `chat.py` to inspect SSE data chunks during inline execution, recording `executed_sqls`, `rows_returned`, `bytes_billed`, and `tables_referenced` directly into memory. Initialized `msgs = []` before the GCP `list_messages` try block in `get_trace_session` to prevent `UnboundLocalError` when inline sessions return API exceptions, falling back to live in-memory telemetry cleanly.
+- **Customer Engineers Speech Pitch & Field Positioning Guide**: Formulated and archived `CUSTOMER_ENGINEERS_PITCH.md` in the repository root, documenting the field positioning framework (What is it, Who is this for including Argolis vs non-Argolis, and Where do you position it outside BQ UI without replacing Gemini Enterprise) and the 4 custom engineering superpowers built on top of the CA API.
+
+---
+
 ## Next Session Plans
 1. **Frontend Click Interception / Dropdown Focus Fix**: Resolve the event-handling bug where the first click on a suggested query card is intercepted by `handleClickOutside` if a dropdown is open, requiring a second click to submit.
 2. **Graph Query History Visualizer**: Highlight queried nodes and connection edges in the graph based on the active conversation history.

@@ -90,10 +90,14 @@ def chat(req: ChatRequestModel, user: dict = Depends(get_current_user), client: 
                         if "message" in chunk:
                             chunk = chunk["message"]
                         sys_msg = chunk.get("systemMessage", {}) if isinstance(chunk.get("systemMessage"), dict) else chunk
+                        if isinstance(sys_msg, dict):
+                            top_sql = sys_msg.get("sqlQuery") or sys_msg.get("query") or sys_msg.get("generatedSql") or sys_msg.get("sql") or sys_msg.get("code") or sys_msg.get("queryText")
+                            if top_sql and isinstance(top_sql, str) and top_sql not in executed_sqls:
+                                executed_sqls.append(top_sql)
                         for key in ["data", "schema", "chart"]:
                             sub = sys_msg.get(key)
                             if isinstance(sub, dict):
-                                sql = sub.get("sqlQuery") or sub.get("query") or sub.get("generatedSql")
+                                sql = sub.get("sqlQuery") or sub.get("query") or sub.get("generatedSql") or sub.get("sql") or sub.get("code") or sub.get("queryText")
                                 if sql and isinstance(sql, str) and sql not in executed_sqls:
                                     executed_sqls.append(sql)
                                 res = sub.get("result")
@@ -201,7 +205,7 @@ def get_trace_session(
                             candidate_subs.append(sys_msg[key])
                 
                 for sub in candidate_subs:
-                    sql = sub.get("sqlQuery") or sub.get("query") or sub.get("generatedSql")
+                    sql = sub.get("sqlQuery") or sub.get("query") or sub.get("generatedSql") or sub.get("sql") or sub.get("code") or sub.get("queryText")
                     if sql and isinstance(sql, str) and sql not in executed_sqls:
                         executed_sqls.append(sql)
                         if cur_turn and sql not in cur_turn["executed_sqls"]:

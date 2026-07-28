@@ -3641,25 +3641,23 @@ const App: React.FC = () => {
                   messages.forEach((m: any) => {
                     const sys = m.systemMessage;
                     if (sys) {
+                      const topSql = sys.sqlQuery || sys.query || sys.generatedSql || sys.sql || sys.code || sys.queryText;
+                      if (topSql && typeof topSql === "string") sessionSqls.push(topSql.toLowerCase());
                       for (const k of ["data", "schema", "chart"]) {
                         const sub = sys[k];
                         if (sub && typeof sub === "object") {
-                          const sql = sub.sqlQuery || sub.query || sub.generatedSql;
+                          const sql = sub.sqlQuery || sub.query || sub.generatedSql || sub.sql || sub.code || sub.queryText;
                           if (sql && typeof sql === "string") sessionSqls.push(sql.toLowerCase());
                         }
                       }
                       if (Array.isArray(sys.statuses)) {
                         sys.statuses.forEach((st: any) => {
-                          if (typeof st === "string" && (st.toLowerCase().includes("select ") || st.toLowerCase().includes("from ") || st.toLowerCase().includes("join "))) {
-                            sessionSqls.push(st.toLowerCase());
-                          }
+                          if (typeof st === "string") sessionSqls.push(st.toLowerCase());
                         });
                       }
                       if (Array.isArray(sys.thoughts)) {
                         sys.thoughts.forEach((th: any) => {
-                          if (th && typeof th.body === "string" && (th.body.toLowerCase().includes("select ") || th.body.toLowerCase().includes("from "))) {
-                            sessionSqls.push(th.body.toLowerCase());
-                          }
+                          if (th && typeof th.body === "string") sessionSqls.push(th.body.toLowerCase());
                         });
                       }
                     }
@@ -3669,25 +3667,23 @@ const App: React.FC = () => {
                   const allSqls: string[] = [];
                   targetSysMsgs.forEach((sys: any) => {
                     if (sys) {
+                      const topSql = sys.sqlQuery || sys.query || sys.generatedSql || sys.sql || sys.code || sys.queryText;
+                      if (topSql && typeof topSql === "string") allSqls.push(topSql.toLowerCase());
                       for (const k of ["data", "schema", "chart"]) {
                         const sub = sys[k];
                         if (sub && typeof sub === "object") {
-                          const sql = sub.sqlQuery || sub.query || sub.generatedSql;
+                          const sql = sub.sqlQuery || sub.query || sub.generatedSql || sub.sql || sub.code || sub.queryText;
                           if (sql && typeof sql === "string") allSqls.push(sql.toLowerCase());
                         }
                       }
                       if (Array.isArray(sys.statuses)) {
                         sys.statuses.forEach((st: any) => {
-                          if (typeof st === "string" && (st.toLowerCase().includes("select ") || st.toLowerCase().includes("from ") || st.toLowerCase().includes("join "))) {
-                            allSqls.push(st.toLowerCase());
-                          }
+                          if (typeof st === "string") allSqls.push(st.toLowerCase());
                         });
                       }
                       if (Array.isArray(sys.thoughts)) {
                         sys.thoughts.forEach((th: any) => {
-                          if (th && typeof th.body === "string" && (th.body.toLowerCase().includes("select ") || th.body.toLowerCase().includes("from "))) {
-                            allSqls.push(th.body.toLowerCase());
-                          }
+                          if (th && typeof th.body === "string") allSqls.push(th.body.toLowerCase());
                         });
                       }
                     }

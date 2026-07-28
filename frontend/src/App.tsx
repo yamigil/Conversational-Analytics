@@ -3662,12 +3662,19 @@ const App: React.FC = () => {
 
                   // Dynamically inject any table referenced in SQL queries into graphData for non-graph agents / Free Form mode
                   const tblSet = new Set<string>();
+                  const sqlBlocklist = new Set([
+                    "select", "where", "group", "order", "limit", "unnest", "left", "right", "inner", "outer", "cross", "on", "as", "and", "or", "by",
+                    "contains", "creating", "citing", "using", "showing", "having", "with", "when", "then", "else", "end", "case", "cast", "null",
+                    "not", "exists", "between", "like", "in", "is", "table", "database", "schema", "data", "query", "results", "columns", "records",
+                    "number", "string", "int", "date", "time", "timestamp", "year", "month", "day", "total", "sum", "avg", "min", "max", "count",
+                    "desc", "asc", "distinct", "all", "any", "some", "view", "index", "function", "procedure", "trigger", "constraint", "from", "join"
+                  ]);
                   sessionSqls.forEach(sql => {
-                    const matches = sql.matchAll(/(?:from|join|table)\s+([a-zA-Z0-9_$-]+(?:\.[a-zA-Z0-9_$-]+)*)/gi);
+                    const matches = sql.matchAll(/(?:from|join|into|update|merge)\s+([`'"[\]]?([a-zA-Z0-9_$-]+(?:\.[a-zA-Z0-9_$-]+)*)[`'"[\]]?)/gi);
                     for (const m of matches) {
                       if (m[1]) {
                         const clean = m[1].replace(/[`'"[\]]/g, "").trim();
-                        if (clean.length > 2 && !["select", "where", "group", "order", "limit", "unnest", "left", "right", "inner", "outer", "cross", "on", "as", "and", "or", "by"].includes(clean.toLowerCase())) {
+                        if (clean.length > 2 && !sqlBlocklist.has(clean.toLowerCase())) {
                           tblSet.add(clean);
                         }
                       }

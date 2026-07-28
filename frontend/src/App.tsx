@@ -1044,6 +1044,7 @@ const App: React.FC = () => {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSchemaExpanded, setIsSchemaExpanded] = useState(false);
+  const [selectedSchemaTurnIdx, setSelectedSchemaTurnIdx] = useState<number | null>(null);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
   const [isInstantSandbox, setIsInstantSandbox] = useState(false);
   const [inlineTableId, setInlineTableId] = useState("bigquery-public-data.faa.us_airports");
@@ -2292,6 +2293,7 @@ const App: React.FC = () => {
     sessionStorage.setItem("activeAgentName", val);
     setSelectedConvo("");
     setMessages([]);
+    setSelectedSchemaTurnIdx(null);
     fetchConversations(val);
     fetchAgentSchema(val);
     setIsSidebarOpen(false);
@@ -2303,6 +2305,7 @@ const App: React.FC = () => {
 
   const handleConvoClick = (convoName: string) => {
     setSelectedConvo(convoName);
+    setSelectedSchemaTurnIdx(null);
     fetchMessages(convoName);
     setIsSidebarOpen(false);
   };
@@ -3563,9 +3566,37 @@ const App: React.FC = () => {
                 }
                 
                 if (activeAgentObj?.graphData) {
-                  const allSqls: string[] = [];
+                  // Group conversation history into distinct user turns for per-turn graph lineage inspection
+                  const schemaTurns: { question: string; sysMsgs: any[] }[] = [];
+                  let currentTurnObj: { question: string; sysMsgs: any[] } | null = null;
                   messages.forEach((m: any) => {
-                    const sys = m.systemMessage;
+                    if (m.userMessage && m.userMessage.text) {
+                      currentTurnObj = { question: m.userMessage.text, sysMsgs: [] };
+                      schemaTurns.push(currentTurnObj);
+                    } else if (m.systemMessage && currentTurnObj) {
+                      currentTurnObj.sysMsgs.push(m.systemMessage);
+                    } else if (m.systemMessage && !currentTurnObj) {
+                      currentTurnObj = { question: "Initial Session Overview", sysMsgs: [m.systemMessage] };
+                      schemaTurns.push(currentTurnObj);
+                    }
+                  });
+
+                  // Select which messages to scan for SQL execution based on the active turn filter
+                  // null = Latest Turn (default), -1 = Full Session (All Turns), 0+ = Specific Turn Index
+                  let targetSysMsgs: any[] = [];
+                  if (selectedSchemaTurnIdx === null) {
+                    const lastTurn = schemaTurns[schemaTurns.length - 1];
+                    targetSysMsgs = lastTurn ? lastTurn.sysMsgs : messages.map((m: any) => m.systemMessage).filter(Boolean);
+                  } else if (selectedSchemaTurnIdx === -1) {
+                    targetSysMsgs = messages.map((m: any) => m.systemMessage).filter(Boolean);
+                  } else if (schemaTurns[selectedSchemaTurnIdx]) {
+                    targetSysMsgs = schemaTurns[selectedSchemaTurnIdx].sysMsgs;
+                  } else {
+                    targetSysMsgs = messages.map((m: any) => m.systemMessage).filter(Boolean);
+                  }
+
+                  const allSqls: string[] = [];
+                  targetSysMsgs.forEach((sys: any) => {
                     if (sys) {
                       for (const k of ["data", "schema", "chart"]) {
                         const sub = sys[k];
@@ -3606,6 +3637,52 @@ const App: React.FC = () => {
 
                   return (
                     <div id="schema-drawer-container" className="w-full flex-1 bg-slate-950/40 backdrop-blur-md pt-0 pb-4 px-6 overflow-y-auto flex flex-col">
+                      {/* Per-Turn Graph Lineage Filter Bar */}
+                      {schemaTurns.length > 0 && (
+                        <div className="flex items-center gap-2 mb-3 p-2 bg-slate-900/90 border border-white/10 rounded-2xl overflow-x-auto custom-scrollbar shadow-md shrink-0 select-none animate-fadeIn">
+                          <span className="text-[10.5px] uppercase font-bold tracking-wider text-slate-400 px-2 shrink-0 flex items-center gap-1.5">
+                            💬 Filter Lineage by Turn:
+                          </span>
+                          <button
+                            onClick={() => setSelectedSchemaTurnIdx(null)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer select-none shrink-0 border ${
+                              selectedSchemaTurnIdx === null
+                                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-md scale-[1.02]"
+                                : "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white"
+                            }`}
+                          >
+                            ⚡ Latest Turn ({schemaTurns.length > 0 ? `Turn ${schemaTurns.length}` : 'Current'})
+                          </button>
+                          <button
+                            onClick={() => setSelectedSchemaTurnIdx(-1)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer select-none shrink-0 border ${
+                              selectedSchemaTurnIdx === -1
+                                ? "bg-purple-500/20 text-purple-300 border-purple-500/50 shadow-md scale-[1.02]"
+                                : "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white"
+                            }`}
+                          >
+                            🌐 Full Session Summary ({schemaTurns.length} Turns)
+                          </button>
+                          {schemaTurns.map((turn, idx) => {
+                            const isSelected = selectedSchemaTurnIdx === idx;
+                            const cleanQ = turn.question.replace(/^#\s*/, "");
+                            return (
+                              <button
+                                key={idx}
+                                onClick={() => setSelectedSchemaTurnIdx(idx)}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-semibold truncate max-w-[220px] transition cursor-pointer select-none shrink-0 border ${
+                                  isSelected
+                                    ? "bg-sky-500/20 text-sky-300 border-sky-500/50 shadow-md scale-[1.02]"
+                                    : "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white"
+                                }`}
+                                title={turn.question}
+                              >
+                                Turn {idx + 1}: "{cleanQ.length > 22 ? cleanQ.substring(0, 22) + "..." : cleanQ}"
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                       <GraphVisualizer
                         graphData={activeAgentObj.graphData}
                         queriedNodes={queriedNodes}

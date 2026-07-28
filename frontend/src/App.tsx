@@ -238,6 +238,7 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
         lower.includes("skip_memory_citation:") ||
         lower.includes("skip_uri_citation:") ||
         lower.includes("request is pretty clear") ||
+        lower.includes("request is straightforward") ||
         lower.includes("plan is straightforward") ||
         lower.includes("my first instinct") ||
         lower.includes("need to figure out") ||
@@ -249,6 +250,10 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
         lower.includes("let's run a query") ||
         lower.includes("first step is") ||
         lower.includes("next step is") ||
+        lower.includes("scanned the provided") ||
+        lower.includes("where i need to be careful") ||
+        lower.includes("instructions are quite detailed") ||
+        lower.includes("don't need to generate an example") ||
         lower.startsWith("alright,") ||
         lower.startsWith("okay,") ||
         lower.startsWith("ok,") ||
@@ -266,7 +271,7 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
         lower.startsWith("first, i will") ||
         lower.startsWith("next, i need to");
 
-      if (isInternalReasoning && !currentSystemMsg.data && !currentSystemMsg.schema) {
+      if (isInternalReasoning) {
         // Pre-query intermediate reasoning / thoughts!
         let title = "Analyzing Query & Schema Context";
         let body = fullText;

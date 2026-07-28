@@ -3578,6 +3578,7 @@ const App: React.FC = () => {
                       defaultNodes.push({
                         id: shortName,
                         label: shortName.toUpperCase(),
+                        fullName: cleanTbl,
                         icon: "table",
                         type: "table",
                         description: `Free Form exploration table: ${cleanTbl}. Contains columns, metrics, and records ready for analysis.`
@@ -3735,6 +3736,7 @@ const App: React.FC = () => {
                       dynamicNodes.push({
                         id: shortName,
                         label: shortName.toUpperCase(),
+                        fullName: tbl,
                         icon: "table",
                         type: "table",
                         description: `Dynamically queried database table: ${tbl}. Contains columns, metrics, and records analyzed during this session.`

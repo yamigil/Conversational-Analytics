@@ -213,17 +213,20 @@ def get_table_preview(
         if len(parts) == 3:
             project_id = parts[0]
             dataset_id = parts[1]
+            clean_name = parts[2]
         elif len(parts) == 2:
             dataset_id = parts[0]
+            clean_name = parts[1]
             
+    if not dataset_id and clean_name.lower() == "us_airports":
+        project_id = "bigquery-public-data"
+        dataset_id = "faa"
+        
     if not project_id:
         project_id = get_project_id()
         
     if not dataset_id:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Could not resolve dataset context for table '{table_name}'. Please ensure agent_name is specified."
-        )
+        dataset_id = "public_data"
 
     cache_key = (project_id, dataset_id, clean_name)
     if cache_key in _TABLE_PREVIEW_CACHE:

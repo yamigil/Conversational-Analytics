@@ -237,17 +237,33 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
         lower.includes("skip_glossary_citation:") ||
         lower.includes("skip_memory_citation:") ||
         lower.includes("skip_uri_citation:") ||
+        lower.includes("request is pretty clear") ||
+        lower.includes("plan is straightforward") ||
+        lower.includes("my first instinct") ||
+        lower.includes("need to figure out") ||
+        lower.includes("let's figure out") ||
+        lower.includes("i'll execute") ||
+        lower.includes("i will execute") ||
+        lower.includes("querying the table") ||
+        lower.includes("executing the query") ||
+        lower.includes("let's run a query") ||
+        lower.includes("first step is") ||
+        lower.includes("next step is") ||
+        lower.startsWith("alright,") ||
+        lower.startsWith("okay,") ||
+        lower.startsWith("ok,") ||
+        lower.startsWith("so,") ||
+        lower.startsWith("to start,") ||
+        lower.startsWith("to begin,") ||
         lower.startsWith("analyzing context") ||
         lower.startsWith("retrieved context") ||
-        lower.startsWith("understanding the ") ||
-        lower.startsWith("understanding what to ask") ||
-        lower.startsWith("understanding your data") ||
-        lower.startsWith("my primary objective is") ||
-        lower.startsWith("my goal here is") ||
-        lower.startsWith("my immediate thought is") ||
+        lower.startsWith("understanding ") ||
+        lower.startsWith("my primary objective") ||
+        lower.startsWith("my goal here") ||
+        lower.startsWith("my immediate thought") ||
         lower.startsWith("let's look at") ||
         lower.startsWith("let's analyze") ||
-        lower.startsWith("first, i will scan") ||
+        lower.startsWith("first, i will") ||
         lower.startsWith("next, i need to");
 
       if (isInternalReasoning && !currentSystemMsg.data && !currentSystemMsg.schema) {
@@ -562,12 +578,12 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
     }
     if (!nominalField) nominalField = nominalFields[0] || (keys.length >= 2 ? keys[0] : "");
 
-    // Shield against high-cardinality individual entity reports (like lists of 51 customer names/phones/emails)
+    // Shield against high-cardinality individual entity reports (like lists of 10+ customer names/phones/emails)
     const isIdentifierCol = (col: string) => {
       const c = col.toLowerCase();
-      return c.includes("name") || c.includes("phone") || c.includes("email") || c.includes("id") || c.includes("vin") || c.includes("address") || c.includes("uuid");
+      return c.includes("name") || c.includes("phone") || c.includes("email") || c.includes("id") || c.includes("vin") || c.includes("address") || c.includes("uuid") || c.includes("customer");
     };
-    if (tableData.rows.length > 15 && isIdentifierCol(nominalField)) {
+    if (tableData.rows.length > 10 && isIdentifierCol(nominalField)) {
       return null;
     }
 
@@ -624,7 +640,18 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
 
   const chartFields = getChartFields();
 
+  const isIdentifierReport = () => {
+    if (!tableData || !tableData.rows || tableData.rows.length <= 10) return false;
+    const firstRow = tableData.rows[0];
+    const keys = Object.keys(firstRow);
+    return keys.some(k => {
+      const c = k.toLowerCase();
+      return c.includes("name") || c.includes("phone") || c.includes("email") || c.includes("id") || c.includes("vin") || c.includes("address") || c.includes("uuid") || c.includes("customer");
+    });
+  };
+
   const getEffectiveVegaConfig = () => {
+    if (isIdentifierReport()) return null;
     if (chart?.result?.vegaConfig) return chart.result.vegaConfig;
     if (chartFields) return null; // Use Recharts instead for clean tabular data
     return null;

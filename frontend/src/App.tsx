@@ -3566,13 +3566,46 @@ const App: React.FC = () => {
                 }
                 
                 if (activeAgentObj || isInstantSandbox) {
-                  const baseGraphData = activeAgentObj?.graphData || {
-                    nodes: [
+                  let baseGraphData = activeAgentObj?.graphData;
+                  if (!baseGraphData) {
+                    const defaultNodes: any[] = [
                       { id: "schema_root", label: "Database Schema", icon: "database", type: "database", description: "Root database schema containing connected analytical tables." }
-                    ],
-                    edges: [],
-                    nodeSuggestions: {}
-                  };
+                    ];
+                    const defaultEdges: any[] = [];
+                    const defaultSuggestions: Record<string, string[]> = {};
+
+                    if (isInstantSandbox && inlineTableId && inlineTableId.trim()) {
+                      const cleanTbl = inlineTableId.trim();
+                      const shortName = cleanTbl.split(".").pop() || cleanTbl;
+                      defaultNodes.push({
+                        id: shortName,
+                        label: shortName.toUpperCase(),
+                        icon: "table",
+                        type: "table",
+                        description: `Free Form exploration table: ${cleanTbl}. Contains columns, metrics, and records ready for analysis.`
+                      });
+                      defaultEdges.push({
+                        source: "schema_root",
+                        target: shortName,
+                        label: "CONTAINS"
+                      });
+                      if (freeFormSuggestions && freeFormSuggestions.length > 0) {
+                        defaultSuggestions[shortName] = freeFormSuggestions;
+                      } else {
+                        defaultSuggestions[shortName] = [
+                          `Can you give me a summary of the data in the ${shortName} table?`,
+                          `What are the key metrics and columns available in ${shortName}?`,
+                          `Show me the top 10 most recent records from ${shortName}.`
+                        ];
+                      }
+                    }
+
+                    baseGraphData = {
+                      nodes: defaultNodes,
+                      edges: defaultEdges,
+                      nodeSuggestions: defaultSuggestions
+                    };
+                  }
 
                   // Group conversation history into distinct user turns for per-turn graph lineage inspection
                   const schemaTurns: { question: string; sysMsgs: any[] }[] = [];
@@ -3667,14 +3700,23 @@ const App: React.FC = () => {
                     "contains", "creating", "citing", "using", "showing", "having", "with", "when", "then", "else", "end", "case", "cast", "null",
                     "not", "exists", "between", "like", "in", "is", "table", "database", "schema", "data", "query", "results", "columns", "records",
                     "number", "string", "int", "date", "time", "timestamp", "year", "month", "day", "total", "sum", "avg", "min", "max", "count",
-                    "desc", "asc", "distinct", "all", "any", "some", "view", "index", "function", "procedure", "trigger", "constraint", "from", "join"
+                    "desc", "asc", "distinct", "all", "any", "some", "view", "index", "function", "procedure", "trigger", "constraint", "from", "join",
+                    "additional", "charting", "the", "this", "that", "these", "those", "our", "your", "my", "their", "his", "her", "its", "a", "an",
+                    "every", "each", "both", "either", "neither", "one", "two", "three", "first", "second", "third", "last", "next", "previous",
+                    "above", "below", "over", "under", "among", "within", "without", "about", "against", "during", "before", "after", "since",
+                    "until", "while", "through", "throughout", "into", "onto", "upon", "out", "off", "up", "down", "at", "for", "to", "of",
+                    "nor", "but", "yet", "so", "if", "why", "how", "what", "which", "who", "whom", "whose", "whether", "than", "because",
+                    "although", "though", "unless", "graph", "agent", "source", "sources", "grounding", "information", "details", "summary", "report"
                   ]);
                   sessionSqls.forEach(sql => {
                     const matches = sql.matchAll(/(?:from|join|into|update|merge)\s+([`'"[\]]?([a-zA-Z0-9_$-]+(?:\.[a-zA-Z0-9_$-]+)*)[`'"[\]]?)/gi);
                     for (const m of matches) {
                       if (m[1]) {
                         const clean = m[1].replace(/[`'"[\]]/g, "").trim();
-                        if (clean.length > 2 && !sqlBlocklist.has(clean.toLowerCase())) {
+                        const hasDot = clean.includes(".");
+                        const inBackticks = m[0].includes("`");
+                        const isKnownTable = baseGraphData.nodes.some((n: any) => n.id.toLowerCase() === clean.toLowerCase() || n.id.toLowerCase().replace(/_/g, "") === clean.toLowerCase().replace(/_/g, ""));
+                        if ((hasDot || inBackticks || isKnownTable) && clean.length > 2 && !sqlBlocklist.has(clean.toLowerCase())) {
                           tblSet.add(clean);
                         }
                       }

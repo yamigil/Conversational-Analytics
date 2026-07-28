@@ -231,12 +231,9 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
       const fullText = parts.join("\n\n").trim();
       const lower = fullText.toLowerCase();
 
-      // Detect if this chunk is explicitly internal chain-of-thought / ADK reasoning parameter dumps
+      // Detect if this chunk contains internal chain-of-thought / ADK conversational planning preamble
       const isInternalReasoning = 
-        lower.includes("skip_example_query_citation:") ||
-        lower.includes("skip_glossary_citation:") ||
-        lower.includes("skip_memory_citation:") ||
-        lower.includes("skip_uri_citation:") ||
+        lower.includes("skip_") ||
         lower.includes("request is pretty clear") ||
         lower.includes("request is straightforward") ||
         lower.includes("plan is straightforward") ||
@@ -251,9 +248,21 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
         lower.includes("first step is") ||
         lower.includes("next step is") ||
         lower.includes("scanned the provided") ||
+        lower.includes("scanned the available") ||
         lower.includes("where i need to be careful") ||
         lower.includes("instructions are quite detailed") ||
         lower.includes("don't need to generate an example") ||
+        lower.includes("my primary objective") ||
+        lower.includes("my understanding is") ||
+        lower.includes("i'm reviewing the") ||
+        lower.includes("i am reviewing the") ||
+        lower.includes("focusing on the types of questions") ||
+        lower.includes("my goal here") ||
+        lower.includes("my immediate thought") ||
+        lower.includes("let's look at") ||
+        lower.includes("let's analyze") ||
+        lower.includes("first, i will") ||
+        lower.includes("next, i need to") ||
         lower.startsWith("alright,") ||
         lower.startsWith("okay,") ||
         lower.startsWith("ok,") ||
@@ -262,30 +271,40 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
         lower.startsWith("to begin,") ||
         lower.startsWith("analyzing context") ||
         lower.startsWith("retrieved context") ||
-        lower.startsWith("understanding ") ||
-        lower.startsWith("my primary objective") ||
-        lower.startsWith("my goal here") ||
-        lower.startsWith("my immediate thought") ||
-        lower.startsWith("let's look at") ||
-        lower.startsWith("let's analyze") ||
-        lower.startsWith("first, i will") ||
-        lower.startsWith("next, i need to");
+        lower.startsWith("understanding ");
 
       if (isInternalReasoning) {
+        let thoughtText = fullText;
+        let answerText = "";
+        
+        // Intelligent Splitter: when Gemini streams internal monologue and the final answer in a single chunk
+        // (e.g. numbered lists "1. ", headers "###", "Here are"), split the preamble into thoughts and answer into raw response!
+        const match = fullText.match(/(?:^|\n|\:\s+)(?:1[\.\)\-]\s|\*\*1[\.\)\-]|###?\s|\*\*Here (?:are|is)|\*\*The following|\*\*Questions you can ask|\*\*Summary)/i);
+        if (match && match.index !== undefined && match.index > 25) {
+          const splitIdx = match.index + (match[0].startsWith(":") ? 2 : 0);
+          thoughtText = fullText.substring(0, splitIdx).trim();
+          answerText = fullText.substring(splitIdx).trim();
+        }
+
         // Pre-query intermediate reasoning / thoughts!
         let title = "Analyzing Query & Schema Context";
-        let body = fullText;
-        if (parts.length >= 2 && parts[0] && parts[0].length < 80 && !parts[0].includes('.')) {
-          title = parts[0].trim();
-          body = parts.slice(1).join("\n\n").trim() || fullText;
-        } else {
-          const firstLine = fullText.split("\n")[0].trim();
-          if (firstLine && firstLine.length < 80 && !firstLine.endsWith(".")) {
-            title = firstLine;
-            body = fullText.slice(firstLine.length).trim() || fullText;
-          }
+        let body = thoughtText;
+        const thoughtLines = thoughtText.split("\n");
+        if (thoughtLines.length >= 2 && thoughtLines[0] && thoughtLines[0].length < 80 && !thoughtLines[0].endsWith('.')) {
+          title = thoughtLines[0].trim();
+          body = thoughtLines.slice(1).join("\n\n").trim() || thoughtText;
         }
         currentSystemMsg.thoughts.push({ title: title, body: body });
+
+        if (answerText) {
+          // Format inline numbered lists with line breaks if Gemini streamed them without newlines
+          const formattedAnswer = answerText
+            .replace(/(?:\.|\:)\s+(\d+[\.\)\-]\s+\*\*)/g, "\n\n$1")
+            .replace(/(?:\.|\:)\s+(\d+[\.\)\-]\s+[A-Z])/g, "\n\n$1");
+          currentSystemMsg.answer = currentSystemMsg.answer
+            ? currentSystemMsg.answer + "\n\n" + formattedAnswer
+            : formattedAnswer;
+        }
       } else {
         // Substantive user-facing answer chunk!
         const cleanAnswerText = (parts.length === 2 && parts[0] && parts[1] && !parts[0].startsWith("#") && parts[0].length < 60)

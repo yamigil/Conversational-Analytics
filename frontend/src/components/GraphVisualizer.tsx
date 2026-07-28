@@ -750,6 +750,25 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
         {/* Grid background */}
         <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.025)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
         
+        {/* Lineage Status Banner */}
+        <div className="absolute top-4 left-4 z-20 pointer-events-none flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/85 border border-white/10 backdrop-blur-md text-xs shadow-lg">
+          {queriedNodes && queriedNodes.length > 0 ? (
+            <>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span className="text-slate-300 font-medium">
+                Active Lineage: <strong className="text-emerald-400 font-bold">{queriedNodes.length} table{queriedNodes.length > 1 ? 's' : ''} queried</strong> in this conversation turn
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse" />
+              <span className="text-slate-400 font-medium">
+                Full Database Schema shown <span className="text-slate-500">(No tables directly queried in last response)</span>
+              </span>
+            </>
+          )}
+        </div>
+
         {/* Floating Pan & Zoom Controls UI */}
         <div className="absolute bottom-4 right-4 flex gap-1.5 z-20">
           <button 

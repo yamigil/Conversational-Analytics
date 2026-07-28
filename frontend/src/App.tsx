@@ -228,20 +228,30 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
     for (let idx = 0; idx < narrativeChunks.length; idx++) {
       const parts = narrativeChunks[idx];
       if (!parts || parts.length === 0) continue;
-      const isFinalChunk = idx === narrativeChunks.length - 1;
       const fullText = parts.join("\n\n").trim();
-      const isClearlyAnswerOrInsights = isFinalChunk || 
-                                        fullText.includes("### Insights") || 
-                                        fullText.includes("### Key Insights") || 
-                                        fullText.includes("### Summary") ||
-                                        fullText.includes("### Answer") ||
-                                        fullText.includes("### Analysis") ||
-                                        fullText.includes("### Results") ||
-                                        fullText.toLowerCase().includes("**insights**") ||
-                                        fullText.toLowerCase().includes("key insights:");
+      const lower = fullText.toLowerCase();
 
-      if (!isClearlyAnswerOrInsights) {
-        // Any narrative chunk received before the final answer chunk is intermediate reasoning / thoughts!
+      // Detect if this chunk is explicitly internal chain-of-thought / ADK reasoning parameter dumps
+      const isInternalReasoning = 
+        lower.includes("skip_example_query_citation:") ||
+        lower.includes("skip_glossary_citation:") ||
+        lower.includes("skip_memory_citation:") ||
+        lower.includes("skip_uri_citation:") ||
+        lower.startsWith("analyzing context") ||
+        lower.startsWith("retrieved context") ||
+        lower.startsWith("understanding the ") ||
+        lower.startsWith("understanding what to ask") ||
+        lower.startsWith("understanding your data") ||
+        lower.startsWith("my primary objective is") ||
+        lower.startsWith("my goal here is") ||
+        lower.startsWith("my immediate thought is") ||
+        lower.startsWith("let's look at") ||
+        lower.startsWith("let's analyze") ||
+        lower.startsWith("first, i will scan") ||
+        lower.startsWith("next, i need to");
+
+      if (isInternalReasoning && !currentSystemMsg.data && !currentSystemMsg.schema) {
+        // Pre-query intermediate reasoning / thoughts!
         let title = "Analyzing Query & Schema Context";
         let body = fullText;
         if (parts.length >= 2 && parts[0] && parts[0].length < 80 && !parts[0].includes('.')) {
@@ -256,12 +266,12 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
         }
         currentSystemMsg.thoughts.push({ title: title, body: body });
       } else {
-        // Substantive narrative chunk -> Answer
+        // Substantive user-facing answer chunk!
         const cleanAnswerText = (parts.length === 2 && parts[0] && parts[1] && !parts[0].startsWith("#") && parts[0].length < 60)
           ? parts[1].trim()
           : parts.join("\n\n").trim();
 
-        if (cleanAnswerText.startsWith("### Insights") || cleanAnswerText.startsWith("Insights") || cleanAnswerText.toLowerCase().startsWith("**insights**")) {
+        if (cleanAnswerText.startsWith("### Insights") || cleanAnswerText.startsWith("Insights") || lower.startsWith("**insights**")) {
           currentSystemMsg.insights = currentSystemMsg.insights ? currentSystemMsg.insights + "\n\n" + cleanAnswerText : cleanAnswerText;
         } else {
           currentSystemMsg.answer = currentSystemMsg.answer ? currentSystemMsg.answer + "\n\n" + cleanAnswerText : cleanAnswerText;
@@ -552,11 +562,21 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
     }
     if (!nominalField) nominalField = nominalFields[0] || (keys.length >= 2 ? keys[0] : "");
 
+    // Shield against high-cardinality individual entity reports (like lists of 51 customer names/phones/emails)
+    const isIdentifierCol = (col: string) => {
+      const c = col.toLowerCase();
+      return c.includes("name") || c.includes("phone") || c.includes("email") || c.includes("id") || c.includes("vin") || c.includes("address") || c.includes("uuid");
+    };
+    if (tableData.rows.length > 15 && isIdentifierCol(nominalField)) {
+      return null;
+    }
+
     let seriesField = "";
     for (const nf of nominalFields) {
-      if (nf !== nominalField) {
+      if (nf !== nominalField && !isIdentifierCol(nf)) {
         const uniqueVals = new Set(tableData.rows.map((r: any) => String(r[nf] || ""))).size;
-        if (uniqueVals > 1) {
+        // Multi-series charting only makes visual sense for low-cardinality grouping categories (<= 7 series)
+        if (uniqueVals > 1 && uniqueVals <= 7) {
           seriesField = nf;
           break;
         }

@@ -54,6 +54,7 @@ interface GraphVisualizerProps {
   agentName?: string;
   fetchTablePreview?: (tableName: string, agentName?: string) => Promise<{ columns: string[], rows: any[] }>;
   isGraphAgent?: boolean;
+  queriedNodes?: string[];
 }
 
 const PRESET_COORDINATES: Record<string, { x: number; y: number }> = {
@@ -229,7 +230,8 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   brandLogoText,
   agentName,
   fetchTablePreview,
-  isGraphAgent = true
+  isGraphAgent = true,
+  queriedNodes = []
 }) => {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
@@ -473,11 +475,16 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     return <Network size={size} color={color} />;
   };
 
-  // Helper to check if an edge connects to a hovered/selected node
+  // Helper to check if an edge connects to a hovered/selected node or active query history
   const isEdgeHighlighted = (edge: Edge) => {
     const activeNode = hoveredNode || selectedNode;
-    if (!activeNode) return false;
-    return edge.source === activeNode || edge.target === activeNode;
+    if (activeNode) {
+      if (edge.source === activeNode || edge.target === activeNode) return true;
+    }
+    if (queriedNodes && queriedNodes.includes(edge.source) && queriedNodes.includes(edge.target)) {
+      return true;
+    }
+    return false;
   };
 
   // Helper to resolve node specific color dynamically
@@ -1214,12 +1221,12 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                       </g>
                     );
                   })}
-                  {/* Larger glowing aura behind active node */}
-                  {(isSelected || isHovered) && (
+                  {/* Larger glowing aura behind active or queried node */}
+                  {(isSelected || isHovered || queriedNodes.includes(node.id)) && (
                     <circle
                       r="38"
-                      fill={nodeColor}
-                      className="opacity-25 blur-md transition-all duration-300 scale-110"
+                      fill={queriedNodes.includes(node.id) && !isSelected ? "#10b981" : nodeColor}
+                      className="opacity-30 blur-md transition-all duration-300 scale-110 animate-pulse"
                     />
                   )}
                   
@@ -1227,17 +1234,17 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                   <circle
                     r="32"
                     fill="none"
-                    stroke={isSelected ? nodeColor : isHovered ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.12)"}
-                    strokeWidth={isSelected ? "3" : "1.5"}
-                    className={`transition-all duration-300 ${isSelected ? "animate-ping opacity-20" : ""}`}
+                    stroke={isSelected ? nodeColor : queriedNodes.includes(node.id) ? "#10b981" : isHovered ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.12)"}
+                    strokeWidth={isSelected || queriedNodes.includes(node.id) ? "3" : "1.5"}
+                    className={`transition-all duration-300 ${isSelected || queriedNodes.includes(node.id) ? "animate-ping opacity-25" : ""}`}
                   />
                   
                   {/* Core Node Circle - scaled up from 24 to 28 */}
                   <circle
                     r="28"
-                    fill={isSelected ? "rgba(15, 23, 42, 0.95)" : "rgba(17, 24, 39, 0.85)"}
-                    stroke={isSelected || isHovered ? nodeColor : "rgba(255,255,255,0.2)"}
-                    strokeWidth={isSelected || isHovered ? "2.5" : "1.5"}
+                    fill={isSelected || queriedNodes.includes(node.id) ? "rgba(15, 23, 42, 0.95)" : "rgba(17, 24, 39, 0.85)"}
+                    stroke={isSelected || isHovered ? nodeColor : queriedNodes.includes(node.id) ? "#10b981" : "rgba(255,255,255,0.2)"}
+                    strokeWidth={isSelected || isHovered || queriedNodes.includes(node.id) ? "2.5" : "1.5"}
                     className={`transition-all duration-300 graph-core-circle ${isDimmed ? "opacity-30" : "opacity-100"}`}
                   />
                   <circle

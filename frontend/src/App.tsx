@@ -3513,7 +3513,7 @@ const App: React.FC = () => {
                       <span>{isRightPanelOpen ? "Hide Trace" : "Trace Inspector"}</span>
                     </button>
 
-                    {activeAgentObj?.graphData && (
+                    {(activeAgentObj || isInstantSandbox) && (
                       <button
                         id="toggle-schema-btn"
                         onClick={() => {
@@ -3565,7 +3565,15 @@ const App: React.FC = () => {
                   );
                 }
                 
-                if (activeAgentObj?.graphData) {
+                if (activeAgentObj || isInstantSandbox) {
+                  const baseGraphData = activeAgentObj?.graphData || {
+                    nodes: [
+                      { id: "schema_root", label: "Database Schema", icon: "database", type: "database", description: "Root database schema containing connected analytical tables." }
+                    ],
+                    edges: [],
+                    nodeSuggestions: {}
+                  };
+
                   // Group conversation history into distinct user turns for per-turn graph lineage inspection
                   const schemaTurns: { question: string; sysMsgs: any[] }[] = [];
                   let currentTurnObj: { question: string; sysMsgs: any[] } | null = null;
@@ -3595,6 +3603,36 @@ const App: React.FC = () => {
                     targetSysMsgs = messages.map((m: any) => m.systemMessage).filter(Boolean);
                   }
 
+                  // Collect SQLs across all messages to discover all tables referenced in the session
+                  const sessionSqls: string[] = [];
+                  messages.forEach((m: any) => {
+                    const sys = m.systemMessage;
+                    if (sys) {
+                      for (const k of ["data", "schema", "chart"]) {
+                        const sub = sys[k];
+                        if (sub && typeof sub === "object") {
+                          const sql = sub.sqlQuery || sub.query || sub.generatedSql;
+                          if (sql && typeof sql === "string") sessionSqls.push(sql.toLowerCase());
+                        }
+                      }
+                      if (Array.isArray(sys.statuses)) {
+                        sys.statuses.forEach((st: any) => {
+                          if (typeof st === "string" && (st.toLowerCase().includes("select ") || st.toLowerCase().includes("from ") || st.toLowerCase().includes("join "))) {
+                            sessionSqls.push(st.toLowerCase());
+                          }
+                        });
+                      }
+                      if (Array.isArray(sys.thoughts)) {
+                        sys.thoughts.forEach((th: any) => {
+                          if (th && typeof th.body === "string" && (th.body.toLowerCase().includes("select ") || th.body.toLowerCase().includes("from "))) {
+                            sessionSqls.push(th.body.toLowerCase());
+                          }
+                        });
+                      }
+                    }
+                  });
+
+                  // Collect target turn SQLs for lineage highlighting
                   const allSqls: string[] = [];
                   targetSysMsgs.forEach((sys: any) => {
                     if (sys) {
@@ -3621,9 +3659,63 @@ const App: React.FC = () => {
                       }
                     }
                   });
+
+                  // Dynamically inject any table referenced in SQL queries into graphData for non-graph agents / Free Form mode
+                  const tblSet = new Set<string>();
+                  sessionSqls.forEach(sql => {
+                    const matches = sql.matchAll(/(?:from|join|table)\s+([a-zA-Z0-9_$-]+(?:\.[a-zA-Z0-9_$-]+)*)/gi);
+                    for (const m of matches) {
+                      if (m[1]) {
+                        const clean = m[1].replace(/[`'"[\]]/g, "").trim();
+                        if (clean.length > 2 && !["select", "where", "group", "order", "limit", "unnest", "left", "right", "inner", "outer", "cross", "on", "as", "and", "or", "by"].includes(clean.toLowerCase())) {
+                          tblSet.add(clean);
+                        }
+                      }
+                    }
+                  });
+
+                  const dynamicNodes = [...(baseGraphData.nodes || [])];
+                  const dynamicEdges = [...(baseGraphData.edges || [])];
+                  const dynamicSuggestions = { ...(baseGraphData.nodeSuggestions || {}) };
+
+                  tblSet.forEach(tbl => {
+                    const shortName = tbl.split(".").pop() || tbl;
+                    const exists = dynamicNodes.some(n => {
+                      const cid = n.id.toLowerCase().replace(/_/g, "").replace(/s$/, "");
+                      const cshort = shortName.toLowerCase().replace(/_/g, "").replace(/s$/, "");
+                      return cid === cshort || cid.includes(cshort) || cshort.includes(cid);
+                    });
+                    if (!exists && shortName.toLowerCase() !== "schema_root") {
+                      dynamicNodes.push({
+                        id: shortName,
+                        label: shortName.toUpperCase(),
+                        icon: "table",
+                        type: "table",
+                        description: `Dynamically queried database table: ${tbl}. Contains columns, metrics, and records analyzed during this session.`
+                      });
+                      dynamicEdges.push({
+                        source: "schema_root",
+                        target: shortName,
+                        label: "QUERIED"
+                      });
+                      dynamicSuggestions[shortName] = [
+                        `Can you give me a summary of the data in the ${shortName} table?`,
+                        `What are the key metrics and columns available in ${shortName}?`,
+                        `Show me the top 10 most recent records from ${shortName}.`
+                      ];
+                    }
+                  });
+
+                  const effectiveGraphData = {
+                    ...baseGraphData,
+                    nodes: dynamicNodes,
+                    edges: dynamicEdges,
+                    nodeSuggestions: dynamicSuggestions
+                  };
+
                   const queriedNodes: string[] = [];
                   if (allSqls.length > 0) {
-                    activeAgentObj.graphData.nodes.forEach((node: any) => {
+                    effectiveGraphData.nodes.forEach((node: any) => {
                       const cleanId = node.id.toLowerCase().replace(/_/g, "").replace(/s$/, "");
                       const cleanLbl = (node.label || "").toLowerCase().replace(/_/g, "").replace(/s$/, "");
                       if (allSqls.some(sql => {
@@ -3684,7 +3776,7 @@ const App: React.FC = () => {
                         </div>
                       )}
                       <GraphVisualizer
-                        graphData={activeAgentObj.graphData}
+                        graphData={effectiveGraphData}
                         queriedNodes={queriedNodes}
                         onSelectSuggestion={(question) => {
                           setIsSchemaExpanded(false);
@@ -3704,7 +3796,7 @@ const App: React.FC = () => {
                           if (!res.ok) throw new Error("Failed to load table data preview");
                           return await res.json();
                         }}
-                        isGraphAgent={activeAgentObj.isGraphAgent}
+                        isGraphAgent={activeAgentObj?.isGraphAgent || false}
                       />
                     </div>
                   );

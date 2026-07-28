@@ -27,6 +27,7 @@ import {
 interface Node {
   id: string;
   label: string;
+  fullName?: string;
   icon: string;
   type: string;
   description: string;
@@ -256,12 +257,13 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
           graphData.nodes.map(async (node) => {
             if (node.id === "schema_root") return;
             try {
+              const targetTblName = node.fullName || node.id;
               let data: any;
               if (fetchTablePreview) {
-                data = await fetchTablePreview(node.id, agentName);
+                data = await fetchTablePreview(targetTblName, agentName);
               } else {
                 const queryParams = new URLSearchParams({
-                  table_name: node.id,
+                  table_name: targetTblName,
                   ...(agentName ? { agent_name: agentName } : {})
                 });
                 const res = await fetch(`/api/preview?${queryParams.toString()}`);
@@ -393,12 +395,14 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
       setIsPreviewLoading(true);
       setPreviewError(null);
       try {
+        const targetNodeObj = graphData.nodes.find(n => n.id === selectedNode);
+        const targetTblName = targetNodeObj?.fullName || selectedNode;
         let data: any;
         if (fetchTablePreview) {
-          data = await fetchTablePreview(selectedNode, agentName);
+          data = await fetchTablePreview(targetTblName, agentName);
         } else {
           const queryParams = new URLSearchParams({
-            table_name: selectedNode,
+            table_name: targetTblName,
             ...(agentName ? { agent_name: agentName } : {})
           });
           const res = await fetch(`/api/preview?${queryParams.toString()}`);
@@ -1030,11 +1034,11 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                       />
                     ) : (
                       <rect
-                        x="-65"
-                        y="-26"
-                        width="130"
-                        height="52"
-                        rx="16"
+                        x="-118"
+                        y="-34"
+                        width="236"
+                        height="68"
+                        rx="20"
                         fill={queriedNodes.includes(node.id) && !isSelected ? "#10b981" : nodeColor}
                         className="opacity-30 blur-md transition-all duration-300 scale-105 animate-pulse"
                       />
@@ -1052,11 +1056,11 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     />
                   ) : (
                     <rect
-                      x="-64"
-                      y="-22"
-                      width="128"
-                      height="44"
-                      rx="12"
+                      x="-114"
+                      y="-30"
+                      width="228"
+                      height="60"
+                      rx="18"
                       fill="none"
                       stroke={isSelected ? nodeColor : queriedNodes.includes(node.id) ? "#10b981" : isHovered ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.12)"}
                       strokeWidth={isSelected || queriedNodes.includes(node.id) ? "3" : "1.5"}
@@ -1083,22 +1087,22 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                   ) : (
                     <>
                       <rect
-                        x="-60"
-                        y="-18"
-                        width="120"
-                        height="36"
-                        rx="10"
+                        x="-110"
+                        y="-26"
+                        width="220"
+                        height="52"
+                        rx="16"
                         fill={isSelected || queriedNodes.includes(node.id) ? "rgba(15, 23, 42, 0.95)" : "rgba(17, 24, 39, 0.85)"}
                         stroke={isSelected || isHovered ? nodeColor : queriedNodes.includes(node.id) ? "#10b981" : "rgba(255,255,255,0.2)"}
                         strokeWidth={isSelected || isHovered || queriedNodes.includes(node.id) ? "2.5" : "1.5"}
                         className={`transition-all duration-300 graph-core-circle ${isDimmed ? "opacity-30" : "opacity-100"}`}
                       />
                       <rect
-                        x="-60"
-                        y="-18"
-                        width="120"
-                        height="36"
-                        rx="10"
+                        x="-110"
+                        y="-26"
+                        width="220"
+                        height="52"
+                        rx="16"
                         fill="url(#glossy-3d-gradient)"
                         className={`pointer-events-none transition-all duration-300 graph-glossy-circle ${isDimmed ? "opacity-30" : "opacity-100"}`}
                       />
@@ -1131,22 +1135,22 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                     <>
                       <g 
                         className={`transition-all duration-300 ${isDimmed ? "opacity-30" : "opacity-100"}`}
-                        transform="translate(-48, -9)"
+                        transform="translate(-92, -13)"
                       >
                         {renderNodeIcon(
                           node.icon, 
-                          18, 
+                          26, 
                           isSelected || isHovered ? "#ffffff" : nodeColor
                         )}
                       </g>
                       <text
-                        x="10"
-                        y="4"
+                        x="15"
+                        y="5"
                         textAnchor="middle"
-                        className={`text-[10px] font-extrabold tracking-wider uppercase transition-all duration-300 select-none truncate max-w-[90px] ${isSelected ? "fill-white" : isHovered ? "fill-white" : "fill-slate-200"} ${isDimmed ? "opacity-20" : "opacity-100"}`}
+                        className={`text-[12px] font-black tracking-widest uppercase transition-all duration-300 select-none ${isSelected ? "fill-white" : isHovered ? "fill-white" : "fill-slate-100"} ${isDimmed ? "opacity-20" : "opacity-100"}`}
                         style={{ textShadow: !isDimmed ? "0 2px 4px rgba(0,0,0,0.85)" : "none" }}
                       >
-                        {node.label.length > 13 ? node.label.substring(0, 11) + "..." : node.label}
+                        {node.label}
                       </text>
                     </>
                   )}

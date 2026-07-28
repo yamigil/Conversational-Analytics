@@ -730,6 +730,25 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
           {hasChart ? (chartFields ? `${chartFields.quantitativeField} by ${chartFields.nominalField}` : chart?.result?.vegaConfig?.title || effectiveVegaConfig?.title || "Data Insights") : "Data Grid"}
         </span>
         <div className="flex items-center gap-2">
+          {tableData && tableData.rows && tableData.rows.length > 0 && (
+            <button
+              onClick={() => {
+                const csvContent = "data:text/csv;charset=utf-8," + 
+                  [tableData.headers.join(","), ...tableData.rows.map((row: any) => tableData.headers.map((h: string) => `"${String(row[h] !== undefined ? row[h] : "").replace(/"/g, '""')}"`).join(","))].join("\n");
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "bigquery_export.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}
+              className="px-2.5 py-1 text-[11px] font-medium rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/6 transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+              title="Download results as CSV"
+            >
+              📥 CSV
+            </button>
+          )}
           {chartFields && activeTab === "chart" && (
             <div className="flex gap-1 p-0.5 bg-slate-950/60 rounded-lg border border-white/6 mr-1">
               <button
@@ -954,8 +973,8 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, p
         setIsOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
   return (
@@ -1576,11 +1595,11 @@ const App: React.FC = () => {
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
     window.addEventListener("keydown", handleKeyDown);
     
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("click", handleClickOutside);
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
@@ -2253,9 +2272,9 @@ const App: React.FC = () => {
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("click", handleClickOutside);
     };
   }, [isSchemaExpanded]);
 
@@ -3536,10 +3555,35 @@ const App: React.FC = () => {
                 }
                 
                 if (activeAgentObj?.graphData) {
+                  const allSqls: string[] = [];
+                  messages.forEach((m: any) => {
+                    const sys = m.systemMessage;
+                    if (sys) {
+                      for (const k of ["data", "schema", "chart"]) {
+                        const sub = sys[k];
+                        if (sub && typeof sub === "object") {
+                          const sql = sub.sqlQuery || sub.query || sub.generatedSql;
+                          if (sql && typeof sql === "string") allSqls.push(sql.toLowerCase());
+                        }
+                      }
+                    }
+                  });
+                  const queriedNodes: string[] = [];
+                  if (allSqls.length > 0) {
+                    activeAgentObj.graphData.nodes.forEach((node: any) => {
+                      const nid = node.id.toLowerCase();
+                      const nlbl = node.label.toLowerCase();
+                      if (allSqls.some(sql => sql.includes(nid) || sql.includes(nlbl))) {
+                        queriedNodes.push(node.id);
+                      }
+                    });
+                  }
+
                   return (
                     <div id="schema-drawer-container" className="w-full flex-1 bg-slate-950/40 backdrop-blur-md pt-0 pb-4 px-6 overflow-y-auto flex flex-col">
                       <GraphVisualizer
                         graphData={activeAgentObj.graphData}
+                        queriedNodes={queriedNodes}
                         onSelectSuggestion={(question) => {
                           setIsSchemaExpanded(false);
                           setInputText(question);

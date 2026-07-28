@@ -366,22 +366,6 @@ const MessageThinkingBlock: React.FC<{
   // If statuses and thoughts are empty and we are not streaming, do not render
   if (displayStatuses.length === 0 && displayThoughts.length === 0 && !isStreaming) return null;
 
-  // If not streaming and thoughts are empty, render inline statuses directly
-  if (!isStreaming && displayThoughts.length === 0) {
-    return (
-      <div className="mb-4 flex flex-col gap-2 p-3 bg-slate-950/20 border border-white/4 rounded-xl backdrop-blur-sm">
-        {displayStatuses.map((status, idx) => (
-          <div key={idx} className="flex items-center gap-2 font-medium text-slate-400 text-xs">
-            <span className="flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-              ✓
-            </span>
-            <span>{status}</span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
   return (
     <div className="mb-4 flex flex-col gap-2">
       {/* Header Pill */}

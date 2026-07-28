@@ -646,6 +646,13 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
         seriesNames = [quantitativeField];
       }
 
+      if (!seriesField) {
+        const uniqueX = new Set(rowsForChart.map((r: any) => String(r[nominalField] || ""))).size;
+        if (uniqueX < rowsForChart.length || rowsForChart.length > 15) {
+          return null;
+        }
+      }
+
       return { nominalField, quantitativeField, seriesField, seriesNames, rows: rowsForChart };
     }
     return null;

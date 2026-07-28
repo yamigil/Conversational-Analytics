@@ -501,6 +501,23 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     return DYNAMIC_PALETTE[nodeIdx % DYNAMIC_PALETTE.length];
   };
 
+  const splitLabel = (label: string): string[] => {
+    if (label.length <= 14) return [label];
+    const parts = label.split(/[_\s]+/);
+    if (parts.length > 1) {
+      let line1 = parts[0];
+      let i = 1;
+      while (i < parts.length && (line1.length + 1 + parts[i].length <= 14 || i < parts.length / 2)) {
+        line1 += "_" + parts[i];
+        i++;
+      }
+      const line2 = parts.slice(i).join("_");
+      if (line1 && line2) return [line1, line2];
+    }
+    const mid = Math.floor(label.length / 2);
+    return [label.substring(0, mid) + "-", label.substring(mid)];
+  };
+
   // Get active suggestions to display in the floating inspector
   const activeNodeObj = nodes.find(n => n.id === selectedNode);
   const activeNodeIdx = nodes.findIndex(n => n.id === selectedNode);
@@ -1143,15 +1160,24 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                           isSelected || isHovered ? "#ffffff" : nodeColor
                         )}
                       </g>
-                      <text
-                        x="15"
-                        y="5"
-                        textAnchor="middle"
-                        className={`text-[12px] font-black tracking-widest uppercase transition-all duration-300 select-none ${isSelected ? "fill-white" : isHovered ? "fill-white" : "fill-slate-100"} ${isDimmed ? "opacity-20" : "opacity-100"}`}
-                        style={{ textShadow: !isDimmed ? "0 2px 4px rgba(0,0,0,0.85)" : "none" }}
-                      >
-                        {node.label}
-                      </text>
+                      {(() => {
+                        const lines = node.label.length > 14 ? splitLabel(node.label) : [node.label];
+                        return (
+                          <text
+                            x="15"
+                            y={lines.length > 1 ? "-2" : "5"}
+                            textAnchor="middle"
+                            className={`text-[11px] font-black tracking-wider uppercase transition-all duration-300 select-none ${isSelected ? "fill-white" : isHovered ? "fill-white" : "fill-slate-100"} ${isDimmed ? "opacity-20" : "opacity-100"}`}
+                            style={{ textShadow: !isDimmed ? "0 2px 4px rgba(0,0,0,0.85)" : "none" }}
+                          >
+                            {lines.map((ln, idx) => (
+                              <tspan key={idx} x="15" dy={idx === 0 ? "0" : "15"}>
+                                {ln}
+                              </tspan>
+                            ))}
+                          </text>
+                        );
+                      })()}
                     </>
                   )}
                 </g>

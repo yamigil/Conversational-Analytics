@@ -208,8 +208,9 @@ const getInstanceSuggestions = (nodeId: string, row: any): string[] => {
     ];
   }
   return [
-    `Show me a summary of all connected relations for this specific record.`,
-    `What other tables reference the primary keys in this record?`
+    `Show me the full row details and column values for this specific record.`,
+    `How does this record compare against the average metrics across the entire table?`,
+    `Find all other records in this table that share similar attributes with this record.`
   ];
 };
 
@@ -342,10 +343,11 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     if (hasSchemaRoot) {
       const otherNodes = graphData.nodes.filter(node => node.id !== "schema_root");
       const otherIdx = otherNodes.findIndex(node => node.id === n.id);
+      const count = otherNodes.length;
       const center = { x: 400, y: 230 };
-      const radiusX = 290;
-      const radiusY = 205;
-      const angle = (2 * Math.PI * otherIdx) / otherNodes.length - Math.PI / 2;
+      const radiusX = count === 1 ? 0 : count === 2 ? 170 : count <= 4 ? 230 : 290;
+      const radiusY = count === 1 ? 0 : count === 2 ? 0 : count <= 4 ? 120 : 205;
+      const angle = count === 2 ? (otherIdx === 0 ? Math.PI : 0) : (2 * Math.PI * otherIdx) / count - Math.PI / 2;
       
       return {
         ...n,
@@ -354,11 +356,11 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
       };
     }
     
-    // Spacious Elliptical Layout distribution for custom graphs (e.g. The Look Graph 7 nodes)
+    const count = graphData.nodes.length;
     const center = { x: 400, y: 230 };
-    const radiusX = 290;
-    const radiusY = 205;
-    const angle = (2 * Math.PI * idx) / graphData.nodes.length - Math.PI / 2;
+    const radiusX = count === 1 ? 0 : count === 2 ? 170 : count <= 4 ? 230 : 290;
+    const radiusY = count === 1 ? 0 : count === 2 ? 0 : count <= 4 ? 120 : 205;
+    const angle = count === 2 ? (idx === 0 ? Math.PI : 0) : (2 * Math.PI * idx) / count - Math.PI / 2;
     
     return {
       ...n,
@@ -527,6 +529,21 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
               <span className="text-slate-400 font-medium">
                 Full Database Schema shown <span className="text-slate-500">(No tables directly queried in last response)</span>
               </span>
+            </>
+          )}
+        </div>
+
+        {/* Schema Type Legend Badge */}
+        <div className="absolute top-4 right-4 z-20 pointer-events-none flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/85 border border-white/10 backdrop-blur-md text-xs shadow-lg">
+          {isGraphAgent ? (
+            <>
+              <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+              <span className="text-purple-300 font-extrabold uppercase tracking-wider text-[10px]">🔗 GQL Property Graph Schema</span>
+            </>
+          ) : (
+            <>
+              <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+              <span className="text-blue-300 font-extrabold uppercase tracking-wider text-[10px]">📊 Relational Table Schema</span>
             </>
           )}
         </div>
@@ -906,7 +923,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                   }}
                 >
                   {/* Orbit Track Circle (Slow rotation for premium look) */}
-                  {satellites.length > 0 && (
+                  {isGraphAgent && satellites.length > 0 && (
                     <circle
                       r="60"
                       fill="none"
@@ -922,7 +939,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                   )}
 
                   {/* Satellites Orbiting Nodes (Exploratory Data Nodes - SCALED UP FOR PREMIUM VISIBILITY) */}
-                  {satellites.map((sat, sIdx) => {
+                  {isGraphAgent && satellites.map((sat, sIdx) => {
                     const satelliteRadius = 60; // Clean compact orbit clear of edge labels
                     const angle = (2 * Math.PI * sIdx) / satellites.length - Math.PI / 2;
                     const satX = satelliteRadius * Math.cos(angle);
@@ -1002,59 +1019,137 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                       </g>
                     );
                   })}
+
                   {/* Larger glowing aura behind active or queried node */}
                   {(isSelected || isHovered || queriedNodes.includes(node.id)) && (
+                    isGraphAgent ? (
+                      <circle
+                        r="38"
+                        fill={queriedNodes.includes(node.id) && !isSelected ? "#10b981" : nodeColor}
+                        className="opacity-30 blur-md transition-all duration-300 scale-110 animate-pulse"
+                      />
+                    ) : (
+                      <rect
+                        x="-65"
+                        y="-26"
+                        width="130"
+                        height="52"
+                        rx="16"
+                        fill={queriedNodes.includes(node.id) && !isSelected ? "#10b981" : nodeColor}
+                        className="opacity-30 blur-md transition-all duration-300 scale-105 animate-pulse"
+                      />
+                    )
+                  )}
+                  
+                  {/* Outer pulsing ring / border */}
+                  {isGraphAgent ? (
                     <circle
-                      r="38"
-                      fill={queriedNodes.includes(node.id) && !isSelected ? "#10b981" : nodeColor}
-                      className="opacity-30 blur-md transition-all duration-300 scale-110 animate-pulse"
+                      r="32"
+                      fill="none"
+                      stroke={isSelected ? nodeColor : queriedNodes.includes(node.id) ? "#10b981" : isHovered ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.12)"}
+                      strokeWidth={isSelected || queriedNodes.includes(node.id) ? "3" : "1.5"}
+                      className={`transition-all duration-300 ${isSelected || queriedNodes.includes(node.id) ? "animate-ping opacity-25" : ""}`}
+                    />
+                  ) : (
+                    <rect
+                      x="-64"
+                      y="-22"
+                      width="128"
+                      height="44"
+                      rx="12"
+                      fill="none"
+                      stroke={isSelected ? nodeColor : queriedNodes.includes(node.id) ? "#10b981" : isHovered ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.12)"}
+                      strokeWidth={isSelected || queriedNodes.includes(node.id) ? "3" : "1.5"}
+                      className={`transition-all duration-300 ${isSelected || queriedNodes.includes(node.id) ? "animate-ping opacity-25" : ""}`}
                     />
                   )}
                   
-                  {/* Outer pulsing ring - scaled up from 28 to 32 */}
-                  <circle
-                    r="32"
-                    fill="none"
-                    stroke={isSelected ? nodeColor : queriedNodes.includes(node.id) ? "#10b981" : isHovered ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.12)"}
-                    strokeWidth={isSelected || queriedNodes.includes(node.id) ? "3" : "1.5"}
-                    className={`transition-all duration-300 ${isSelected || queriedNodes.includes(node.id) ? "animate-ping opacity-25" : ""}`}
-                  />
-                  
-                  {/* Core Node Circle - scaled up from 24 to 28 */}
-                  <circle
-                    r="28"
-                    fill={isSelected || queriedNodes.includes(node.id) ? "rgba(15, 23, 42, 0.95)" : "rgba(17, 24, 39, 0.85)"}
-                    stroke={isSelected || isHovered ? nodeColor : queriedNodes.includes(node.id) ? "#10b981" : "rgba(255,255,255,0.2)"}
-                    strokeWidth={isSelected || isHovered || queriedNodes.includes(node.id) ? "2.5" : "1.5"}
-                    className={`transition-all duration-300 graph-core-circle ${isDimmed ? "opacity-30" : "opacity-100"}`}
-                  />
-                  <circle
-                    r="28"
-                    fill="url(#glossy-3d-gradient)"
-                    className={`pointer-events-none transition-all duration-300 graph-glossy-circle ${isDimmed ? "opacity-30" : "opacity-100"}`}
-                  />
+                  {/* Core Node Circle / Table Pill Card */}
+                  {isGraphAgent ? (
+                    <>
+                      <circle
+                        r="28"
+                        fill={isSelected || queriedNodes.includes(node.id) ? "rgba(15, 23, 42, 0.95)" : "rgba(17, 24, 39, 0.85)"}
+                        stroke={isSelected || isHovered ? nodeColor : queriedNodes.includes(node.id) ? "#10b981" : "rgba(255,255,255,0.2)"}
+                        strokeWidth={isSelected || isHovered || queriedNodes.includes(node.id) ? "2.5" : "1.5"}
+                        className={`transition-all duration-300 graph-core-circle ${isDimmed ? "opacity-30" : "opacity-100"}`}
+                      />
+                      <circle
+                        r="28"
+                        fill="url(#glossy-3d-gradient)"
+                        className={`pointer-events-none transition-all duration-300 graph-glossy-circle ${isDimmed ? "opacity-30" : "opacity-100"}`}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <rect
+                        x="-60"
+                        y="-18"
+                        width="120"
+                        height="36"
+                        rx="10"
+                        fill={isSelected || queriedNodes.includes(node.id) ? "rgba(15, 23, 42, 0.95)" : "rgba(17, 24, 39, 0.85)"}
+                        stroke={isSelected || isHovered ? nodeColor : queriedNodes.includes(node.id) ? "#10b981" : "rgba(255,255,255,0.2)"}
+                        strokeWidth={isSelected || isHovered || queriedNodes.includes(node.id) ? "2.5" : "1.5"}
+                        className={`transition-all duration-300 graph-core-circle ${isDimmed ? "opacity-30" : "opacity-100"}`}
+                      />
+                      <rect
+                        x="-60"
+                        y="-18"
+                        width="120"
+                        height="36"
+                        rx="10"
+                        fill="url(#glossy-3d-gradient)"
+                        className={`pointer-events-none transition-all duration-300 graph-glossy-circle ${isDimmed ? "opacity-30" : "opacity-100"}`}
+                      />
+                    </>
+                  )}
 
-                  {/* Semantic Icon - scaled up from 20 to 22, aligned using translate(-11, -11) */}
-                  <g 
-                    className={`transition-all duration-300 ${isDimmed ? "opacity-30" : "opacity-100"}`}
-                    transform="translate(-11, -11)"
-                  >
-                    {renderNodeIcon(
-                      node.icon, 
-                      22, 
-                      isSelected || isHovered ? "#ffffff" : nodeColor
-                    )}
-                  </g>
-
-                  {/* Node Label - offset adjusted to 45 for larger circle */}
-                  <text
-                    y="45"
-                    textAnchor="middle"
-                    className={`text-[10.5px] font-bold tracking-widest uppercase transition-all duration-300 select-none ${isSelected ? "fill-white font-extrabold" : isHovered ? "fill-white" : "fill-slate-200"} ${isDimmed ? "opacity-20" : "opacity-100"}`}
-                    style={{ textShadow: !isDimmed ? "0 2px 4px rgba(0,0,0,0.85)" : "none" }}
-                  >
-                    {node.label}
-                  </text>
+                  {/* Semantic Icon & Label */}
+                  {isGraphAgent ? (
+                    <>
+                      <g 
+                        className={`transition-all duration-300 ${isDimmed ? "opacity-30" : "opacity-100"}`}
+                        transform="translate(-11, -11)"
+                      >
+                        {renderNodeIcon(
+                          node.icon, 
+                          22, 
+                          isSelected || isHovered ? "#ffffff" : nodeColor
+                        )}
+                      </g>
+                      <text
+                        y="45"
+                        textAnchor="middle"
+                        className={`text-[10.5px] font-bold tracking-widest uppercase transition-all duration-300 select-none ${isSelected ? "fill-white font-extrabold" : isHovered ? "fill-white" : "fill-slate-200"} ${isDimmed ? "opacity-20" : "opacity-100"}`}
+                        style={{ textShadow: !isDimmed ? "0 2px 4px rgba(0,0,0,0.85)" : "none" }}
+                      >
+                        {node.label}
+                      </text>
+                    </>
+                  ) : (
+                    <>
+                      <g 
+                        className={`transition-all duration-300 ${isDimmed ? "opacity-30" : "opacity-100"}`}
+                        transform="translate(-48, -9)"
+                      >
+                        {renderNodeIcon(
+                          node.icon, 
+                          18, 
+                          isSelected || isHovered ? "#ffffff" : nodeColor
+                        )}
+                      </g>
+                      <text
+                        x="10"
+                        y="4"
+                        textAnchor="middle"
+                        className={`text-[10px] font-extrabold tracking-wider uppercase transition-all duration-300 select-none truncate max-w-[90px] ${isSelected ? "fill-white" : isHovered ? "fill-white" : "fill-slate-200"} ${isDimmed ? "opacity-20" : "opacity-100"}`}
+                        style={{ textShadow: !isDimmed ? "0 2px 4px rgba(0,0,0,0.85)" : "none" }}
+                      >
+                        {node.label.length > 13 ? node.label.substring(0, 11) + "..." : node.label}
+                      </text>
+                    </>
+                  )}
                 </g>
               );
             })}

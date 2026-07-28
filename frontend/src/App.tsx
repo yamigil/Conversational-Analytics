@@ -3568,9 +3568,7 @@ const App: React.FC = () => {
                 if (activeAgentObj || isInstantSandbox) {
                   let baseGraphData = activeAgentObj?.graphData;
                   if (!baseGraphData) {
-                    const defaultNodes: any[] = [
-                      { id: "schema_root", label: "Database Schema", icon: "database", type: "database", description: "Root database schema containing connected analytical tables." }
-                    ];
+                    const defaultNodes: any[] = [];
                     const defaultEdges: any[] = [];
                     const defaultSuggestions: Record<string, string[]> = {};
 
@@ -3583,11 +3581,6 @@ const App: React.FC = () => {
                         icon: "table",
                         type: "table",
                         description: `Free Form exploration table: ${cleanTbl}. Contains columns, metrics, and records ready for analysis.`
-                      });
-                      defaultEdges.push({
-                        source: "schema_root",
-                        target: shortName,
-                        label: "CONTAINS"
                       });
                       if (freeFormSuggestions && freeFormSuggestions.length > 0) {
                         defaultSuggestions[shortName] = freeFormSuggestions;
@@ -3638,16 +3631,23 @@ const App: React.FC = () => {
 
                   // Collect SQLs across all messages to discover all tables referenced in the session
                   const sessionSqls: string[] = [];
+                  const executedSqlStrings: string[] = [];
                   messages.forEach((m: any) => {
                     const sys = m.systemMessage;
                     if (sys) {
                       const topSql = sys.sqlQuery || sys.query || sys.generatedSql || sys.sql || sys.code || sys.queryText;
-                      if (topSql && typeof topSql === "string") sessionSqls.push(topSql.toLowerCase());
+                      if (topSql && typeof topSql === "string") {
+                        sessionSqls.push(topSql.toLowerCase());
+                        executedSqlStrings.push(topSql);
+                      }
                       for (const k of ["data", "schema", "chart"]) {
                         const sub = sys[k];
                         if (sub && typeof sub === "object") {
                           const sql = sub.sqlQuery || sub.query || sub.generatedSql || sub.sql || sub.code || sub.queryText;
-                          if (sql && typeof sql === "string") sessionSqls.push(sql.toLowerCase());
+                          if (sql && typeof sql === "string") {
+                            sessionSqls.push(sql.toLowerCase());
+                            executedSqlStrings.push(sql);
+                          }
                         }
                       }
                       if (Array.isArray(sys.statuses)) {
@@ -3704,11 +3704,12 @@ const App: React.FC = () => {
                     "nor", "but", "yet", "so", "if", "why", "how", "what", "which", "who", "whom", "whose", "whether", "than", "because",
                     "although", "though", "unless", "graph", "agent", "source", "sources", "grounding", "information", "details", "summary", "report"
                   ]);
-                  sessionSqls.forEach(sql => {
+                  executedSqlStrings.forEach(sql => {
                     const matches = sql.matchAll(/(?:from|join|into|update|merge)\s+([`'"[\]]?([a-zA-Z0-9_$-]+(?:\.[a-zA-Z0-9_$-]+)*)[`'"[\]]?)/gi);
                     for (const m of matches) {
                       if (m[1]) {
                         const clean = m[1].replace(/[`'"[\]]/g, "").trim();
+                        if (/^\d/.test(clean) || clean.includes("-")) continue;
                         const hasDot = clean.includes(".");
                         const inBackticks = m[0].includes("`");
                         const isKnownTable = baseGraphData.nodes.some((n: any) => n.id.toLowerCase() === clean.toLowerCase() || n.id.toLowerCase().replace(/_/g, "") === clean.toLowerCase().replace(/_/g, ""));

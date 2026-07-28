@@ -604,7 +604,12 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
       }
     }
 
-    let quantitativeField = quantitativeFields[0] || (keys.length >= 2 ? keys[1] : "");
+    const isBadMetricCol = (col: string) => {
+      const c = col.toLowerCase();
+      return c.includes("year") || c.includes("id") || c.includes("vin") || c.includes("phone") || c.includes("zip") || c.includes("date") || c.includes("number");
+    };
+    const validQuantFields = quantitativeFields.filter(k => !isBadMetricCol(k));
+    let quantitativeField = validQuantFields[0] || quantitativeFields[0] || (keys.length >= 2 ? keys[1] : "");
 
     if (nominalField && quantitativeField) {
       const avgLen = tableData.rows.reduce((acc: number, r: any) => acc + String(r[nominalField] || "").length, 0) / tableData.rows.length;
@@ -635,7 +640,7 @@ const VisualizerWidget: React.FC<VisualizerWidgetProps> = ({ chart, data, primar
           }
           return rowObj;
         });
-        seriesNames = quantitativeFields.length > 0 ? quantitativeFields.slice(0, 4) : [quantitativeField];
+        seriesNames = [quantitativeField];
       }
 
       return { nominalField, quantitativeField, seriesField, seriesNames, rows: rowsForChart };
@@ -3571,9 +3576,12 @@ const App: React.FC = () => {
                   const queriedNodes: string[] = [];
                   if (allSqls.length > 0) {
                     activeAgentObj.graphData.nodes.forEach((node: any) => {
-                      const nid = node.id.toLowerCase();
-                      const nlbl = node.label.toLowerCase();
-                      if (allSqls.some(sql => sql.includes(nid) || sql.includes(nlbl))) {
+                      const cleanId = node.id.toLowerCase().replace(/_/g, "").replace(/s$/, "");
+                      const cleanLbl = (node.label || "").toLowerCase().replace(/_/g, "").replace(/s$/, "");
+                      if (allSqls.some(sql => {
+                        const cleanSql = sql.toLowerCase().replace(/_/g, "");
+                        return cleanSql.includes(cleanId) || (cleanLbl && cleanSql.includes(cleanLbl));
+                      })) {
                         queriedNodes.push(node.id);
                       }
                     });

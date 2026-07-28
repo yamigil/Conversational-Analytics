@@ -230,6 +230,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   brandLogoText,
   agentName,
   fetchTablePreview,
+  isGraphAgent = true,
   queriedNodes = []
 }) => {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
@@ -465,11 +466,11 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
     if (name.includes("globe") || name.includes("country") || name.includes("region") || name.includes("world") || name.includes("site")) {
       return <Globe size={size} color={color} />;
     }
-    if (name.includes("table")) {
-      return <Table size={size} color={color} />;
-    }
-    if (name.includes("db") || name.includes("database") || name.includes("schema")) {
+    if (name === "schema_root" || name.includes("db") || name.includes("database") || name.includes("schema") || name.includes("root")) {
       return <Database size={size} color={color} />;
+    }
+    if (!isGraphAgent || name.includes("table")) {
+      return <Table size={size} color={color} />;
     }
     return <Network size={size} color={color} />;
   };

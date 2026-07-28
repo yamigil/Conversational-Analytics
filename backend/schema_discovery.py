@@ -663,15 +663,6 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
             table_nodes = []
             table_edges = []
             
-            # Add central root node
-            table_nodes.append({
-                "id": "schema_root",
-                "label": "Database Schema",
-                "icon": "database",
-                "type": "database",
-                "description": f"Relational database schema containing all tables available to the {display_name} agent."
-            })
-            
             for t in tables:
                 clean_name = t.split(".")[-1] if "." in t else t
                 
@@ -681,12 +672,6 @@ def enrich_agent_metadata(agent: dict, skip_db_scan: bool = False) -> dict:
                     "icon": clean_name,
                     "type": "table",
                     "description": f"Connected database table: {clean_name}. Contains columns, metrics, and records for analytical queries."
-                })
-                
-                table_edges.append({
-                    "source": "schema_root",
-                    "target": clean_name,
-                    "label": "CONTAINS"
                 })
                 
             rel_proj = None

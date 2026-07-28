@@ -3574,6 +3574,20 @@ const App: React.FC = () => {
                           if (sql && typeof sql === "string") allSqls.push(sql.toLowerCase());
                         }
                       }
+                      if (Array.isArray(sys.statuses)) {
+                        sys.statuses.forEach((st: any) => {
+                          if (typeof st === "string" && (st.toLowerCase().includes("select ") || st.toLowerCase().includes("from ") || st.toLowerCase().includes("join "))) {
+                            allSqls.push(st.toLowerCase());
+                          }
+                        });
+                      }
+                      if (Array.isArray(sys.thoughts)) {
+                        sys.thoughts.forEach((th: any) => {
+                          if (th && typeof th.body === "string" && (th.body.toLowerCase().includes("select ") || th.body.toLowerCase().includes("from "))) {
+                            allSqls.push(th.body.toLowerCase());
+                          }
+                        });
+                      }
                     }
                   });
                   const queriedNodes: string[] = [];

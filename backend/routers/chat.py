@@ -129,12 +129,15 @@ def chat(req: ChatRequestModel, user: dict = Depends(get_current_user), client: 
                 
                 turns_history = SESSION_TRACE_TIMINGS[trace_key].get("turns_history", [])
                 turns_history.append({
+                    "turn_index": len(turns_history) + 1,
+                    "question": req.message_text or guided_message,
                     "total_ms": total_ms,
                     "llm_ms": llm_ms,
                     "tool_ms": tool_ms,
                     "executed_sqls": executed_sqls,
                     "rows_returned": total_rows,
-                    "bytes_billed": total_bytes
+                    "bytes_billed": total_bytes,
+                    "tables_referenced": list(tables_ref)
                 })
                 
                 timing_data = {
@@ -282,7 +285,20 @@ def get_trace_session(
         last_sql = executed_sqls[-1] if executed_sqls else "No SQL query executed in this turn (Schema / Reasoning response)"
         tables_list = list(tables_referenced)
         cached_session_data = SESSION_TRACE_TIMINGS.get(conversation_name, {})
+        if not cached_session_data and conversation_name != "free_form_session":
+            cached_session_data = SESSION_TRACE_TIMINGS.get("free_form_session", {})
         cached_turns_history = cached_session_data.get("turns_history", []) if isinstance(cached_session_data, dict) else []
+
+        if not turns_list and cached_turns_history:
+            for idx, c_turn in enumerate(cached_turns_history):
+                turns_list.append({
+                    "turn_index": c_turn.get("turn_index", idx + 1),
+                    "question": c_turn.get("question", f"Turn {idx + 1}"),
+                    "executed_sqls": c_turn.get("executed_sqls", []),
+                    "rows_returned": c_turn.get("rows_returned", 0),
+                    "bytes_billed": c_turn.get("bytes_billed", 0),
+                    "tables_referenced": set(c_turn.get("tables_referenced", []))
+                })
 
         formatted_turns = []
         for idx, t in enumerate(turns_list):

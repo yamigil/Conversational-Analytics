@@ -83,8 +83,10 @@ def get_table_specific_suggestions(table_name: str, agent_name: str = "") -> lis
         prompt = (
             f"Generate exactly 3 analytical, domain-specific business questions that an enterprise analyst would ask "
             f"about the BigQuery table '{table_name}' connected to the data agent '{agent_name}'. "
+            f"CRITICAL: Do NOT invent specific fictional campaign names or hardcoded filter values (like 'summer_sale' or 'product X'). "
+            f"Ask realistic business questions focusing on top metrics, category distributions, status trends, or time-based aggregations unless actual schema values are known. "
             f"Return ONLY a JSON array of exactly 3 natural language question strings, without markdown backticks. "
-            f"Example: [\"What is the total revenue by region?\", \"Which records have overdue status?\", \"Show daily volume trends.\"]"
+            f"Example: [\"What is the total revenue by traffic source?\", \"Which product categories have the highest order volume?\", \"Show daily transaction trends over the last quarter.\"]"
         )
         raw_json = call_gemini(prompt, "You are a senior data analyst.", response_mime_type="application/json", temperature=0.3)
         if raw_json:

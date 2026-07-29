@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Activity, Database, RefreshCw, X, Maximize2, Minimize2, User, Cpu, Cloud, Layers } from "lucide-react";
+import { Activity, Database, RefreshCw, X, Maximize2, Minimize2, User, Cpu, Layers } from "lucide-react";
 import { authenticatedFetch } from "../../utils/api";
 
 interface TraceSpan {
@@ -153,23 +153,15 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                 output: { active_tables: activeTurn ? (activeTurn.tables_referenced.length > 0 ? activeTurn.tables_referenced : (spanSchema?.metadata?.tables_referenced || ["Dynamic Agent Context"])) : (spanSchema?.metadata?.tables_referenced || ["Dynamic Agent Context"]), grounding_status: "Validated against BigQuery INFORMATION_SCHEMA" }
               },
               {
-                id: "ca_api",
-                label: "☁️ CA API Service",
-                sub: "chat_stream (v1alpha)",
-                icon: <Cloud size={22} className="text-blue-400" />,
-                time: `${spanRoot?.latency_ms || 0} ms`,
-                color: "border-blue-500/50 bg-blue-500/15 text-blue-300",
-                input: { conversation_name: traceData.conversation_name, stream: true, total_turn_latency_ms: spanRoot?.latency_ms || 0, active_turn: activeTurn ? activeTurn.turn_index : "All turns" },
-                output: { status: spanRoot?.status || "OK", session_state: "Persisted in Google Cloud Conversational Analytics Service" }
-              },
-              {
-                id: "gemini_engine",
-                label: "🧠 Gemini Engine",
-                sub: "Reasoning & SQL Gen",
+                id: "ca_engine",
+                label: "🧠 Conversational Analytics Engine",
+                sub: "Gemini 2.5 & Reasoning",
                 icon: <Cpu size={22} className="text-emerald-400" />,
-                time: `${spanLlm?.latency_ms || 0} ms`,
+                time: `${spanLlm?.latency_ms || spanRoot?.latency_ms || 0} ms`,
                 color: "border-emerald-500/50 bg-emerald-500/15 text-emerald-300",
                 input: {
+                  conversation_name: traceData.conversation_name,
+                  stream: true,
                   ...(spanLlm?.request_payload || { system_instruction: "Loading instructions...", temperature: 0.2, top_p: 0.95 }),
                   active_tables: activeTurn ? (activeTurn.tables_referenced.length > 0 ? activeTurn.tables_referenced : (spanSchema?.metadata?.tables_referenced || ["Dynamic Agent Context"])) : (spanSchema?.metadata?.tables_referenced || ["Dynamic Agent Context"]),
                   active_question: activeTurn ? activeTurn.question : "Session Summary"
@@ -177,7 +169,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                 output: {
                   sql_generated: activeTurn ? (activeTurn.executed_sqls[activeTurn.executed_sqls.length - 1] || "No SQL generated in this turn") : (spanLlm?.response_payload?.sql_generated || "No SQL generated"),
                   all_sqls_executed: activeTurn ? activeTurn.executed_sqls : spanLlm?.response_payload?.all_sqls_executed_in_turn,
-                  status: "COMPLETED"
+                  session_state: "Persisted in Google Cloud Conversational Analytics Service",
+                  status: spanRoot?.status || "COMPLETED"
                 }
               },
               {
@@ -197,7 +190,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
               }
             ];
 
-            const activeNodeObj = flowNodes.find(n => n.id === selectedFlowNode) || flowNodes[3];
+            const activeNodeObj = flowNodes.find(n => n.id === selectedFlowNode) || flowNodes[2];
 
             return (
               <div className="flex flex-col gap-5">

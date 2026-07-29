@@ -130,6 +130,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
 
             const activeTurn = selectedTurnIndex !== null && traceData.turns && traceData.turns[selectedTurnIndex] ? traceData.turns[selectedTurnIndex] : null;
             const isFreeForm = spanRoot?.metadata?.mode === "Free Form Mode" || spanSchema?.metadata?.mode === "Free Form Mode";
+            const totalTurnLatencyMs = (spanSchema?.latency_ms || 0) + (spanLlm?.latency_ms || spanRoot?.latency_ms || 0) + (spanTool?.latency_ms || 0);
+            const totalSlaFormatted = totalTurnLatencyMs >= 1000 ? `${(totalTurnLatencyMs / 1000).toFixed(2)}s` : `${totalTurnLatencyMs} ms`;
 
             const flowNodes = [
               {
@@ -233,9 +235,16 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                 {/* Visual Architecture Flowchart */}
                 <div className="p-4 bg-slate-900/90 border border-white/10 rounded-2xl flex flex-col gap-3 shadow-xl">
                   <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-                    <span className="text-xs font-heading font-bold text-slate-200 flex items-center gap-1.5">
-                      <Activity size={15} className="text-sky-400" /> Interactive Architecture Flowchart
-                    </span>
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-xs font-heading font-bold text-slate-200 flex items-center gap-1.5">
+                        <Activity size={15} className="text-sky-400" /> Interactive Architecture Flowchart
+                      </span>
+                      {totalTurnLatencyMs > 0 && (
+                        <span className="text-[10.5px] font-mono font-bold text-emerald-300 bg-emerald-500/15 px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1 shadow-sm animate-fadeIn">
+                          ⏱️ Total End-to-End SLA: {totalSlaFormatted} ({totalTurnLatencyMs.toLocaleString()} ms)
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[10px] text-sky-400 font-medium bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-500/20">
                       Click any node below to inspect raw input/output
                     </span>

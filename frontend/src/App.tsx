@@ -199,16 +199,18 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
         const parts: string[] = sys.text.parts.filter((p: any) => typeof p === 'string' && p.trim().length > 0);
         if (parts.length === 0) continue;
 
-        // Check if this chunk is strictly a list of follow-up suggestion questions
-        const areAllSuggestions = parts.length >= 1 && parts.every((p: string) => {
-          const trimmed = p.trim().replace(/^[0-9]+[\.\)\-]\s*/, ""); // Strip bullet numbers
-          return trimmed.length > 3 &&
-                 trimmed.length < 160 &&
-                 !trimmed.includes('\n\n') &&
-                 !trimmed.toLowerCase().includes('select ') &&
-                 !trimmed.toLowerCase().includes('from ') &&
-                 (trimmed.endsWith('?') || /^(What|Which|Who|How|Can|Show|Find|List|Tell|Why|Where|Give|Explain|Are|Do|Does|Is|Summarize|Compare|Analyze|Describe|Get|Check|View|Identify|Calculate|Determine|Predict|Evaluate|Highlight|Explore|Break|Rank|Display|Present|Plot|Graph|Chart|Estimate|Detail|Provide|Review|Examine|Assess|Trace|Forecast|Investigate|Name|Outline)\b/i.test(trimmed));
-        });
+        // Check if this chunk is strictly a list of follow-up suggestion questions (only if answer text already exists or explicit type)
+        const isExplicitSuggestionType = sys.type === "suggestions" || sys.isSuggestions;
+        const areAllSuggestions = (isExplicitSuggestionType || (narrativeChunks.length > 0 && i === turnSystemMsgs.length - 1)) &&
+          parts.length >= 1 && parts.every((p: string) => {
+            const trimmed = p.trim().replace(/^[0-9]+[\.\)\-]\s*/, ""); // Strip bullet numbers
+            return trimmed.length > 3 &&
+                   trimmed.length < 160 &&
+                   !trimmed.includes('\n\n') &&
+                   !trimmed.toLowerCase().includes('select ') &&
+                   !trimmed.toLowerCase().includes('from ') &&
+                   (trimmed.endsWith('?') || /^(What|Which|Who|How|Can|Show|Find|List|Tell|Why|Where|Give|Explain|Are|Do|Does|Is|Summarize|Compare|Analyze|Describe|Get|Check|View|Identify|Calculate|Determine|Predict|Evaluate|Highlight|Explore|Break|Rank|Display|Present|Plot|Graph|Chart|Estimate|Detail|Provide|Review|Examine|Assess|Trace|Forecast|Investigate|Name|Outline)\b/i.test(trimmed));
+          });
         if (areAllSuggestions) {
           currentSystemMsg.suggestions.push(...parts.map((p: string) => p.trim().replace(/^[0-9]+[\.\)\-]\s*/, "")));
           continue;

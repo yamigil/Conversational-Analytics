@@ -132,10 +132,26 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
             const spanTool = traceData.spans.find(s => s.name === "tool_intercept");
 
             const activeTurn = selectedTurnIndex !== null && traceData.turns && traceData.turns[selectedTurnIndex] ? traceData.turns[selectedTurnIndex] : null;
+            const sessionTurns = traceData.turns && traceData.turns.length > 0 ? traceData.turns : [];
 
-            const llmLatencyMs = activeTurn ? (activeTurn.llm_latency_ms || activeTurn.latency_ms || 0) : (spanLlm?.latency_ms || spanRoot?.latency_ms || 0);
-            const toolLatencyMs = activeTurn ? (activeTurn.tool_latency_ms || 0) : (spanTool?.latency_ms || 0);
-            const totalTurnLatencyMs = activeTurn ? (activeTurn.latency_ms || (llmLatencyMs + toolLatencyMs)) : (llmLatencyMs + toolLatencyMs);
+            const llmLatencyMs = activeTurn 
+              ? (activeTurn.llm_latency_ms || activeTurn.latency_ms || 0) 
+              : (sessionTurns.length > 0 
+                  ? sessionTurns.reduce((acc, t) => acc + (t.llm_latency_ms || t.latency_ms || 0), 0)
+                  : (spanLlm?.latency_ms || spanRoot?.latency_ms || 0));
+
+            const toolLatencyMs = activeTurn 
+              ? (activeTurn.tool_latency_ms || 0) 
+              : (sessionTurns.length > 0 
+                  ? sessionTurns.reduce((acc, t) => acc + (t.tool_latency_ms || 0), 0)
+                  : (spanTool?.latency_ms || 0));
+
+            const totalTurnLatencyMs = activeTurn 
+              ? (activeTurn.latency_ms || (llmLatencyMs + toolLatencyMs)) 
+              : (sessionTurns.length > 0 
+                  ? sessionTurns.reduce((acc, t) => acc + (t.latency_ms || ((t.llm_latency_ms || 0) + (t.tool_latency_ms || 0))), 0)
+                  : (llmLatencyMs + toolLatencyMs));
+
             const totalSlaFormatted = totalTurnLatencyMs >= 1000 ? `${(totalTurnLatencyMs / 1000).toFixed(2)}s` : `${totalTurnLatencyMs} ms`;
 
             const flowNodes = [

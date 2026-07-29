@@ -3546,13 +3546,15 @@ const App: React.FC = () => {
                   let currentTurnObj: { question: string; sysMsgs: any[] } | null = null;
                   messages.forEach((m: any) => {
                     if (m.userMessage && m.userMessage.text) {
-                      currentTurnObj = { question: m.userMessage.text, sysMsgs: [] };
+                      currentTurnObj = { question: m.userMessage.text, sysMsgs: m.systemMessage ? [m.systemMessage] : [] };
                       schemaTurns.push(currentTurnObj);
-                    } else if (m.systemMessage && currentTurnObj) {
-                      currentTurnObj.sysMsgs.push(m.systemMessage);
-                    } else if (m.systemMessage && !currentTurnObj) {
-                      currentTurnObj = { question: "Initial Session Overview", sysMsgs: [m.systemMessage] };
-                      schemaTurns.push(currentTurnObj);
+                    } else if (m.systemMessage) {
+                      if (currentTurnObj) {
+                        currentTurnObj.sysMsgs.push(m.systemMessage);
+                      } else {
+                        currentTurnObj = { question: "Initial Session Overview", sysMsgs: [m.systemMessage] };
+                        schemaTurns.push(currentTurnObj);
+                      }
                     }
                   });
 

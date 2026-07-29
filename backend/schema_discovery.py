@@ -103,50 +103,15 @@ def get_table_specific_suggestions(table_name: str, agent_name: str = "") -> lis
     except Exception as ex:
         logger.debug(f"Dynamic table suggestion generation fallback for {table_name}: {ex}")
 
-    # 2. Semantic intent heuristics (offline/fallback only)
-    if any(k in clean_name for k in ["order", "sale", "trans", "invoice", "deal", "visit"]):
-        res = [
-            f"What are our total sales and volumes from {clean_name} this month?",
-            f"Show me the daily trend of transactions in the {clean_name} table.",
-            f"What is the distribution of transaction status or categories in {clean_name}?"
-        ]
-        _TABLE_SUGGESTIONS_CACHE[cache_key] = res
-        return res
-        
-    if any(k in clean_name for k in ["product", "item", "inventory", "stock", "part", "vehicle"]):
-        return [
-            f"What are the top 10 most common or high-value items in the {clean_name} table?",
-            f"How is our catalog of {clean_name} distributed across different categories?",
-            f"Show me the average pricing, retail value, or costs inside the {clean_name} table."
-        ]
-        
-    if any(k in clean_name for k in ["user", "customer", "profile", "client", "member"]):
-        return [
-            f"What is the distribution of {clean_name} by region, country, or traffic source?",
-            f"Can we see the growth trend of new signups in the {clean_name} table over time?",
-            f"What are the most active and high-value records in the {clean_name} table?"
-        ]
-        
-    if any(k in clean_name for k in ["event", "session", "click", "page", "log", "activity"]):
-        return [
-            f"What is the total count of activities and events in the {clean_name} table?",
-            f"Which traffic channels or action types are most common in the {clean_name} logs?",
-            f"Show me the daily trend of website activities from {clean_name} for the last 30 days."
-        ]
-        
-    if any(k in clean_name for k in ["marketing", "spend", "ad", "campaign", "actual", "cost"]):
-        return [
-            f"What is the sum of costs, impressions, and clicks in the {clean_name} campaigns?",
-            f"Calculate the average click-through rate (CTR) and return on investment (ROI) in {clean_name}.",
-            f"Compare the daily performance and conversion trends from the {clean_name} table."
-        ]
-
-    # Default fallback for custom/unknown tables
-    return [
-        f"Show me a detailed summary and column types of the {clean_name} table.",
-        f"What are the top 10 most recent records from the {clean_name} table?",
-        f"Can you show me the count of records grouped by the primary columns in {clean_name}?"
+    # 2. Dynamic string interpolation fallback (offline/rate-limited fallback)
+    clean_label = clean_name.replace("_", " ").title()
+    res = [
+        f"What are the top 10 records and main columns inside the {clean_label} table?",
+        f"Can you show me the total record count and daily activity trends for {clean_label}?",
+        f"What is the distribution of key categories and statuses across {clean_label}?"
     ]
+    _TABLE_SUGGESTIONS_CACHE[cache_key] = res
+    return res
 
 # In-memory caches to guarantee sub-millisecond response times for database metadata scans
 _PROJECT_GRAPHS_CACHE = {}

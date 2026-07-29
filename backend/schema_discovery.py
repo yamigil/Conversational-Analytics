@@ -352,7 +352,7 @@ def discover_bq_graph_schema(project_id: str, dataset_id: str) -> Optional[dict]
         # Ensure every node has rich suggestions (custom Gemini suggestions or domain-tailored presets)
         domain_presets = {
             "customer": [
-                "What is the total lifetime value and financing history of our top Penske customers?",
+                "What is the total lifetime value and financing history of our top customers?",
                 "Which customers have overdue vehicle service reminders or multiple vehicles?",
                 "Show me customer profiles segmented by repair spend and service visit frequency."
             ],

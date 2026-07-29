@@ -251,6 +251,11 @@ const groupConversationalMessages = (rawMessages: ChatMessage[]): ChatMessage[] 
       currentSystemMsg.answer = currentSystemMsg.insights;
     }
 
+    // Critical Shield: if answer is STILL empty but narrative text chunks were streamed, populate answer with narrativeChunks so the response bubble is NEVER blank!
+    if (!currentSystemMsg.answer && narrativeChunks.length > 0) {
+      currentSystemMsg.answer = narrativeChunks.map(parts => parts.join("\n\n")).join("\n\n").trim();
+    }
+
     const hasContent = Boolean(
       currentSystemMsg.answer ||
       currentSystemMsg.insights ||
@@ -2423,11 +2428,12 @@ const App: React.FC = () => {
       }
       setStreamingMessages([]);
 
-      // Sync with official persisted GCP database history with a 1500ms delay so GCP finishes writing the stream to storage
+      // Immediately sync with official persisted GCP database history so the UI is 100% complete with no empty bubbles
       if (activeConvo && !isInstantSandbox) {
+        fetchMessages(activeConvo);
         setTimeout(async () => {
           await fetchMessages(activeConvo);
-        }, 1500);
+        }, 1000);
       }
 
     } catch (err) {

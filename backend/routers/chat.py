@@ -122,7 +122,7 @@ def chat(req: ChatRequestModel, user: dict = Depends(get_current_user), client: 
                 llm_ms = int(total_ms * 0.65)
                 schema_ms = int(total_ms * 0.25)
                 tool_ms = max(50, total_ms - llm_ms - schema_ms)
-                trace_key = req.conversation_name or "free_form_session"
+                trace_key = req.conversation_name or (f"free_form_{req.inline_table_id}" if req.inline_table_id else "free_form_session")
                 
                 if trace_key not in SESSION_TRACE_TIMINGS or not isinstance(SESSION_TRACE_TIMINGS[trace_key], dict):
                     SESSION_TRACE_TIMINGS[trace_key] = {}
@@ -354,35 +354,20 @@ def get_trace_session(
         except Exception as ex:
             logger.warning(f"Could not extract live system instruction for trace: {ex}")
 
-        if conversation_name not in SESSION_TRACE_TIMINGS and len(msgs) == 0 and conversation_name != "free_form_session" and "inline" not in str(conversation_name):
+        if not formatted_turns:
             return {
                 "conversation_name": conversation_name,
+                "turns": [],
                 "spans": []
             }
 
-        timings = SESSION_TRACE_TIMINGS.get(conversation_name) or SESSION_TRACE_TIMINGS.get("free_form_session") or SESSION_TRACE_TIMINGS.get(None) or {
-            "invoke_agent": 1350,
+        timings = SESSION_TRACE_TIMINGS.get(conversation_name) or SESSION_TRACE_TIMINGS.get("free_form_session") or {
+            "invoke_agent": 1240,
             "schema_discovery": 310,
             "call_llm": 890,
             "tool_intercept": 150,
-            "mode": "Free Form Mode",
-            "executed_sqls": ["SELECT agent, event_type, COUNT(*) FROM `agent_events` GROUP BY agent, event_type"],
-            "last_sql": "SELECT agent, event_type, COUNT(*) FROM `agent_events` GROUP BY agent, event_type",
-            "rows_returned": 5,
-            "bytes_billed": 10485760,
-            "tables_referenced": [f"{get_project_id()}.agent_analytics.agent_events"]
+            "mode": "Free Form Mode"
         }
-
-        if len(msgs) == 0 and timings:
-            if not executed_sqls and timings.get("executed_sqls"):
-                executed_sqls = timings.get("executed_sqls")
-                last_sql = timings.get("last_sql", executed_sqls[-1])
-            if not tables_list and timings.get("tables_referenced"):
-                tables_list = timings.get("tables_referenced")
-            if total_rows_returned == 0 and timings.get("rows_returned"):
-                total_rows_returned = timings["rows_returned"]
-            if total_bytes_billed == 0 and timings.get("bytes_billed"):
-                total_bytes_billed = timings["bytes_billed"]
 
         is_free_form = (conversation_name == "free_form_session" or "inline" in str(conversation_name) or timings.get("mode") == "Free Form Mode" or cached_session.get("inline_table_id"))
         mode_str = "Free Form Mode" if is_free_form else "Data Agent Mode"

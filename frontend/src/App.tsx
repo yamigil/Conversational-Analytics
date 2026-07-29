@@ -4685,7 +4685,8 @@ const App: React.FC = () => {
       <RightPanel 
         isOpen={isRightPanelOpen} 
         onClose={() => setIsRightPanelOpen(false)} 
-        conversationName={selectedConvo || "free_form_session"} 
+        conversationName={selectedConvo || (inlineTableId ? `free_form_${inlineTableId}` : "free_form_session")} 
+        messagesLength={messages.length}
       />
 
       {/* Reference Architecture Modal overlay */}

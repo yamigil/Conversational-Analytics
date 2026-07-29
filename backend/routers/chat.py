@@ -123,6 +123,20 @@ def chat(req: ChatRequestModel, user: dict = Depends(get_current_user), client: 
                 schema_ms = int(total_ms * 0.25)
                 tool_ms = max(50, total_ms - llm_ms - schema_ms)
                 trace_key = req.conversation_name or "free_form_session"
+                
+                if trace_key not in SESSION_TRACE_TIMINGS or not isinstance(SESSION_TRACE_TIMINGS[trace_key], dict):
+                    SESSION_TRACE_TIMINGS[trace_key] = {}
+                
+                turns_history = SESSION_TRACE_TIMINGS[trace_key].get("turns_history", [])
+                turns_history.append({
+                    "total_ms": total_ms,
+                    "llm_ms": llm_ms,
+                    "tool_ms": tool_ms,
+                    "executed_sqls": executed_sqls,
+                    "rows_returned": total_rows,
+                    "bytes_billed": total_bytes
+                })
+                
                 timing_data = {
                     "invoke_agent": total_ms,
                     "schema_discovery": schema_ms,
@@ -135,7 +149,8 @@ def chat(req: ChatRequestModel, user: dict = Depends(get_current_user), client: 
                     "last_sql": executed_sqls[-1] if executed_sqls else None,
                     "rows_returned": total_rows,
                     "bytes_billed": total_bytes,
-                    "tables_referenced": list(tables_ref)
+                    "tables_referenced": list(tables_ref),
+                    "turns_history": turns_history
                 }
                 SESSION_TRACE_TIMINGS[trace_key] = timing_data
                 SESSION_TRACE_TIMINGS["free_form_session"] = timing_data
@@ -266,15 +281,36 @@ def get_trace_session(
 
         last_sql = executed_sqls[-1] if executed_sqls else "No SQL query executed in this turn (Schema / Reasoning response)"
         tables_list = list(tables_referenced)
+        cached_session_data = SESSION_TRACE_TIMINGS.get(conversation_name, {})
+        cached_turns_history = cached_session_data.get("turns_history", []) if isinstance(cached_session_data, dict) else []
+
         formatted_turns = []
-        for t in turns_list:
+        for idx, t in enumerate(turns_list):
+            t_timing = cached_turns_history[idx] if idx < len(cached_turns_history) else {}
+            t_llm_ms = t_timing.get("llm_ms")
+            t_tool_ms = t_timing.get("tool_ms")
+            t_total_ms = t_timing.get("total_ms")
+            
+            # Fallback for historical sessions without cached turn history
+            if not t_llm_ms:
+                overall_llm = cached_session_data.get("call_llm", 12000) if isinstance(cached_session_data, dict) else 12000
+                t_llm_ms = int(overall_llm / max(1, len(turns_list)))
+            if not t_tool_ms:
+                overall_tool = cached_session_data.get("tool_intercept", 2500) if isinstance(cached_session_data, dict) else 2500
+                t_tool_ms = int(overall_tool / max(1, len(turns_list)))
+            if not t_total_ms:
+                t_total_ms = t_llm_ms + t_tool_ms
+
             formatted_turns.append({
                 "turn_index": t["turn_index"],
                 "question": t["question"],
                 "executed_sqls": t["executed_sqls"],
                 "rows_returned": t["rows_returned"],
                 "bytes_billed": t["bytes_billed"],
-                "tables_referenced": list(t["tables_referenced"])
+                "tables_referenced": list(t["tables_referenced"]),
+                "latency_ms": t_total_ms,
+                "llm_latency_ms": t_llm_ms,
+                "tool_latency_ms": t_tool_ms
             })
         
         real_sys_inst = "Dynamic Conversational Analytics Agent Instructions (Managed RAG Context)"

@@ -22,6 +22,9 @@ interface TraceTurn {
   rows_returned: number;
   bytes_billed: number;
   tables_referenced: string[];
+  latency_ms?: number;
+  llm_latency_ms?: number;
+  tool_latency_ms?: number;
 }
 
 interface TraceSessionData {
@@ -129,7 +132,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
             const spanTool = traceData.spans.find(s => s.name === "tool_intercept");
 
             const activeTurn = selectedTurnIndex !== null && traceData.turns && traceData.turns[selectedTurnIndex] ? traceData.turns[selectedTurnIndex] : null;
-            const totalTurnLatencyMs = (spanLlm?.latency_ms || spanRoot?.latency_ms || 0) + (spanTool?.latency_ms || 0);
+
+            const llmLatencyMs = activeTurn ? (activeTurn.llm_latency_ms || activeTurn.latency_ms || 0) : (spanLlm?.latency_ms || spanRoot?.latency_ms || 0);
+            const toolLatencyMs = activeTurn ? (activeTurn.tool_latency_ms || 0) : (spanTool?.latency_ms || 0);
+            const totalTurnLatencyMs = activeTurn ? (activeTurn.latency_ms || (llmLatencyMs + toolLatencyMs)) : (llmLatencyMs + toolLatencyMs);
             const totalSlaFormatted = totalTurnLatencyMs >= 1000 ? `${(totalTurnLatencyMs / 1000).toFixed(2)}s` : `${totalTurnLatencyMs} ms`;
 
             const flowNodes = [
@@ -156,7 +162,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                 label: "🧠 Conversational Analytics Engine",
                 sub: "Gemini 2.5 & Reasoning",
                 icon: <Cpu size={22} className="text-emerald-400" />,
-                time: `${spanLlm?.latency_ms || spanRoot?.latency_ms || 0} ms`,
+                time: `${llmLatencyMs} ms`,
                 color: "border-emerald-500/50 bg-emerald-500/15 text-emerald-300",
                 input: {
                   turn_selected: activeTurn ? `Turn ${activeTurn.turn_index}` : "Full Session Summary",
@@ -180,7 +186,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                 label: "🗄️ BigQuery Engine",
                 sub: "execute_sql_query",
                 icon: <Database size={22} className="text-amber-400" />,
-                time: `${spanTool?.latency_ms || 0} ms`,
+                time: `${toolLatencyMs} ms`,
                 color: "border-amber-500/50 bg-amber-500/15 text-amber-300",
                 input: {
                   tool_name: "execute_sql_query",

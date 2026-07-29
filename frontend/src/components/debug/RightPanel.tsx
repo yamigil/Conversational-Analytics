@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Activity, Database, RefreshCw, X, Maximize2, Minimize2, User, Cpu, Layers } from "lucide-react";
+import { Activity, Database, RefreshCw, X, Maximize2, Minimize2, User, Cpu } from "lucide-react";
 import { authenticatedFetch } from "../../utils/api";
 
 interface TraceSpan {
@@ -129,8 +129,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
             const spanTool = traceData.spans.find(s => s.name === "tool_intercept");
 
             const activeTurn = selectedTurnIndex !== null && traceData.turns && traceData.turns[selectedTurnIndex] ? traceData.turns[selectedTurnIndex] : null;
-            const isFreeForm = spanRoot?.metadata?.mode === "Free Form Mode" || spanSchema?.metadata?.mode === "Free Form Mode";
-            const totalTurnLatencyMs = (spanSchema?.latency_ms || 0) + (spanLlm?.latency_ms || spanRoot?.latency_ms || 0) + (spanTool?.latency_ms || 0);
+            const totalTurnLatencyMs = (spanLlm?.latency_ms || spanRoot?.latency_ms || 0) + (spanTool?.latency_ms || 0);
             const totalSlaFormatted = totalTurnLatencyMs >= 1000 ? `${(totalTurnLatencyMs / 1000).toFixed(2)}s` : `${totalTurnLatencyMs} ms`;
 
             const flowNodes = [
@@ -141,18 +140,16 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                 icon: <User size={22} className="text-sky-400" />,
                 time: "Start",
                 color: "border-sky-500/50 bg-sky-500/15 text-sky-300",
-                input: { action: "Submit Chat Prompt / Free Form SQL", client: "React Dashboard v0.13.1", auth_mode: spanRoot?.metadata?.auth_mode || "Bearer Token / ADC", turn_selected: activeTurn ? `Turn ${activeTurn.turn_index}: ${activeTurn.question}` : "Full Session Summary" },
-                output: { event_stream: "Server-Sent Events (SSE)", messages_inspected: spanRoot?.metadata?.messages_inspected || 0 }
-              },
-              {
-                id: "agent_context",
-                label: isFreeForm ? "⚡ Free Form Mode" : "🤖 Data Agent Engine",
-                sub: isFreeForm ? "Inline Schema Context" : "RAG Hybrid Search",
-                icon: <Layers size={22} className="text-purple-400" />,
-                time: `${spanSchema?.latency_ms || 0} ms`,
-                color: "border-purple-500/50 bg-purple-500/15 text-purple-300",
-                input: { agent_id: spanRoot?.metadata?.agent_id || "inline_context", retrieval_strategy: spanSchema?.metadata?.retrieval_strategy || "Hybrid Vector + Keyword Search" },
-                output: { active_tables: activeTurn ? (activeTurn.tables_referenced.length > 0 ? activeTurn.tables_referenced : (spanSchema?.metadata?.tables_referenced || ["Dynamic Agent Context"])) : (spanSchema?.metadata?.tables_referenced || ["Dynamic Agent Context"]), grounding_status: "Validated against BigQuery INFORMATION_SCHEMA" }
+                input: {
+                  action: "Submit Chat Prompt / Free Form SQL",
+                  client: "React Dashboard v0.13.1",
+                  auth_mode: spanRoot?.metadata?.auth_mode || "Bearer Token / ADC",
+                  turn_selected: activeTurn ? `Turn ${activeTurn.turn_index}: ${activeTurn.question}` : "Full Session Summary"
+                },
+                output: {
+                  event_stream: "Server-Sent Events (SSE)",
+                  messages_inspected: spanRoot?.metadata?.messages_inspected || 0
+                }
               },
               {
                 id: "ca_engine",
@@ -162,15 +159,18 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                 time: `${spanLlm?.latency_ms || spanRoot?.latency_ms || 0} ms`,
                 color: "border-emerald-500/50 bg-emerald-500/15 text-emerald-300",
                 input: {
+                  turn_selected: activeTurn ? `Turn ${activeTurn.turn_index}` : "Full Session Summary",
+                  user_question: activeTurn ? activeTurn.question : "Session Summary",
                   conversation_name: traceData.conversation_name,
-                  stream: true,
-                  ...(spanLlm?.request_payload || { system_instruction: "Loading instructions...", temperature: 0.2, top_p: 0.95 }),
                   active_tables: activeTurn ? (activeTurn.tables_referenced.length > 0 ? activeTurn.tables_referenced : (spanSchema?.metadata?.tables_referenced || ["Dynamic Agent Context"])) : (spanSchema?.metadata?.tables_referenced || ["Dynamic Agent Context"]),
-                  active_question: activeTurn ? activeTurn.question : "Session Summary"
+                  temperature: 0.2,
+                  top_p: 0.95,
+                  system_instruction: spanLlm?.request_payload?.system_instruction || "The agent has access to BigQuery tables to answer analytics questions."
                 },
                 output: {
+                  turn_selected: activeTurn ? `Turn ${activeTurn.turn_index}` : "Full Session Summary",
                   sql_generated: activeTurn ? (activeTurn.executed_sqls[activeTurn.executed_sqls.length - 1] || "No SQL generated in this turn") : (spanLlm?.response_payload?.sql_generated || "No SQL generated"),
-                  all_sqls_executed: activeTurn ? activeTurn.executed_sqls : spanLlm?.response_payload?.all_sqls_executed_in_turn,
+                  all_sqls_executed_in_turn: activeTurn ? activeTurn.executed_sqls : (spanLlm?.response_payload?.all_sqls_executed_in_turn || []),
                   session_state: "Persisted in Google Cloud Conversational Analytics Service",
                   status: spanRoot?.status || "COMPLETED"
                 }
@@ -182,8 +182,13 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
                 icon: <Database size={22} className="text-amber-400" />,
                 time: `${spanTool?.latency_ms || 0} ms`,
                 color: "border-amber-500/50 bg-amber-500/15 text-amber-300",
-                input: { tool_name: "execute_sql_query", sql_query: activeTurn ? (activeTurn.executed_sqls[activeTurn.executed_sqls.length - 1] || "SELECT ...") : (spanLlm?.response_payload?.sql_generated || "SELECT ...") },
+                input: {
+                  tool_name: "execute_sql_query",
+                  turn_selected: activeTurn ? `Turn ${activeTurn.turn_index}` : "Full Session Summary",
+                  sql_query: activeTurn ? (activeTurn.executed_sqls[activeTurn.executed_sqls.length - 1] || "SELECT ...") : (spanLlm?.response_payload?.sql_generated || "SELECT ...")
+                },
                 output: {
+                  turn_selected: activeTurn ? `Turn ${activeTurn.turn_index}` : "Full Session Summary",
                   rows_returned: activeTurn ? activeTurn.rows_returned : (spanTool?.metadata?.rows_returned || 0),
                   bytes_billed: activeTurn ? activeTurn.bytes_billed : (spanTool?.metadata?.bytes_billed || 0),
                   mb_billed: `${Math.round(((activeTurn ? activeTurn.bytes_billed : (spanTool?.metadata?.bytes_billed || 0)) / 1024 / 1024) * 100) / 100} MB`,
@@ -192,7 +197,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ isOpen, onClose, convers
               }
             ];
 
-            const activeNodeObj = flowNodes.find(n => n.id === selectedFlowNode) || flowNodes[2];
+            const activeNodeObj = flowNodes.find(n => n.id === selectedFlowNode) || flowNodes[1];
 
             return (
               <div className="flex flex-col gap-5">

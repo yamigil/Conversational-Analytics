@@ -89,19 +89,6 @@ def get_project_id() -> str:
     except Exception as e:
         logger.warning(f"Could not resolve project ID via google.auth.default: {e}")
 
-    # 4. Try loading from Streamlit secrets file of quickstarts if present
-    quickstart_secrets = os.path.expanduser("~/Documents/Google/Conversational_Analytics/ca-api-quickstarts/.streamlit/secrets.toml")
-    if os.path.exists(quickstart_secrets):
-        try:
-            import toml
-            secrets = toml.load(quickstart_secrets)
-            project_id = secrets.get("cloud", {}).get("project_id")
-            if project_id:
-                logger.info(f"Loaded Project ID from quickstart secrets: {project_id}")
-                return project_id
-        except Exception as e:
-            logger.warning(f"Could not load project_id from quickstart secrets: {e}")
-
     # Fallback exception (raising an error if no project ID can be resolved)
     logger.error("No project ID could be resolved from environment or configuration.")
     raise RuntimeError("GCP Project ID not configured. Please set the GCP_PROJECT_ID environment variable or specify it in branding.json.")
